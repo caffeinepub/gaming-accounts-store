@@ -1,26 +1,62 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Fix admin panel username entry form — silent submit with no feedback",
+  "title": "Fix AdminAccessControl permanent connecting spinner",
   "requirements": [
     {
-      "id": "REQ-95",
-      "summary": "Rewrite the form submission handler in AdminAccessControl.tsx to fix silent submission behavior, add proper form semantics, loading states, error handling, and retry functionality while preserving the sunset theme",
+      "id": "REQ-102",
+      "summary": "Rewrite AdminAccessControl with self-contained manual username gate that polls actor readiness with 10-second timeout",
       "acceptanceCriteria": [
-        "Pressing Enter in the username input field triggers form submission without requiring a mouse click on the button",
-        "Clicking the Submit button also triggers form submission",
-        "A loading spinner or disabled state is visible on the button while the `isAdminUsername` backend call is in-flight",
-        "If the backend returns `true`, the admin panel content (children) is rendered immediately",
-        "If the backend returns `false`, the AccessDeniedScreen is rendered with an access-denied message",
-        "If the backend call throws an error, an inline error message is displayed beneath the input field — no silent failure",
-        "The form never silently does nothing; every submission path has visible feedback",
-        "The retry option on AccessDeniedScreen resets the component back to the username entry form"
+        "Navigating to /admin never results in a permanent spinning loader — within 10 seconds the username entry form appears or an error message is shown",
+        "If the actor is unavailable after 10 seconds, the message 'Unable to connect to the server. Please refresh the page and try again.' is displayed instead of a spinner",
+        "If the actor is available, the username entry form renders immediately without waiting for Internet Identity authentication state",
+        "Submitting a whitelisted username (e.g. 'Frosty') grants access and renders the admin panel tab content",
+        "Submitting a non-whitelisted username renders AccessDeniedScreen",
+        "Pressing Enter in the username input triggers the same submission as clicking the Submit button",
+        "Any backend error during the isAdminUsername call is displayed inline below the input field",
+        "The retry/back option on AccessDeniedScreen returns the user to the username entry form",
+        "The sunset theme (dusk-bg/dusk-mid backgrounds, sunset-gold/sunset-orange accent colours, Orbitron/Rajdhani fonts) is applied to the form"
       ],
       "file_operations": [
         {
           "path": "frontend/src/components/AdminAccessControl.tsx",
           "operation": "modify",
-          "description": "Rewrite the form submission handler to use proper HTML form semantics: (1) Change the root element from a div with onClick to a <form> element with an onSubmit handler that calls event.preventDefault(); (2) Set the Submit button type to 'submit' so both Enter key in the input and button clicks invoke the same handler; (3) Add local loading state (useState) that is set to true when the backend call starts and false when it resolves or rejects; (4) Disable the input and button while loading is true; (5) Add a loading spinner or 'Verifying...' text on the button during the in-flight state; (6) Wrap the backend isAdminUsername call in a try/catch block; (7) On successful response of true, transition local status to 'granted' and render children; (8) On successful response of false, transition local status to 'denied' and render AccessDeniedScreen; (9) On caught error, display an inline error message beneath the input field using a <p> element with sunset-themed error styling (e.g., text-sunset-orange or text-red-400); (10) Ensure the AccessDeniedScreen retry/back option resets the local status state back to the initial form state so the user can re-enter their username; (11) Preserve all existing sunset theme styling (dusk-bg/dusk-mid backgrounds, sunset-gold/sunset-orange accents, Orbitron/Rajdhani fonts, sunset glow effects) on the form, input, button, and error message. Verify the component's usage instructions before implementing."
+          "description": "Completely rewrite the component with a local status state machine ('connecting' | 'form' | 'checking' | 'granted' | 'denied' | 'timeout') that polls the actor from useActor with a 10-second timeout. On mount, check actor availability every 200ms for up to 10 seconds; if actor becomes available, immediately transition to 'form' state and render a styled username entry form with heading 'Admin Access', text input labelled 'Enter your username', and submit button. Handle form submission with preventDefault, transition to 'checking', call actor.isAdminUsername with the typed username, and transition to 'granted' (render children) or 'denied' (render AccessDeniedScreen) based on the boolean result. Catch and display any thrown errors inline below the input. If actor is not ready after 10 seconds, transition to 'timeout' and display 'Unable to connect to the server. Please refresh the page and try again.' Ensure AccessDeniedScreen's retry/back option resets status to 'form'. Apply sunset theme styling (dusk-bg/dusk-mid backgrounds, sunset-gold/sunset-orange accents, Orbitron/Rajdhani fonts, sunset glow effects) to all rendered states. Do not depend on Internet Identity authentication state or React Query hooks for control flow."
+        }
+      ]
+    },
+    {
+      "id": "REQ-103",
+      "summary": "Strip all internal async gates and loading states from AdminPanelPage so it renders immediately once AdminAccessControl grants access",
+      "acceptanceCriteria": [
+        "AdminPanelPage.tsx contains no calls to isAdminUsername, no useEffect that gates rendering, and no loading/verifying state variables",
+        "Once AdminAccessControl renders its children, all tabs (Products, Orders, Payments, Admins, Subscriptions, Settings) are immediately visible",
+        "The default active tab is 'Products' or the first tab in the list",
+        "The admin panel content never enters a perpetual loading state after AdminAccessControl grants access"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/pages/AdminPanelPage.tsx",
+          "operation": "modify",
+          "description": "Audit the component and remove any internal isAdminUsername calls, useEffect checks that gate rendering, loading/verifying state variables, or async authorization logic. Ensure the tabbed content (Products, Orders, Payments, Admins, Subscriptions, Settings) renders immediately and unconditionally when the component mounts. Set the default active tab to 'Products'. Confirm no code path can produce an independent perpetual loading or spinner state after AdminAccessControl has already granted access."
+        }
+      ]
+    },
+    {
+      "id": "REQ-104",
+      "summary": "Audit useActor hook to ensure correct production agent host and synchronous actor availability",
+      "acceptanceCriteria": [
+        "The actor hook uses https://ic0.app as the agent host in production builds",
+        "The canister ID is resolved from the correct source (environment variable or DFX-generated declarations)",
+        "The actor is available to AdminAccessControl.tsx within the 10-second window defined in REQ-102",
+        "Initialisation errors are surfaced to a readable state so consumers can detect when the actor is unavailable",
+        "The actor re-creates correctly when the user logs in or logs out via Internet Identity"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/hooks/useActor.ts",
+          "operation": "modify",
+          "description": "Verify the agent host is set to https://ic0.app for production builds (check environment variable or build mode detection). Confirm the canister ID is resolved from the correct environment variable or DFX-generated declarations file. Ensure the actor is created and exposed synchronously or with minimal async delay so consumers (AdminAccessControl) can poll it successfully within 10 seconds. Surface any initialization errors to a readable error state that components can check. Verify the hook correctly re-creates the actor on identity changes (login/logout) and invalidates dependent React Query caches. Do not add new backend capabilities; focus on ensuring the actor is available reliably in production."
         }
       ]
     }

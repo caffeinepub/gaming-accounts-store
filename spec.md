@@ -1,16 +1,12 @@
 # Specification
 
 ## Summary
-**Goal:** Fix the admin panel username entry form in `AdminAccessControl.tsx` so that it no longer silently does nothing on Enter key press or Submit button click, and provides proper feedback for all submission outcomes.
+**Goal:** Fix the permanent "connecting" spinner on the Admin panel by rewriting the admin access control flow, stripping redundant loading states from the admin page, and ensuring the backend actor initialises correctly in production.
 
 **Planned changes:**
-- Wrap the form in a `<form>` element with an `onSubmit` handler; change the Submit button to `type="submit"` so both Enter key and button click trigger submission
-- Call `event.preventDefault()` in the handler to prevent page reload, then invoke `isAdminUsername` with the typed username
-- Add a local loading/spinner state that is active while the backend call is in-flight
-- On backend returning `true`, transition status to `'granted'` and render children
-- On backend returning `false`, transition status to `'denied'` and render `AccessDeniedScreen`
-- Catch any thrown errors in a try/catch and display an inline error message beneath the input field
-- Ensure the retry/back option on `AccessDeniedScreen` resets status back to the initial form state
-- Preserve the existing sunset theme styling (dusk-bg/dusk-mid backgrounds, sunset-gold/sunset-orange accents, Orbitron/Rajdhani fonts)
+- Rewrite `AdminAccessControl.tsx` with a self-contained local `status` state (`'connecting' | 'form' | 'checking' | 'granted' | 'denied' | 'timeout'`) that polls actor availability on mount, transitions to the username entry form as soon as the actor is ready, and shows a timeout error message after 10 seconds instead of spinning indefinitely
+- The username entry form renders with a heading, labelled text input, and submit button; both Enter key and button click trigger submission; backend errors are displayed inline; `AccessDeniedScreen` retry resets to `'form'`; sunset theme applied throughout
+- Audit and strip `AdminPanelPage.tsx` of any internal `isAdminUsername` calls, `useEffect` gates, loading/verifying states, or spinner logic — the page renders all tabs (Products, Orders, Payments, Admins, Subscriptions, Settings) immediately and unconditionally once `AdminAccessControl` grants access, with "Products" as the default tab
+- Audit `useActor.ts` to ensure the agent host is `https://ic0.app` in production, the canister ID resolves from the correct source, initialisation errors are surfaced to consumers, and the actor re-creates correctly on login/logout
 
-**User-visible outcome:** Pressing Enter or clicking Submit in the admin username form always produces visible feedback — a loading indicator while checking, access granted or denied screens on result, and an inline error message if something goes wrong — with no more silent failures.
+**User-visible outcome:** Navigating to `/admin` will either show the username entry form within seconds (when the actor is available) or display a clear error message after 10 seconds — the permanent spinning loader will no longer occur.

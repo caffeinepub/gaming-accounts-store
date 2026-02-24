@@ -1,6 +1,6 @@
 {
   "schemaVersion": "1.0.0",
-  "projectStateVersion": 53,
+  "projectStateVersion": 59,
   "summary": "A Shopify-style gaming accounts e-commerce store called Game Vault with a loading screen that features a royalty-free New York sunset video (sourced from a public CDN such as Pexels or Pixabay) playing as the background, replacing the previous 3D Three.js scene entirely. The loading screen enforces a minimum 40-second wait with a 'Game Vault' gradient text (red → purple → orange) progress reveal effect and an 'Enter Store' button that unlocks after 40 seconds. Store sells gaming accounts starting with Car Parking Multiplayer. Features full admin panel, user authentication via Internet Identity, and checkout flows for PayPal, Crypto, UK Gift Cards, and Pay in 3 Installments. The storefront logo has been removed and the 'Game Vault' site name displays a red → purple → orange 3-tone gradient across navbar, footer, loading screen, and all instances. Users must create a unique username (no spaces) on first login before accessing the store; username is used for purchases (order confirmations show username, email, contact info, and product purchased) and for admin panel access control. Admin Panel link is visible to all users in the navbar but only whitelisted usernames can enter. The admin panel gate now requires the user to manually type their username into an input field; the typed username is checked against the backend isAdminUsername whitelist — match grants access, no match shows access denied. This replaces the previous auto-resolved gate. The username 'Frosty' is hardcoded as the initial seed admin in the backend whitelist. The overall website theme is a sunset aesthetic — warm golden-oranges, deep purples, dusky pinks, and soft golden yellows. The 'Game Vault' gradient text (red → purple → orange) remains unchanged. A Subscriptions tab has been added to the navbar with 4 tiers (Starter, Basic, Premium, Pro), each offering progressive perks and discounts. Users toggle between monthly/yearly billing with a disclaimer shown under all tier titles. Pro tier unlocks all perks. PayPal and Crypto are the only supported payment methods for subscriptions. Admins can edit monthly and yearly prices per tier independently, toggle a 7-day free trial on/off per tier, and all changes reflect on the user-facing subscriptions tab. Subscription tier data is stored in backend stable storage.",
   "architectural_notes": [
     "Full-stack app on Internet Computer (ICP) with Internet Identity for auth",
@@ -18,7 +18,9 @@
     "Step 1 build (admin wallet settings + crypto checkout QR display) failed twice; retrying with tighter scope",
     "Product creation in admin panel silently fails — clicking Create does nothing (no error, no toast, no dialog close); addProduct mutation or ProductForm.tsx submit handler is broken",
     "Admin panel stuck in 'verifying access' spin loop after Version 22 — AdminAccessControl.tsx sequential gate (auth → username → isAdminUsername) never resolves to granted or denied state",
-    "Admin panel username entry form silently does nothing on Enter/Submit — form onSubmit not wired correctly, isAdminUsername backend call not being triggered or result not updating state"
+    "Admin panel username entry form silently does nothing on Enter/Submit — form onSubmit not wired correctly, isAdminUsername backend call not being triggered or result not updating state",
+    "Admin panel shows 'We are still connecting, try back later' in production (Version 26) instead of the username entry form — frontend actor client is failing to reach the backend canister; worked in Version 24, broke in Versions 25–26",
+    "Storefront not loading in production (Version 27) — both storefront and admin panel broken; actor client failing to connect to backend canister; admin panel username entry form appears but submitting does nothing (isAdminUsername call not triggered)"
   ],
   "isFixRequest": true,
   "existing_features": [
@@ -573,6 +575,38 @@
         "REQ-95"
       ],
       "version": 1
+    },
+    {
+      "id": "feature-update-frontend-src-components-adminaccesscontrol-tsx-to-gracefully-handle-the-case-where-the-actor-client-is-not-yet-ready-or-has-failed-to-connect-replace-any-silent-still-connecting-stall-with-a-clear-user-facing-error-message-e-g-unable-to-connect-to-the-server-please-refresh-the-page-and-try-again-if-the-actor-fails-to-initialise-within-a-reasonable-timeout-ensure-the-username-entry-form-is-displayed-as-soon-as-the-actor-is-available-and-that-connectivity-errors-do-not-permanently-block-the-form-from-appearing",
+      "title": "Update `frontend/src/components/AdminAccessControl.tsx` to gracefully handle the case where the actor client is not yet ready or has failed to connect. Replace any silent 'still connecting' stall with a clear, user-facing error message (e.g. 'Unable to connect to the server. Please refresh the page and try again.') if the actor fails to initialise within a reasonable timeout. Ensure the username entry form is displayed as soon as the actor is available, and that connectivity errors do not permanently block the form from appearing.",
+      "reqIds": [
+        "REQ-97"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-rewrite-frontend-src-components-adminaccesscontrol-tsx-with-a-fully-self-contained-manual-username-entry-gate-the-component-must-1-immediately-render-a-styled-form-with-a-heading-admin-access-a-text-input-labelled-enter-your-username-and-a-submit-button-as-soon-as-the-actor-is-ready-do-not-stall-on-internet-identity-authentication-state-2-use-a-form-element-with-onsubmit-so-both-enter-key-and-button-click-trigger-the-handler-3-the-onsubmit-handler-must-call-event-preventdefault-set-a-local-loading-state-then-call-the-backend-isadminusername-function-with-the-exact-typed-username-string-4-if-the-backend-returns-true-transition-to-status-granted-and-render-children-5-if-the-backend-returns-false-transition-to-status-denied-and-render-accessdeniedscreen-6-catch-any-thrown-error-and-display-it-as-an-inline-error-message-below-the-input-never-swallow-errors-silently-7-if-the-actor-is-not-yet-ready-show-a-brief-spinner-while-waiting-up-to-10-seconds-then-display-unable-to-connect-to-the-server-please-refresh-the-page-and-try-again-if-the-timeout-elapses-8-the-retry-back-option-on-accessdeniedscreen-must-reset-status-back-to-the-initial-form-state-9-apply-the-sunset-theme-dusk-bg-dusk-mid-backgrounds-sunset-gold-sunset-orange-accent-colours-orbitron-rajdhani-fonts-sunset-glow-effects-to-the-form",
+      "title": "Rewrite `frontend/src/components/AdminAccessControl.tsx` with a fully self-contained manual username-entry gate. The component must: (1) immediately render a styled form with a heading 'Admin Access', a text input labelled 'Enter your username', and a Submit button as soon as the actor is ready — do not stall on Internet Identity authentication state; (2) use a `<form>` element with `onSubmit` so both Enter key and button click trigger the handler; (3) the `onSubmit` handler must call `event.preventDefault()`, set a local loading state, then call the backend `isAdminUsername` function with the exact typed username string; (4) if the backend returns `true`, transition to `status = 'granted'` and render children; (5) if the backend returns `false`, transition to `status = 'denied'` and render `AccessDeniedScreen`; (6) catch any thrown error and display it as an inline error message below the input — never swallow errors silently; (7) if the actor is not yet ready, show a brief spinner while waiting (up to 10 seconds), then display 'Unable to connect to the server. Please refresh the page and try again.' if the timeout elapses; (8) the retry/back option on `AccessDeniedScreen` must reset status back to the initial form state; (9) apply the sunset theme (dusk-bg/dusk-mid backgrounds, sunset-gold/sunset-orange accent colours, Orbitron/Rajdhani fonts, sunset glow effects) to the form.",
+      "reqIds": [
+        "REQ-99"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-audit-frontend-src-pages-adminpanelpage-tsx-and-confirm-it-contains-zero-internal-async-gates-isadminusername-calls-loading-states-or-useeffect-checks-of-its-own-the-page-must-render-its-tabbed-content-products-orders-payments-admins-subscriptions-settings-immediately-and-unconditionally-once-adminaccesscontrol-renders-its-children-remove-any-redundant-admin-checks-verifying-access-states-or-internal-async-logic-that-could-produce-a-perpetual-loading-state-independent-of-adminaccesscontrol",
+      "title": "Audit `frontend/src/pages/AdminPanelPage.tsx` and confirm it contains zero internal async gates, `isAdminUsername` calls, loading states, or `useEffect` checks of its own. The page must render its tabbed content (Products, Orders, Payments, Admins, Subscriptions, Settings) immediately and unconditionally once `AdminAccessControl` renders its children. Remove any redundant admin checks, verifying-access states, or internal async logic that could produce a perpetual loading state independent of `AdminAccessControl`.",
+      "reqIds": [
+        "REQ-100"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-audit-frontend-src-hooks-usequeries-ts-and-ensure-no-query-or-hook-configuration-can-cause-adminaccesscontrol-tsx-to-enter-an-infinite-re-fetch-loop-if-useusername-getusername-or-useisadminusername-hooks-are-still-present-for-other-consumers-set-their-staletime-to-at-least-60-000-ms-and-retry-to-1-confirm-that-these-hooks-are-not-wired-into-adminaccesscontrol-s-access-gating-logic-after-the-req-99-rewrite-the-admin-gate-must-rely-solely-on-the-imperative-isadminusername-call-inside-the-form-onsubmit-handler",
+      "title": "Audit `frontend/src/hooks/useQueries.ts` and ensure no query or hook configuration can cause `AdminAccessControl.tsx` to enter an infinite re-fetch loop. If `useUsername`/`getUsername` or `useIsAdminUsername` hooks are still present for other consumers, set their `staleTime` to at least 60 000 ms and `retry` to 1. Confirm that these hooks are not wired into `AdminAccessControl`'s access-gating logic after the REQ-99 rewrite — the admin gate must rely solely on the imperative `isAdminUsername` call inside the form `onSubmit` handler.",
+      "reqIds": [
+        "REQ-101"
+      ],
+      "version": 1
     }
   ],
   "new_feature_requests": [
@@ -930,6 +964,46 @@
       "id": "AR-71",
       "summary": "Replace the current auto-resolved admin gate with a manual username-entry screen: when any user navigates to the admin panel, show a username input field; on submit, check the typed username against the backend isAdminUsername whitelist; if match → grant access, if no match → show access denied. This replaces all previous AdminAccessControl logic.",
       "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-72",
+      "summary": "Audit and fix the frontend actor client initialisation in `frontend/src/hooks/useActor.ts` to ensure it correctly resolves the deployed canister ID and establishes a connection to the backend canister in production. The actor must be created successfully for both authenticated and anonymous users. Diagnose why the connection regressed between Version 24 and Version 26 (e.g. canister ID misconfiguration, environment variable missing, agent host misconfigured for the IC mainnet vs local replica) and apply the correct fix so the actor is ready before any component attempts to call backend functions.",
+      "reqIds": [
+        "REQ-96"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-73",
+      "summary": "Audit and rewrite `frontend/src/hooks/useActor.ts` to ensure the backend actor client initialises correctly in production for both authenticated and anonymous users. The canister ID must be resolved from the correct environment variable or hardcoded DFX-generated value for the IC mainnet. The agent host must be set to `https://ic0.app` (not a local replica URL) when running in production. The actor instance must be created and cached synchronously where possible, and any async initialisation must complete before components attempt backend calls. Ensure the hook correctly re-creates the actor when the Internet Identity principal changes (login/logout), and that it does not silently fail — surface any initialisation errors to a readable state so consumers can detect when the actor is unavailable.",
+      "reqIds": [
+        "REQ-98"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-74",
+      "summary": "Rewrite `frontend/src/components/AdminAccessControl.tsx` with a fully self-contained manual username-entry gate that does NOT depend on Internet Identity authentication state or any React Query hooks for its control flow. The component must: (1) use a local `status` state variable with values `'connecting' | 'form' | 'checking' | 'granted' | 'denied' | 'timeout'`; (2) on mount, wait for the actor to become available by polling `actor` from `useActor` — if the actor is ready, immediately transition to `status = 'form'`; if the actor is not ready after 10 seconds, transition to `status = 'timeout'` and display 'Unable to connect to the server. Please refresh the page and try again.' — do NOT spin indefinitely; (3) when `status === 'form'`, render a styled `<form>` with a heading 'Admin Access', a text input labelled 'Enter your username', and a `type=\"submit\"` button — both Enter key and button click must trigger submission; (4) the `onSubmit` handler must call `event.preventDefault()`, set `status = 'checking'`, then call the backend `isAdminUsername` function with the exact typed string; (5) if the backend returns `true`, set `status = 'granted'` and render `{children}`; (6) if the backend returns `false`, set `status = 'denied'` and render `AccessDeniedScreen`; (7) catch any thrown error from the `isAdminUsername` call and display it as an inline error message below the input — never swallow errors silently; (8) the retry/back option on `AccessDeniedScreen` must reset `status` back to `'form'`; (9) apply the sunset theme (dusk-bg/dusk-mid backgrounds, sunset-gold/sunset-orange accent colours, Orbitron/Rajdhani fonts, sunset glow effects) to all rendered states.",
+      "reqIds": [
+        "REQ-102"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-75",
+      "summary": "Audit `frontend/src/pages/AdminPanelPage.tsx` and strip out any and all internal async gates, `isAdminUsername` calls, `useEffect` checks, loading states, or 'verifying access' conditions of its own. The page must render its full tabbed content (Products, Orders, Payments, Admins, Subscriptions, Settings) immediately and unconditionally as soon as `AdminAccessControl` renders its children. The default active tab must be 'Products'. No internal logic in `AdminPanelPage.tsx` should be capable of producing a perpetual loading or spinner state independent of `AdminAccessControl`.",
+      "reqIds": [
+        "REQ-103"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-76",
+      "summary": "Audit `frontend/src/hooks/useActor.ts` to ensure the backend actor initialises correctly in production (IC mainnet). Verify the agent host is set to `https://ic0.app` (not a local replica URL) when running in production, and that the canister ID is resolved from the correct environment variable or hardcoded DFX-generated value. The actor must be created and exposed synchronously where possible so that components waiting on the actor do not stall. Ensure the hook re-creates the actor correctly on login/logout and surfaces initialisation errors to consumers rather than failing silently.",
+      "reqIds": [
+        "REQ-104"
+      ],
       "status": "pending"
     }
   ],

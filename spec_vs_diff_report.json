@@ -1,38 +1,30 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-24T20:48:56.174Z",
-  "summary": "The diff modifies `frontend/src/components/AdminAccessControl.tsx` to address REQ-95. The implementation covers nearly all sub-requirements: a form with onSubmit, event.preventDefault(), type=submit button, loading/spinner state, granted/denied/error status transitions, inline error messages, try/catch error handling, and a reset handler. The sunset theme styling is preserved. However, the diff uses an inline custom Access Denied block rather than the existing AccessDeniedScreen component, which the spec requires.",
+  "generatedAt": "2026-02-24T21:54:45.338Z",
+  "summary": "The diff modifies frontend-file-summaries.txt and project_state.json. The summary for AdminPanelPage.tsx confirms REQ-103 is implemented (no internal async gates, defaults to Products tab). However, there is no evidence of changes to AdminAccessControl.tsx or useActor.ts, which are required by REQ-102 and REQ-104 respectively. The diff only shows modifications to two metadata/summary files, not the actual component source files.",
   "missing_requirements": [
     {
-      "id": "REQ-95",
-      "requirement": "If the backend returns false, the AccessDeniedScreen component must be rendered (sub-requirement 6 and AC: 'If the backend returns false, the AccessDeniedScreen is rendered with an access-denied message'). The build request references AccessDeniedScreen specifically and the constraints say do not alter it, implying it must still be used.",
-      "reason": "The diff implements a custom inline JSX block for the denied state (Shield icon, heading, Try Again button) instead of importing and rendering the existing AccessDeniedScreen component. No import of AccessDeniedScreen is visible in the diff.",
+      "id": "REQ-102",
+      "requirement": "Rewrite frontend/src/components/AdminAccessControl.tsx with a fully self-contained manual username-entry gate using local status state, polling actor with 10-second timeout, styled form with heading 'Admin Access', onSubmit handler calling isAdminUsername, granted/denied/timeout states, inline error display, retry resets to form, and sunset theme applied.",
+      "reason": "The diff does not include any changes to frontend/src/components/AdminAccessControl.tsx. The file is not listed in added, modified, or removed files. Only frontend-file-summaries.txt and project_state.json were modified.",
       "evidence": [
-        "frontend/src/components/AdminAccessControl.tsx"
-      ]
-    }
-  ],
-  "hallucinated_features": [
-    {
-      "description": "A deniedUsername state variable is introduced to display the rejected username back to the user in the denied view.",
-      "reason": "The build request does not specify showing the typed username in the denial message. This is an addition not described in REQ-95.",
-      "evidence": [
-        "frontend/src/components/AdminAccessControl.tsx"
+        "frontend-file-summaries.txt"
       ]
     },
     {
-      "description": "An explicit guard for actorFetching or actor being null is added before the backend call, producing a specific error message about network connectivity.",
-      "reason": "The build request does not describe handling the actor-not-ready case as a distinct error path. This is an extra validation step not mentioned in REQ-95.",
+      "id": "REQ-104",
+      "requirement": "Audit frontend/src/hooks/useActor.ts to ensure agent host is https://ic0.app in production, correct canister ID resolution, synchronous actor creation, surfaced initialisation errors, and actor re-creation on login/logout.",
+      "reason": "The diff does not include any changes to frontend/src/hooks/useActor.ts. The file is not listed in added, modified, or removed files.",
       "evidence": [
-        "frontend/src/components/AdminAccessControl.tsx"
+        "frontend-file-summaries.txt"
       ]
     }
   ],
-  "confidence": 0.72,
+  "hallucinated_features": [],
+  "confidence": 0.8,
   "changed_files": [
     "frontend-file-summaries.txt",
-    "frontend/src/components/AdminAccessControl.tsx",
     "project_state.json"
   ]
 }

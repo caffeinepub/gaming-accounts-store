@@ -1,202 +1,204 @@
-import React, { useState } from 'react';
-import { Shield, Loader2, KeyRound, AlertCircle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import React, { useState, useEffect, useRef } from 'react';
 import { useActor } from '../hooks/useActor';
-
-type AccessStatus = 'idle' | 'checking' | 'granted' | 'denied' | 'error';
+import { Loader2, Shield, AlertTriangle, XCircle } from 'lucide-react';
 
 interface AdminAccessControlProps {
   children: React.ReactNode;
 }
 
-export default function AdminAccessControl({ children }: AdminAccessControlProps) {
-  const { actor, isFetching: actorFetching } = useActor();
+type Status = 'connecting' | 'timeout' | 'entry' | 'checking' | 'granted' | 'denied';
 
+const CONNECT_TIMEOUT_MS = 10000;
+
+export default function AdminAccessControl({ children }: AdminAccessControlProps) {
+  const { actor, isFetching } = useActor();
+  const [status, setStatus] = useState<Status>('connecting');
   const [username, setUsername] = useState('');
-  const [status, setStatus] = useState<AccessStatus>('idle');
-  const [errorMessage, setErrorMessage] = useState('');
-  const [deniedUsername, setDeniedUsername] = useState('');
+  const [checkError, setCheckError] = useState<string | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const timerStartedRef = useRef(false);
+
+  useEffect(() => {
+    // Actor is ready — transition to entry form
+    if (actor && !isFetching) {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+      if (status === 'connecting') {
+        setStatus('entry');
+      }
+      return;
+    }
+
+    // Start the connection timeout once, while still connecting
+    if (status === 'connecting' && !timerStartedRef.current) {
+      timerStartedRef.current = true;
+      timeoutRef.current = setTimeout(() => {
+        setStatus((current) => {
+          if (current === 'connecting') return 'timeout';
+          return current;
+        });
+      }, CONNECT_TIMEOUT_MS);
+    }
+
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+    };
+  }, [actor, isFetching, status]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!actor || !username.trim()) return;
 
-    const trimmed = username.trim();
-
-    if (!trimmed) {
-      setStatus('error');
-      setErrorMessage('Please enter your username.');
-      return;
-    }
-
-    if (actorFetching || !actor) {
-      setStatus('error');
-      setErrorMessage('Still connecting to the network. Please wait a moment and try again.');
-      return;
-    }
-
+    setCheckError(null);
     setStatus('checking');
-    setErrorMessage('');
 
     try {
-      const isAdmin = await actor.isAdminUsername(trimmed);
+      const isAdmin = await actor.isAdminUsername(username.trim());
       if (isAdmin) {
         setStatus('granted');
       } else {
-        setDeniedUsername(trimmed);
         setStatus('denied');
       }
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      setStatus('error');
-      setErrorMessage(`Verification failed: ${msg || 'Please try again.'}`);
+      const message = err instanceof Error ? err.message : 'An unexpected error occurred.';
+      setCheckError(message);
+      setStatus('entry');
     }
   };
 
-  const handleReset = () => {
-    setStatus('idle');
+  const handleRetry = () => {
+    setStatus('entry');
     setUsername('');
-    setErrorMessage('');
-    setDeniedUsername('');
+    setCheckError(null);
   };
 
-  // ── Granted ────────────────────────────────────────────────────────────────
   if (status === 'granted') {
     return <>{children}</>;
   }
 
-  // ── Access Denied ──────────────────────────────────────────────────────────
-  if (status === 'denied') {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh] px-4">
-        <div className="max-w-sm w-full text-center space-y-6">
-          <div className="flex justify-center">
-            <div className="p-4 rounded-full bg-destructive/10 border border-destructive/30 shadow-[0_0_24px_rgba(239,68,68,0.15)]">
-              <Shield className="w-10 h-10 text-destructive" />
+  return (
+    <div className="min-h-screen bg-dusk-bg flex items-center justify-center p-4">
+      {/* Background gradient overlay */}
+      <div className="absolute inset-0 bg-gradient-to-b from-dusk-bg via-dusk-mid to-dusk-bg opacity-80 pointer-events-none" />
+
+      <div className="relative z-10 w-full max-w-md">
+        {/* Card */}
+        <div
+          className="rounded-2xl border border-sunset-orange/30 bg-dusk-mid/80 backdrop-blur-sm p-8 shadow-2xl"
+          style={{ boxShadow: '0 0 40px rgba(255, 107, 53, 0.15)' }}
+        >
+          {/* Header */}
+          <div className="flex flex-col items-center mb-8">
+            <div className="w-16 h-16 rounded-full bg-sunset-orange/20 border border-sunset-orange/40 flex items-center justify-center mb-4">
+              <Shield className="w-8 h-8 text-sunset-orange" />
             </div>
-          </div>
-          <div>
-            <h2 className="font-orbitron text-xl font-bold mb-2 text-foreground">Access Denied</h2>
-            <p className="text-muted-foreground font-rajdhani text-sm leading-relaxed">
-              <span className="text-sunset-orange font-semibold">"{deniedUsername}"</span> is not on the admin whitelist.
+            <h1 className="font-orbitron text-2xl font-bold text-sunset-gold tracking-wider">
+              ADMIN ACCESS
+            </h1>
+            <p className="font-rajdhani text-muted-foreground text-sm mt-1 tracking-wide">
+              Game Vault Control Panel
             </p>
           </div>
-          <Button
-            onClick={handleReset}
-            variant="outline"
-            className="w-full font-rajdhani tracking-wider border-sunset-gold/40 text-sunset-gold hover:bg-sunset-gold/10 hover:border-sunset-gold"
-          >
-            Try Again
-          </Button>
-        </div>
-      </div>
-    );
-  }
 
-  // ── Username Entry Form (idle + checking + error) ──────────────────────────
-  const isChecking = status === 'checking';
-  const hasError = status === 'error' && errorMessage;
+          {/* Connecting state */}
+          {status === 'connecting' && (
+            <div className="flex flex-col items-center gap-4 py-4">
+              <Loader2 className="w-8 h-8 text-sunset-orange animate-spin" />
+              <p className="font-rajdhani text-foreground/70 text-center">
+                Connecting to server…
+              </p>
+            </div>
+          )}
 
-  return (
-    <div className="flex items-center justify-center min-h-[60vh] px-4">
-      <div className="max-w-sm w-full space-y-6">
-        {/* Icon */}
-        <div className="flex justify-center">
-          <div className="p-4 rounded-full bg-sunset-gold/10 border border-sunset-gold/30 shadow-[0_0_32px_rgba(251,191,36,0.12)]">
-            <KeyRound className="w-10 h-10 text-sunset-gold" />
-          </div>
-        </div>
+          {/* Timeout / error state */}
+          {status === 'timeout' && (
+            <div className="flex flex-col items-center gap-4 py-4">
+              <AlertTriangle className="w-8 h-8 text-destructive" />
+              <p className="font-rajdhani text-foreground/80 text-center text-sm leading-relaxed">
+                Unable to connect to the server. Please refresh the page and try again.
+              </p>
+              <button
+                onClick={() => window.location.reload()}
+                className="mt-2 px-6 py-2 rounded-lg bg-sunset-orange/20 border border-sunset-orange/40 text-sunset-orange font-rajdhani font-semibold hover:bg-sunset-orange/30 transition-colors"
+              >
+                Refresh Page
+              </button>
+            </div>
+          )}
 
-        {/* Heading */}
-        <div className="text-center">
-          <h2 className="font-orbitron text-xl font-bold mb-2 text-foreground tracking-wide">
-            Admin Panel
-          </h2>
-          <p className="text-muted-foreground font-rajdhani text-sm leading-relaxed">
-            Enter your admin username to access the panel.
-          </p>
-        </div>
+          {/* Entry form */}
+          {(status === 'entry' || status === 'checking') && (
+            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+              <div className="flex flex-col gap-2">
+                <label
+                  htmlFor="admin-username"
+                  className="font-rajdhani text-sm font-semibold text-foreground/80 tracking-wide uppercase"
+                >
+                  Enter your username
+                </label>
+                <input
+                  id="admin-username"
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="Username"
+                  disabled={status === 'checking'}
+                  autoComplete="off"
+                  autoFocus
+                  className="w-full px-4 py-3 rounded-lg bg-dusk-bg/60 border border-sunset-orange/30 text-foreground font-rajdhani placeholder:text-foreground/30 focus:outline-none focus:border-sunset-orange/70 focus:ring-1 focus:ring-sunset-orange/40 disabled:opacity-50 transition-colors"
+                />
+              </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} noValidate className="space-y-4">
-          <div className="space-y-2">
-            <label
-              htmlFor="admin-username"
-              className="block font-rajdhani text-sm font-semibold text-sunset-gold tracking-wider uppercase"
-            >
-              Username
-            </label>
-            <Input
-              id="admin-username"
-              type="text"
-              value={username}
-              onChange={(e) => {
-                setUsername(e.target.value);
-                // Clear inline error as user types
-                if (status === 'error') {
-                  setStatus('idle');
-                  setErrorMessage('');
-                }
-              }}
-              placeholder="Enter your username"
-              disabled={isChecking}
-              autoComplete="off"
-              autoFocus
-              className={`
-                bg-dusk-mid border-sunset-gold/30 text-foreground
-                placeholder:text-muted-foreground/50
-                focus:border-sunset-gold focus:ring-sunset-gold/20
-                font-rajdhani tracking-wide
-                disabled:opacity-50
-                ${hasError ? 'border-destructive/60 focus:border-destructive' : ''}
-              `}
-            />
-            {/* Inline error message */}
-            {hasError && (
-              <div className="flex items-start gap-2 mt-1">
-                <AlertCircle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
-                <p className="text-destructive font-rajdhani text-sm leading-snug">
-                  {errorMessage}
+              {checkError && (
+                <div className="flex items-start gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/30">
+                  <XCircle className="w-4 h-4 text-destructive mt-0.5 shrink-0" />
+                  <p className="font-rajdhani text-sm text-destructive">{checkError}</p>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={status === 'checking' || !username.trim()}
+                className="w-full py-3 rounded-lg bg-gradient-to-r from-sunset-orange to-sunset-gold text-dusk-bg font-orbitron font-bold tracking-wider text-sm hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity flex items-center justify-center gap-2"
+              >
+                {status === 'checking' ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Verifying…
+                  </>
+                ) : (
+                  'Submit'
+                )}
+              </button>
+            </form>
+          )}
+
+          {/* Denied state */}
+          {status === 'denied' && (
+            <div className="flex flex-col items-center gap-4 py-4">
+              <XCircle className="w-10 h-10 text-destructive" />
+              <div className="text-center">
+                <p className="font-orbitron text-lg font-bold text-destructive mb-1">
+                  ACCESS DENIED
+                </p>
+                <p className="font-rajdhani text-foreground/60 text-sm">
+                  Username <span className="text-foreground/80 font-semibold">"{username}"</span> is not authorised.
                 </p>
               </div>
-            )}
-          </div>
-
-          <Button
-            type="submit"
-            disabled={isChecking}
-            className="
-              w-full font-orbitron tracking-widest text-sm
-              bg-sunset-gold hover:bg-sunset-orange
-              text-dusk-bg font-bold
-              border-0
-              shadow-[0_0_16px_rgba(251,191,36,0.25)]
-              hover:shadow-[0_0_24px_rgba(251,191,36,0.4)]
-              transition-all duration-200
-              disabled:opacity-50 disabled:cursor-not-allowed
-            "
-          >
-            {isChecking ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Verifying...
-              </>
-            ) : (
-              'ENTER'
-            )}
-          </Button>
-        </form>
-
-        {/* Decorative divider */}
-        <div className="flex items-center gap-3 opacity-30">
-          <div className="flex-1 h-px bg-sunset-gold/40" />
-          <Shield className="w-3 h-3 text-sunset-gold" />
-          <div className="flex-1 h-px bg-sunset-gold/40" />
+              <button
+                onClick={handleRetry}
+                className="mt-2 px-6 py-2 rounded-lg bg-sunset-orange/20 border border-sunset-orange/40 text-sunset-orange font-rajdhani font-semibold hover:bg-sunset-orange/30 transition-colors"
+              >
+                Try Again
+              </button>
+            </div>
+          )}
         </div>
-
-        <p className="text-center text-muted-foreground/50 font-rajdhani text-xs">
-          Authorised personnel only
-        </p>
       </div>
     </div>
   );

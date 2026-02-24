@@ -1,26 +1,4 @@
 {
   "kind": "feature_evidence_report",
-  "features": [
-    {
-      "featureId": "feature-rewrite-the-form-submission-handler-in-frontend-src-components-adminaccesscontrol-tsx-so-that-1-the-root-element-is-a-form-with-an-onsubmit-handler-not-an-onclick-only-so-pressing-enter-in-the-username-input-natively-triggers-submission-2-the-submit-button-has-type-submit-so-both-enter-key-and-button-click-invoke-the-same-handler-3-the-onsubmit-handler-calls-event-preventdefault-to-prevent-page-reload-then-calls-the-backend-isadminusername-function-with-the-exact-string-the-user-typed-4-a-local-loading-spinner-state-is-set-to-true-while-the-call-is-in-flight-and-reset-to-false-when-it-resolves-5-if-the-backend-returns-true-local-status-transitions-to-granted-and-the-children-are-rendered-6-if-the-backend-returns-false-local-status-transitions-to-denied-and-accessdeniedscreen-is-rendered-7-any-thrown-error-from-the-backend-call-is-caught-in-a-try-catch-and-displayed-as-an-inline-error-message-beneath-the-input-field-rather-than-being-swallowed-silently-8-the-retry-back-option-on-accessdeniedscreen-resets-local-status-back-to-the-initial-form-state-so-the-user-can-try-again-the-sunset-theme-dusk-bg-dusk-mid-backgrounds-sunset-gold-sunset-orange-accent-colours-orbitron-rajdhani-fonts-sunset-glow-effects-must-be-preserved-on-the-form",
-      "featureTitle": "Rewrite the form submission handler in `frontend/src/components/AdminAccessControl.tsx` so that: (1) the root element is a `<form>` with an `onSubmit` handler (not an `onClick` only), so pressing Enter in the username input natively triggers submission; (2) the Submit button has `type=\"submit\"` so both Enter key and button click invoke the same handler; (3) the `onSubmit` handler calls `event.preventDefault()` to prevent page reload, then calls the backend `isAdminUsername` function with the exact string the user typed; (4) a local loading/spinner state is set to true while the call is in-flight and reset to false when it resolves; (5) if the backend returns `true`, local status transitions to `'granted'` and the children are rendered; (6) if the backend returns `false`, local status transitions to `'denied'` and `AccessDeniedScreen` is rendered; (7) any thrown error from the backend call is caught in a try/catch and displayed as an inline error message beneath the input field rather than being swallowed silently; (8) the retry/back option on `AccessDeniedScreen` resets local status back to the initial form state so the user can try again. The sunset theme (dusk-bg/dusk-mid backgrounds, sunset-gold/sunset-orange accent colours, Orbitron/Rajdhani fonts, sunset glow effects) must be preserved on the form.",
-      "files": [
-        "frontend/src/components/AdminAccessControl.tsx"
-      ],
-      "components": [
-        "authorization@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0",
-        "qr-code@1.0.0",
-        "camera@1.0.0"
-      ],
-      "testIds": [
-        "REQ-95"
-      ],
-      "confidence": "high"
-    }
-  ]
+  "features": []
 }
