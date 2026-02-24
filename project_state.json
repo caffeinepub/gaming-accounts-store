@@ -1,6 +1,6 @@
 {
   "schemaVersion": "1.0.0",
-  "projectStateVersion": 41,
+  "projectStateVersion": 43,
   "summary": "A Shopify-style gaming accounts e-commerce store called Game Vault with a loading screen that features a royalty-free New York sunset video (sourced from a public CDN such as Pexels or Pixabay) playing as the background, replacing the previous 3D Three.js scene entirely. The loading screen enforces a minimum 40-second wait with a 'Game Vault' gradient text (red → purple → orange) progress reveal effect and an 'Enter Store' button that unlocks after 40 seconds. Store sells gaming accounts starting with Car Parking Multiplayer. Features full admin panel, user authentication via Internet Identity, and checkout flows for PayPal, Crypto, UK Gift Cards, and Pay in 3 Installments. The storefront logo has been removed and the 'Game Vault' site name displays a red → purple → orange 3-tone gradient across navbar, footer, loading screen, and all instances. Users must create a unique username (no spaces) on first login before accessing the store; username is used for purchases (order confirmations show username, email, contact info, and product purchased) and for admin panel access control. Admin Panel link is visible to all users in the navbar but only whitelisted usernames can enter. Store owner manages the admin whitelist in the backend. The username 'Frosty' is hardcoded as the initial seed admin in the backend whitelist. The overall website theme is a sunset aesthetic — warm golden-oranges, deep purples, dusky pinks, and soft golden yellows. The 'Game Vault' gradient text (red → purple → orange) remains unchanged. A Subscriptions tab has been added to the navbar with 4 tiers (Starter, Basic, Premium, Pro), each offering progressive perks and discounts. Users toggle between monthly/yearly billing with a disclaimer shown under all tier titles. Pro tier unlocks all perks. PayPal and Crypto are the only supported payment methods for subscriptions. Admins can edit monthly and yearly prices per tier independently, toggle a 7-day free trial on/off per tier, and all changes reflect on the user-facing subscriptions tab. Subscription tier data is stored in backend stable storage.",
   "architectural_notes": [
     "Full-stack app on Internet Computer (ICP) with Internet Identity for auth",
@@ -817,6 +817,30 @@
       "summary": "Update `backend/migration.mo` to handle migration of existing Order records to include the new `approvalStatus` (defaulting to `#pending`), `giftCardNumber` (defaulting to `\"\"`), and `giftCardBalance` (defaulting to `\"\"`) fields. Ensure the migration preserves all existing order data and does not lose any previously stored orders.",
       "reqIds": [
         "REQ-82"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-61",
+      "summary": "Update `frontend/src/components/checkout/GiftCardPayment.tsx` to capture two additional required fields during the gift card checkout step: a 'Gift Card Number' text input and a 'Gift Card Balance' text input. Both fields must be validated as non-empty before the user can confirm the order. These values must be surfaced to the parent checkout flow (via callback props or shared state) so they can be included in the order placement call.",
+      "reqIds": [
+        "REQ-83"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-62",
+      "summary": "Update the `placeOrder` mutation in `frontend/src/hooks/useQueries.ts` to accept and pass `giftCardNumber: string` and `giftCardBalance: string` fields in the order payload sent to the backend actor. When the payment method is 'Gift Card', both fields must be populated with the values collected in `GiftCardPayment.tsx`. For all other payment methods, both fields must be sent as empty strings (`\"\"`). The mutation must still correctly await the actor call, unwrap the `#ok`/`#err` Result variant, throw a JavaScript `Error` on `#err`, and invalidate the relevant query caches on success.",
+      "reqIds": [
+        "REQ-84"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-63",
+      "summary": "Update the order placement logic in `frontend/src/pages/CheckoutPage.tsx` to collect `giftCardNumber` and `giftCardBalance` from the `GiftCardPayment` component and pass them through to the `placeOrder` mutation call. When the selected payment method is 'Gift Card', both values must be forwarded; for all other payment methods, empty strings must be passed. Ensure the checkout flow does not allow order placement via Gift Card if either field is empty.",
+      "reqIds": [
+        "REQ-85"
       ],
       "status": "pending"
     }

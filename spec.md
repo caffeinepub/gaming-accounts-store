@@ -1,18 +1,11 @@
 # Specification
 
 ## Summary
-**Goal:** Add an order approval system with admin Payments tab, UK Gift Card checkout fields, and buyer-facing order status notifications.
+**Goal:** Wire up the UK Gift Card submission flow end-to-end so that gift card number and balance are captured in the checkout UI and sent to the backend when placing an order.
 
 **Planned changes:**
-- Add `approvalStatus` (`#pending`/`#approved`/`#declined`), `giftCardNumber`, and `giftCardBalance` fields to the Order type in the backend, defaulting to `#pending` and empty strings respectively
-- Add backend migration to upgrade existing orders with the new fields
-- Expose admin-gated `approveOrder` and `declineOrder` backend functions that verify caller is a whitelisted admin
-- Expose a `getOrdersByBuyer` query function returning all orders for a given principal including approval status
-- Add `useApproveOrder`, `useDeclineOrder`, and `useOrdersByBuyer` React Query hooks in `useQueries.ts`; all mutations invalidate the orders cache on success
-- Update `GiftCardPayment.tsx` to capture required 'Gift Card Number' and 'Gift Card Balance' input fields during checkout
-- Update `placeOrder` mutation and `CheckoutPage.tsx` to pass `giftCardNumber` and `giftCardBalance` (empty strings for non-gift-card methods)
-- Create `PaymentsManager.tsx` admin component listing all orders with buyer details, payment method badge, colour-coded approval status badge, gift card fields for relevant orders, and Approve/Decline buttons with toast feedback — styled with the sunset theme
-- Add a 'Payments' tab to `AdminPanelPage.tsx` that renders `PaymentsManager`, without disrupting existing tabs
-- Update `OrderConfirmationPage.tsx` to display the live `approvalStatus` with colour-coded indicator (amber/green/red), polling every 30 seconds
+- Update `GiftCardPayment.tsx` to add "Gift Card Number" and "Gift Card Balance" text input fields, both required, with sunset theme styling, and expose their values to the parent via callback props or shared state
+- Update `CheckoutPage.tsx` to capture `giftCardNumber` and `giftCardBalance` from `GiftCardPayment`, pass them to the `placeOrder` mutation when payment method is "Gift Card", and block order placement if either field is empty; pass empty strings for all other payment methods
+- Update the `placeOrder` mutation in `useQueries.ts` to include `giftCardNumber` and `giftCardBalance` in the order payload, correctly handling `#ok`/`#err` result variants and invalidating query caches on success
 
-**User-visible outcome:** Admins can view all orders in a new Payments tab, approve or decline them, and see gift card details for relevant orders. Buyers see a live, colour-coded order approval status on their order confirmation page. Gift card checkout now captures and stores the card number and balance.
+**User-visible outcome:** Users selecting Gift Card as their payment method must now enter a gift card number and balance before they can confirm their order; these values are saved with the order record.

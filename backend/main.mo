@@ -8,13 +8,13 @@ import Text "mo:core/Text";
 import Map "mo:core/Map";
 import Principal "mo:core/Principal";
 import Runtime "mo:core/Runtime";
-import Migration "migration";
+
 
 import MixinAuthorization "authorization/MixinAuthorization";
 import AccessControl "authorization/access-control";
 
 // Specify the data migration function in with-clause
-(with migration = Migration.run)
+
 actor {
   // Product Category
   public type ProductCategory = {

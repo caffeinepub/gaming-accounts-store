@@ -1,123 +1,60 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Step 2: Payments Tab, Order Approval System & UK Gift Card Checkout Updates",
+  "title": "Step 3: UK Gift Card submission flow end-to-end",
   "requirements": [
     {
-      "id": "REQ-76",
-      "summary": "Add React Query hooks for order approval and buyer order queries",
+      "id": "REQ-83",
+      "summary": "Update GiftCardPayment component to capture Gift Card Number and Gift Card Balance fields with validation",
       "acceptanceCriteria": [
-        "`useApproveOrder` mutation calls `approveOrder` on the actor, throws on `#err`, invalidates orders cache on success",
-        "`useDeclineOrder` mutation calls `declineOrder` on the actor, throws on `#err`, invalidates orders cache on success",
-        "`useOrdersByBuyer` query calls `getOrdersByBuyer` with the authenticated principal and is only enabled when authenticated",
-        "All hooks are exported from `useQueries.ts`"
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/hooks/useQueries.ts",
-          "operation": "modify",
-          "description": "Add three new React Query hooks: `useApproveOrder()` mutation that calls `actor.approveOrder(orderId)`, unwraps the Result variant, throws an Error on `#err`, and invalidates the 'orders' query key on success; `useDeclineOrder()` mutation that calls `actor.declineOrder(orderId)`, unwraps the Result variant, throws an Error on `#err`, and invalidates the 'orders' query key on success; `useOrdersByBuyer(principal: Principal)` query that calls `actor.getOrdersByBuyer(principal)` and is only enabled when the principal is provided and the user is authenticated. Export all three hooks."
-        }
-      ]
-    },
-    {
-      "id": "REQ-77",
-      "summary": "Capture UK Gift Card number and balance fields during checkout",
-      "acceptanceCriteria": [
-        "GiftCardPayment step renders a 'Gift Card Number' input field",
-        "GiftCardPayment step renders a 'Gift Card Balance' input field",
-        "Both fields are required — form cannot be submitted with empty values",
-        "Captured values are passed up to the checkout flow and included in the `placeOrder` call",
-        "The existing gift card code validation logic is preserved"
+        "The GiftCardPayment component renders a 'Gift Card Number' text input field",
+        "The GiftCardPayment component renders a 'Gift Card Balance' text input field",
+        "Both fields are required — the confirm/proceed button is disabled or validation errors are shown if either field is empty",
+        "The entered gift card number and balance values are passed up to the parent checkout flow for inclusion in the order record",
+        "The sunset theme (dusk-bg/dusk-mid backgrounds, sunset-gold/sunset-orange accent colours, Orbitron/Rajdhani fonts) is applied to the new fields"
       ],
       "file_operations": [
         {
           "path": "frontend/src/components/checkout/GiftCardPayment.tsx",
           "operation": "modify",
-          "description": "Add two new controlled input fields to the gift card payment form: 'Gift Card Number' (text input) and 'Gift Card Balance' (text input or select dropdown). Add local state to track these values. Validate that both fields are filled before enabling the confirm button. Pass these captured values up to the parent component via the onConfirm callback or a new prop callback (e.g., onGiftCardDataChange). Preserve the existing gift card code validation logic that checks the code against 'GVGIFT2025'."
+          "description": "Add two new controlled text input fields: 'Gift Card Number' and 'Gift Card Balance'. Implement local state management for both fields. Add validation to ensure both fields are non-empty before enabling the confirm button. Update the component's props interface to accept callback functions (onGiftCardNumberChange, onGiftCardBalanceChange) or use a single callback that passes both values to the parent. Apply the sunset theme styling (dusk-bg/dusk-mid backgrounds, sunset-gold/sunset-orange accent colours, Orbitron/Rajdhani fonts) to the new input fields to match the existing component design. Ensure the confirm button is disabled when either field is empty."
         }
       ]
     },
     {
-      "id": "REQ-78",
-      "summary": "Update order placement to include UK Gift Card fields",
+      "id": "REQ-84",
+      "summary": "Update placeOrder mutation in useQueries.ts to include giftCardNumber and giftCardBalance fields",
       "acceptanceCriteria": [
-        "`placeOrder` mutation payload includes `giftCardNumber` and `giftCardBalance` fields",
-        "Gift card checkout correctly passes the captured number and balance",
-        "Non-gift-card checkouts pass empty strings for these fields",
-        "Order is persisted with correct gift card data in the backend"
+        "The `placeOrder` mutation input type includes `giftCardNumber: string` and `giftCardBalance: string` fields",
+        "When payment method is 'Gift Card', `giftCardNumber` and `giftCardBalance` are populated with values from the checkout form",
+        "For PayPal, Crypto, and Pay in 3 payment methods, `giftCardNumber` and `giftCardBalance` are sent as empty strings",
+        "The mutation awaits the actor call and correctly unwraps the `#ok`/`#err` variant",
+        "A JavaScript Error is thrown when the backend returns `#err`, triggering `onError` handlers",
+        "The orders query cache is invalidated on success"
       ],
       "file_operations": [
         {
           "path": "frontend/src/hooks/useQueries.ts",
           "operation": "modify",
-          "description": "Update the `usePlaceOrder` mutation to accept two new optional parameters: `giftCardNumber` and `giftCardBalance`. Modify the `actor.addOrder()` call to pass these values as the 5th and 6th arguments (after `approvalStatus`). Default both parameters to empty strings if not provided."
-        },
+          "description": "Update the usePlaceOrder mutation to accept two additional string parameters: giftCardNumber and giftCardBalance. Modify the mutation function to pass these fields to the backend actor's addOrder method. The mutation must populate giftCardNumber and giftCardBalance with the provided values when the payment method is 'ukGiftCard', and pass empty strings (\"\") for all other payment methods (paypal, cryptocurrency, payIn3Installments). Ensure the mutation continues to await the actor call, unwrap the Result variant, throw a JavaScript Error on #err, and invalidate the orders query cache on success. Do not modify the backend actor call signature or error handling logic."
+        }
+      ]
+    },
+    {
+      "id": "REQ-85",
+      "summary": "Update CheckoutPage to collect and pass gift card fields through to placeOrder mutation",
+      "acceptanceCriteria": [
+        "CheckoutPage.tsx captures `giftCardNumber` and `giftCardBalance` from the GiftCardPayment component via props or shared state",
+        "When the payment method is 'Gift Card', both values are included in the `placeOrder` mutation call",
+        "For all other payment methods (PayPal, Crypto, Pay in 3), `giftCardNumber` and `giftCardBalance` are passed as empty strings to the mutation",
+        "The checkout cannot proceed to order confirmation via Gift Card if either gift card field is empty",
+        "Existing checkout steps and flows for other payment methods remain unaffected"
+      ],
+      "file_operations": [
         {
           "path": "frontend/src/pages/CheckoutPage.tsx",
           "operation": "modify",
-          "description": "Add local state to track `giftCardNumber` and `giftCardBalance` captured from the GiftCardPayment component. Update the GiftCardPayment component usage to pass a callback that updates this state when the user enters gift card details. Modify the final order placement call to pass `giftCardNumber` and `giftCardBalance` to the `usePlaceOrder` mutation when the payment method is 'ukGiftCard', and pass empty strings for all other payment methods."
-        }
-      ]
-    },
-    {
-      "id": "REQ-79",
-      "summary": "Create PaymentsManager admin component for order approval workflow",
-      "acceptanceCriteria": [
-        "All orders are listed with buyer username, email, contact info, product name, and payment method",
-        "Approval status is displayed as a colour-coded badge per order",
-        "Gift card orders display the gift card number and balance columns/fields",
-        "Approve and Decline buttons are present per order and call the correct mutations",
-        "Success and error toast notifications appear after approve/decline actions",
-        "Approved and declined orders immediately reflect updated status in the UI after mutation (cache invalidation)",
-        "Sunset theme applied consistently"
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/components/admin/PaymentsManager.tsx",
-          "operation": "create",
-          "description": "Create a new React component that fetches all orders using the existing `useGetAllOrders()` query hook. Display each order in a responsive table or card list with columns/fields for: buyer username, buyer email, buyer contact, product name (fetched using `useGetProductById(order.productId)`), payment method badge (using the existing payment method badge logic from OrderManager), approval status badge (amber for `#pending`, green for `#approved`, red for `#declined`), and — for orders where `paymentMethod` is 'ukGiftCard' — the `giftCardNumber` and `giftCardBalance` fields. For each order, render 'Approve' and 'Decline' buttons that call `useApproveOrder` and `useDeclineOrder` mutations respectively, passing the order ID. Show a toast notification (success or error) after each mutation completes. Apply the sunset theme consistently: use dusk-bg/dusk-mid backgrounds, sunset-gold/sunset-orange/sunset-pink accent colours for badges and buttons, and Orbitron/Rajdhani fonts. Handle loading and error states gracefully."
-        }
-      ]
-    },
-    {
-      "id": "REQ-80",
-      "summary": "Add Payments tab to admin panel",
-      "acceptanceCriteria": [
-        "A 'Payments' tab trigger is visible in the admin panel tab bar",
-        "Clicking the Payments tab renders the `PaymentsManager` component",
-        "All other existing tabs (Products, Orders, Admins, Subscriptions, Settings) continue to function correctly",
-        "The default active tab remains unchanged (Products or whichever was first)"
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/pages/AdminPanelPage.tsx",
-          "operation": "modify",
-          "description": "Import the new `PaymentsManager` component. Add a new tab trigger labelled 'Payments' to the existing tab list (alongside Products, Orders, Admins, Subscriptions, Settings). Add a corresponding tab content panel that renders `<PaymentsManager />` when the Payments tab is active. Ensure the new tab does not change the default active tab or disrupt the existing tab order."
-        }
-      ]
-    },
-    {
-      "id": "REQ-81",
-      "summary": "Display live order approval status on order confirmation page",
-      "acceptanceCriteria": [
-        "OrderConfirmationPage displays an 'Order Status' section showing the current approvalStatus",
-        "Pending status renders in amber/gold colour",
-        "Approved status renders in green colour",
-        "Declined status renders in red colour",
-        "The status is fetched live from the backend (not just from local state)",
-        "A React Query refetch interval ensures the status updates without a full page reload"
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/hooks/useQueries.ts",
-          "operation": "modify",
-          "description": "Update the `useGetOrderById(orderId)` query hook to accept an optional `refetchInterval` configuration parameter. When provided, pass this interval to the React Query `refetchInterval` option so the query automatically refetches at the specified interval (e.g., 30000 milliseconds)."
-        },
-        {
-          "path": "frontend/src/pages/OrderConfirmationPage.tsx",
-          "operation": "modify",
-          "description": "Update the `useGetOrderById` call to pass a `refetchInterval` of 30000 (30 seconds). Add a new 'Order Status' section to the page UI that displays the `approvalStatus` field from the fetched order. Render the status as a colour-coded badge: amber/sunset-gold background for 'pending', green background for 'approved', red background for 'declined'. Use a clear label like 'Order Status:' followed by the status text (e.g., 'Pending', 'Approved', 'Declined'). Ensure the status updates reactively when the query refetches."
+          "description": "Add local state variables to track giftCardNumber and giftCardBalance (initially empty strings). Update the GiftCardPayment component usage to pass callback props that update these state variables when the user enters values. Modify the order placement logic (handlePlaceOrder or equivalent) to include giftCardNumber and giftCardBalance in the placeOrder mutation call. When paymentMethod is 'ukGiftCard', pass the captured values; for all other payment methods (paypal, cryptocurrency, payIn3Installments), pass empty strings. Add validation to prevent order placement when paymentMethod is 'ukGiftCard' and either giftCardNumber or giftCardBalance is empty (disable the confirm button or show an error message). Ensure existing payment method flows remain unchanged and only the Gift Card flow is affected."
         }
       ]
     }
