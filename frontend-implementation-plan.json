@@ -1,0 +1,57 @@
+{
+  "kind": "implementation_plan",
+  "version": "1.0",
+  "title": "Remove storefront logo and apply red → purple → orange gradient to 'Game Vault' text",
+  "requirements": [
+    {
+      "id": "REQ-7",
+      "summary": "Remove the logo image/icon from the Navigation component so only the 'Game Vault' text brand name appears in the navbar",
+      "acceptanceCriteria": [
+        "No logo image or icon is rendered in the Navigation bar",
+        "The 'Game Vault' text brand name remains visible in the navbar",
+        "Layout remains intact and does not collapse or misalign after logo removal"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/Navigation.tsx",
+          "operation": "modify",
+          "description": "Remove the logo image element (likely referencing frontend/public/assets/generated/gamevault-logo.dim_400x120.png) from the Navigation component. Keep only the 'Game Vault' text brand name in the navbar. Ensure the remaining text element maintains proper spacing and alignment without the logo."
+        }
+      ]
+    },
+    {
+      "id": "REQ-8",
+      "summary": "Apply a 3-tone CSS linear gradient (red → purple → orange) to the 'Game Vault' site name text everywhere it appears using background-clip text technique",
+      "acceptanceCriteria": [
+        "The 'Game Vault' text in the Navigation bar displays a red → purple → orange gradient across its characters",
+        "The 'Game Vault' text in the Footer displays the same red → purple → orange gradient",
+        "The 'Game Vault' text in the LoadingScreen3D displays the same red → purple → orange gradient",
+        "All three tone stops (red, purple, orange) are visually distinguishable in the gradient",
+        "The gradient is applied consistently — same direction and color stops — across all instances",
+        "Plain white or single-color fallback is not used anywhere the site name appears"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/index.css",
+          "operation": "modify",
+          "description": "Add a reusable CSS utility class (e.g., .brand-gradient-text) that applies a linear gradient from red to purple to orange using background-clip: text and -webkit-background-clip: text with transparent text color. Use specific color values like linear-gradient(90deg, #ff0000 0%, #800080 50%, #ffa500 100%) to ensure all three tones are visibly distinct. This class will be applied to all 'Game Vault' text instances."
+        },
+        {
+          "path": "frontend/src/components/Navigation.tsx",
+          "operation": "modify",
+          "description": "Apply the brand-gradient-text CSS class to the 'Game Vault' text element in the Navigation bar to render the red → purple → orange gradient on the brand name characters."
+        },
+        {
+          "path": "frontend/src/components/Footer.tsx",
+          "operation": "modify",
+          "description": "Apply the brand-gradient-text CSS class to the 'Game Vault' text element in the Footer component to render the red → purple → orange gradient on the brand name characters."
+        },
+        {
+          "path": "frontend/src/components/LoadingScreen3D.tsx",
+          "operation": "modify",
+          "description": "Apply the brand-gradient-text CSS class to the 'Game Vault' intro/title text element in the LoadingScreen3D component to render the red → purple → orange gradient on the brand name characters."
+        }
+      ]
+    }
+  ]
+}

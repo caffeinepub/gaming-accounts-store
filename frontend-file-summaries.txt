@@ -1,0 +1,19 @@
+{
+  "frontend/src/pages/CheckoutPage.tsx": "Multi-step checkout page (Review → Payment Method → Payment Details → Confirmation) supporting PayPal, Crypto, UK Gift Card, and Pay in 3 Installments, with order placement via backend and stepper UI.",
+  "frontend/src/pages/OrderConfirmationPage.tsx": "Order confirmation page showing success state, order details (ID, product, payment method, status), and next-steps guidance after a successful purchase.",
+  "frontend/src/pages/AdminPanelPage.tsx": "Admin-only panel page with tabs for managing categories and products, protected by isCallerAdmin check with access denied fallback.",
+  "frontend/src/components/checkout/PaymentMethodSelector.tsx": "Radio-style payment method selector component with four options (PayPal, Crypto, UK Gift Card, Pay in 3) with icons and neon highlight on selection.",
+  "frontend/src/components/checkout/PayPalPayment.tsx": "Mock PayPal payment step with branding, simulated redirect flow, and confirmation before order placement.",
+  "frontend/src/components/checkout/CryptoPayment.tsx": "Cryptocurrency payment step showing mock wallet address, QR code placeholder, BTC/ETH amount calculation, copy functionality, and confirmation checkbox.",
+  "frontend/src/components/checkout/GiftCardPayment.tsx": "UK Gift Card payment step with code input, mock validation flow, applied confirmation state, and order placement button.",
+  "frontend/src/components/checkout/PayIn3Payment.tsx": "Pay in 3 installments BNPL step showing installment schedule with due dates, agreement checkbox, and order placement.",
+  "frontend/src/components/admin/CategoryManager.tsx": "Admin category management table with add/edit dialog and delete confirmation, wired to backend CRUD mutations.",
+  "frontend/src/components/admin/CategoryForm.tsx": "Form component for creating and editing categories with name and description fields, used inside a dialog in CategoryManager.",
+  "frontend/src/components/admin/ProductManager.tsx": "Admin product management table showing all products with edit/delete actions, wired to backend mutations with category name resolution.",
+  "frontend/src/components/admin/ProductForm.tsx": "Comprehensive product form with fields for game name, category, title, description, account details, price, and availability toggle, supporting both create and edit modes.",
+  "frontend/index.html": "HTML entry point with the browser tab title updated to \"Game Vault\".",
+  "frontend/src/index.css": "Global styles with OKLCH design tokens for dark theme, custom font utilities, and a new `.brand-gradient-text` utility class applying a red → purple → orange CSS gradient via background-clip text technique.",
+  "frontend/src/components/Navigation.tsx": "Sticky top navigation bar with the \"Game Vault\" brand name rendered using the red→purple→orange gradient text class (logo image removed), plus store/admin links, cart button with badge, and login/logout button.",
+  "frontend/src/components/Footer.tsx": "Site footer with the \"Game Vault\" brand name rendered using the red→purple→orange gradient text class (Gamepad2 icon removed), store links, payment method badges, copyright line, and caffeine.ai attribution.",
+  "frontend/src/components/LoadingScreen3D.tsx": "Full-screen 3D loading intro with a Three.js canvas scene (road, NYC skyline, vehicles), the \"Game Vault\" title rendered as large gradient text (logo image replaced), a progress bar, and a skip button."
+}

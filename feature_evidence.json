@@ -1,0 +1,46 @@
+{
+  "kind": "feature_evidence_report",
+  "features": [
+    {
+      "featureId": "feature-remove-the-logo-image-icon-from-the-navigation-component-so-that-only-the-game-vault-text-brand-name-is-displayed-in-the-navbar-no-image-svg-or-icon-logo-should-appear-alongside-or-in-place-of-the-text",
+      "featureTitle": "Remove the logo image/icon from the Navigation component so that only the 'Game Vault' text brand name is displayed in the navbar — no image, SVG, or icon logo should appear alongside or in place of the text.",
+      "files": [
+        "frontend/src/components/Navigation.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-7"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-apply-a-3-tone-css-linear-gradient-flowing-red-purple-orange-to-the-game-vault-site-name-text-in-every-location-it-appears-the-navigation-bar-brand-text-the-footer-brand-name-the-loadingscreen3d-intro-title-text-and-any-other-component-that-renders-the-site-name-as-visible-text-use-a-background-clip-text-technique-or-equivalent-css-to-render-the-gradient-directly-on-the-characters",
+      "featureTitle": "Apply a 3-tone CSS linear gradient flowing red → purple → orange to the 'Game Vault' site name text in every location it appears: the Navigation bar brand text, the Footer brand name, the LoadingScreen3D intro/title text, and any other component that renders the site name as visible text. Use a background-clip text technique or equivalent CSS to render the gradient directly on the characters.",
+      "files": [
+        "frontend/src/components/Footer.tsx",
+        "frontend/src/components/LoadingScreen3D.tsx",
+        "frontend/src/components/Navigation.tsx",
+        "frontend/src/index.css"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-8"
+      ],
+      "confidence": "high"
+    }
+  ]
+}

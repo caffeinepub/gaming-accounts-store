@@ -1,0 +1,63 @@
+{
+  "kind": "build_request",
+  "title": "Remove storefront logo and apply red → purple → orange gradient to 'Game Vault' text",
+  "projectName": "Game Vault",
+  "priority": "normal",
+  "requirements": [
+    {
+      "id": "REQ-7",
+      "text": "Remove the logo image/icon from the Navigation component so that only the 'Game Vault' text brand name is displayed in the navbar — no image, SVG, or icon logo should appear alongside or in place of the text.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-recent"
+        ],
+        "quotes": [
+          "Remove the logo on the store front"
+        ]
+      },
+      "acceptanceCriteria": [
+        "No logo image or icon is rendered in the Navigation bar",
+        "The 'Game Vault' text brand name remains visible in the navbar",
+        "Layout remains intact and does not collapse or misalign after logo removal"
+      ]
+    },
+    {
+      "id": "REQ-8",
+      "text": "Apply a 3-tone CSS linear gradient flowing red → purple → orange to the 'Game Vault' site name text in every location it appears: the Navigation bar brand text, the Footer brand name, the LoadingScreen3D intro/title text, and any other component that renders the site name as visible text. Use a background-clip text technique or equivalent CSS to render the gradient directly on the characters.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-recent"
+        ],
+        "quotes": [
+          "add a 3 tone from red to purple to orange of the name of the website"
+        ]
+      },
+      "acceptanceCriteria": [
+        "The 'Game Vault' text in the Navigation bar displays a red → purple → orange gradient across its characters",
+        "The 'Game Vault' text in the Footer displays the same red → purple → orange gradient",
+        "The 'Game Vault' text in the LoadingScreen3D displays the same red → purple → orange gradient",
+        "All three tone stops (red, purple, orange) are visually distinguishable in the gradient",
+        "The gradient is applied consistently — same direction and color stops — across all instances",
+        "Plain white or single-color fallback is not used anywhere the site name appears"
+      ]
+    }
+  ],
+  "constraints": [
+    "Do not modify any files under frontend/src/hooks/ (immutable paths)",
+    "Do not modify frontend/src/components/ui/ (immutable paths)",
+    "Do not modify frontend/src/main.tsx (immutable path)",
+    "Use CSS background-clip text or equivalent — do not replace text with images for the gradient effect"
+  ],
+  "nonGoals": [
+    "Changing any other colors, fonts, or visual theme elements beyond the logo removal and gradient text",
+    "Modifying backend code",
+    "Adding new pages or features",
+    "Changing the gradient on any element other than the 'Game Vault' site name text"
+  ],
+  "imageRequirements": {
+    "required": [],
+    "edits": []
+  }
+}

@@ -1,0 +1,138 @@
+{
+  "schemaVersion": "1.0.0",
+  "projectStateVersion": 7,
+  "summary": "A Shopify-style gaming accounts e-commerce store called Game Vault with a 3D Three.js loading screen (sports cars, motorcycles, realistic cars driving into a New York sunset). Store sells gaming accounts starting with Car Parking Multiplayer. Features full admin panel, user authentication via Internet Identity, and checkout flows for PayPal, Crypto, UK Gift Cards, and Pay in 3 Installments. The storefront logo has been removed and the 'Game Vault' site name displays a red → purple → orange 3-tone gradient across navbar, footer, loading screen, and all instances.",
+  "architectural_notes": [
+    "Full-stack app on Internet Computer (ICP) with Internet Identity for auth",
+    "3D loading screen built with Three.js rendered before store entry",
+    "Payment methods (PayPal, Crypto, UK Gift Cards, Pay in 3) built as UI/checkout flows; real API keys must be connected by owner"
+  ],
+  "known_issues": [],
+  "isFixRequest": false,
+  "existing_features": [
+    {
+      "id": "feature-build-a-3d-three-js-react-three-fiber-animated-loading-screen-that-plays-before-the-main-store-loads-the-scene-must-depict-a-new-york-city-sunset-skyline-as-the-backdrop-with-a-mix-of-sports-cars-motorcycles-and-realistic-irl-style-cars-driving-along-a-road-toward-the-horizon-the-animation-should-feel-cinematic-last-approximately-4-6-seconds-and-then-transition-smoothly-into-the-main-store",
+      "title": "Build a 3D Three.js / React Three Fiber animated loading screen that plays before the main store loads. The scene must depict a New York City sunset skyline as the backdrop, with a mix of sports cars, motorcycles, and realistic IRL-style cars driving along a road toward the horizon. The animation should feel cinematic, last approximately 4–6 seconds, and then transition smoothly into the main store.",
+      "reqIds": [
+        "REQ-1"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-build-a-shopify-style-storefront-for-selling-gaming-accounts-the-initial-product-category-must-be-car-parking-multiplayer-display-product-listing-cards-showing-account-details-e-g-level-rank-items-included-price-users-must-be-logged-in-via-internet-identity-to-complete-a-purchase",
+      "title": "Build a Shopify-style storefront for selling gaming accounts. The initial product category must be 'Car Parking Multiplayer'. Display product listing cards showing account details (e.g., level, rank, items included, price). Users must be logged in via Internet Identity to complete a purchase.",
+      "reqIds": [
+        "REQ-2"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-a-backend-data-model-and-admin-panel-that-allows-the-store-owner-to-add-edit-and-delete-product-categories-and-individual-product-listings-categories-should-store-a-name-and-description-products-should-store-game-name-category-title-description-account-details-price-and-availability-status",
+      "title": "Implement a backend data model and admin panel that allows the store owner to add, edit, and delete product categories and individual product listings. Categories should store a name and description. Products should store game name, category, title, description, account details, price, and availability status.",
+      "reqIds": [
+        "REQ-3"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-build-a-multi-step-checkout-flow-that-supports-four-payment-methods-paypal-cryptocurrency-uk-gift-cards-and-pay-in-3-installments-bnpl-each-method-should-have-its-own-dedicated-ui-step-with-relevant-input-fields-and-confirmation-screen-orders-should-be-recorded-in-the-backend-payment-gateway-connections-are-mock-ui-flows-real-api-keys-are-not-required",
+      "title": "Build a multi-step checkout flow that supports four payment methods: PayPal, Cryptocurrency, UK Gift Cards, and Pay in 3 Installments (BNPL). Each method should have its own dedicated UI step with relevant input fields and confirmation screen. Orders should be recorded in the backend. Payment gateway connections are mock/UI flows — real API keys are not required.",
+      "reqIds": [
+        "REQ-4"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-apply-a-dark-neon-accented-visual-theme-inspired-by-gaming-culture-and-nighttime-new-york-city-aesthetics-use-deep-dark-backgrounds-near-black-vibrant-neon-accent-colors-e-g-electric-orange-neon-cyan-or-hot-pink-bold-modern-typography-and-glowing-ui-effects-this-theme-must-be-applied-consistently-across-the-loading-screen-storefront-product-pages-and-checkout",
+      "title": "Apply a dark, neon-accented visual theme inspired by gaming culture and nighttime New York City aesthetics. Use deep dark backgrounds (near-black), vibrant neon accent colors (e.g., electric orange, neon cyan, or hot pink), bold modern typography, and glowing UI effects. This theme must be applied consistently across the loading screen, storefront, product pages, and checkout.",
+      "reqIds": [
+        "REQ-5"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-all-user-facing-text-references-to-the-website-name-so-they-read-game-vault-consistently-across-every-frontend-component-and-page-this-includes-the-navigation-logo-brand-text-the-loadingscreen3d-title-or-intro-text-the-footer-brand-name-and-copyright-notice-the-html-title-tag-in-index-html-and-any-other-hardcoded-site-name-strings-found-in-the-codebase",
+      "title": "Update all user-facing text references to the website name so they read 'Game Vault' consistently across every frontend component and page. This includes the Navigation logo/brand text, the LoadingScreen3D title or intro text, the Footer brand name and copyright notice, the HTML <title> tag in index.html, and any other hardcoded site-name strings found in the codebase.",
+      "reqIds": [
+        "REQ-6"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-remove-the-logo-image-icon-from-the-navigation-component-so-that-only-the-game-vault-text-brand-name-is-displayed-in-the-navbar-no-image-svg-or-icon-logo-should-appear-alongside-or-in-place-of-the-text",
+      "title": "Remove the logo image/icon from the Navigation component so that only the 'Game Vault' text brand name is displayed in the navbar — no image, SVG, or icon logo should appear alongside or in place of the text.",
+      "reqIds": [
+        "REQ-7"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-apply-a-3-tone-css-linear-gradient-flowing-red-purple-orange-to-the-game-vault-site-name-text-in-every-location-it-appears-the-navigation-bar-brand-text-the-footer-brand-name-the-loadingscreen3d-intro-title-text-and-any-other-component-that-renders-the-site-name-as-visible-text-use-a-background-clip-text-technique-or-equivalent-css-to-render-the-gradient-directly-on-the-characters",
+      "title": "Apply a 3-tone CSS linear gradient flowing red → purple → orange to the 'Game Vault' site name text in every location it appears: the Navigation bar brand text, the Footer brand name, the LoadingScreen3D intro/title text, and any other component that renders the site name as visible text. Use a background-clip text technique or equivalent CSS to render the gradient directly on the characters.",
+      "reqIds": [
+        "REQ-8"
+      ],
+      "version": 1
+    }
+  ],
+  "new_feature_requests": [
+    {
+      "id": "AR-1",
+      "summary": "3D Three.js loading screen with cars/motorcycles driving into a New York sunset",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-2",
+      "summary": "Gaming accounts store with Car Parking Multiplayer as initial category",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-3",
+      "summary": "Admin panel for adding/managing product categories and listings",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-4",
+      "summary": "User authentication via Internet Identity (login required to purchase)",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-5",
+      "summary": "PayPal checkout flow integration",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-6",
+      "summary": "Crypto payment checkout flow",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-7",
+      "summary": "UK Gift Cards payment checkout flow",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-8",
+      "summary": "Pay in 3 installments (BNPL) checkout flow",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-9",
+      "summary": "Remove storefront logo and apply red → purple → orange 3-tone gradient to 'Game Vault' text in navbar, footer, loading screen, and all instances",
+      "reqIds": [],
+      "status": "pending"
+    }
+  ],
+  "gameProjectType": "none",
+  "projectName": "Gaming Accounts Store",
+  "clarification_mode": "instant",
+  "clarification_rounds": 0
+}
