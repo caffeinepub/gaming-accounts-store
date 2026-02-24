@@ -1,24 +1,25 @@
 {
   "schemaVersion": "1.0.0",
-  "projectStateVersion": 43,
-  "summary": "A Shopify-style gaming accounts e-commerce store called Game Vault with a loading screen that features a royalty-free New York sunset video (sourced from a public CDN such as Pexels or Pixabay) playing as the background, replacing the previous 3D Three.js scene entirely. The loading screen enforces a minimum 40-second wait with a 'Game Vault' gradient text (red → purple → orange) progress reveal effect and an 'Enter Store' button that unlocks after 40 seconds. Store sells gaming accounts starting with Car Parking Multiplayer. Features full admin panel, user authentication via Internet Identity, and checkout flows for PayPal, Crypto, UK Gift Cards, and Pay in 3 Installments. The storefront logo has been removed and the 'Game Vault' site name displays a red → purple → orange 3-tone gradient across navbar, footer, loading screen, and all instances. Users must create a unique username (no spaces) on first login before accessing the store; username is used for purchases (order confirmations show username, email, contact info, and product purchased) and for admin panel access control. Admin Panel link is visible to all users in the navbar but only whitelisted usernames can enter. Store owner manages the admin whitelist in the backend. The username 'Frosty' is hardcoded as the initial seed admin in the backend whitelist. The overall website theme is a sunset aesthetic — warm golden-oranges, deep purples, dusky pinks, and soft golden yellows. The 'Game Vault' gradient text (red → purple → orange) remains unchanged. A Subscriptions tab has been added to the navbar with 4 tiers (Starter, Basic, Premium, Pro), each offering progressive perks and discounts. Users toggle between monthly/yearly billing with a disclaimer shown under all tier titles. Pro tier unlocks all perks. PayPal and Crypto are the only supported payment methods for subscriptions. Admins can edit monthly and yearly prices per tier independently, toggle a 7-day free trial on/off per tier, and all changes reflect on the user-facing subscriptions tab. Subscription tier data is stored in backend stable storage.",
+  "projectStateVersion": 51,
+  "summary": "A Shopify-style gaming accounts e-commerce store called Game Vault with a loading screen that features a royalty-free New York sunset video (sourced from a public CDN such as Pexels or Pixabay) playing as the background, replacing the previous 3D Three.js scene entirely. The loading screen enforces a minimum 40-second wait with a 'Game Vault' gradient text (red → purple → orange) progress reveal effect and an 'Enter Store' button that unlocks after 40 seconds. Store sells gaming accounts starting with Car Parking Multiplayer. Features full admin panel, user authentication via Internet Identity, and checkout flows for PayPal, Crypto, UK Gift Cards, and Pay in 3 Installments. The storefront logo has been removed and the 'Game Vault' site name displays a red → purple → orange 3-tone gradient across navbar, footer, loading screen, and all instances. Users must create a unique username (no spaces) on first login before accessing the store; username is used for purchases (order confirmations show username, email, contact info, and product purchased) and for admin panel access control. Admin Panel link is visible to all users in the navbar but only whitelisted usernames can enter. The admin panel gate now requires the user to manually type their username into an input field; the typed username is checked against the backend isAdminUsername whitelist — match grants access, no match shows access denied. This replaces the previous auto-resolved gate. The username 'Frosty' is hardcoded as the initial seed admin in the backend whitelist. The overall website theme is a sunset aesthetic — warm golden-oranges, deep purples, dusky pinks, and soft golden yellows. The 'Game Vault' gradient text (red → purple → orange) remains unchanged. A Subscriptions tab has been added to the navbar with 4 tiers (Starter, Basic, Premium, Pro), each offering progressive perks and discounts. Users toggle between monthly/yearly billing with a disclaimer shown under all tier titles. Pro tier unlocks all perks. PayPal and Crypto are the only supported payment methods for subscriptions. Admins can edit monthly and yearly prices per tier independently, toggle a 7-day free trial on/off per tier, and all changes reflect on the user-facing subscriptions tab. Subscription tier data is stored in backend stable storage.",
   "architectural_notes": [
     "Full-stack app on Internet Computer (ICP) with Internet Identity for auth",
     "Payment methods (PayPal, Crypto, UK Gift Cards, Pay in 3) built as UI/checkout flows; real API keys must be connected by owner",
-    "Username system (no spaces) required on first Internet Identity login; stored against identity and used for purchases and admin panel access control",
     "Username 'Frosty' is hardcoded as the initial seed admin in the backend whitelist",
     "Loading screen now uses a royalty-free NYC sunset video (public CDN URL) as the background instead of a Three.js 3D scene; 40-second timer and progress reveal logic remain",
     "Subscription tiers (Starter, Basic, Premium, Pro) stored in backend stable storage with monthly price, yearly price, perks list, and free trial enabled flag; admin-editable via admin panel",
-    "Admin-configurable wallet addresses (PayPal email, Bitcoin address, Ethereum address) stored in backend stable storage; Bitcoin and Ethereum addresses shown to customers during crypto checkout as QR code + copyable text"
+    "Admin-configurable wallet addresses (PayPal email, Bitcoin address, Ethereum address) stored in backend stable storage; Bitcoin and Ethereum addresses shown to customers during crypto checkout as QR code + copyable text",
+    "Admin panel access gate uses a manual username text input (not auto-resolved from logged-in identity); typed username is checked against backend isAdminUsername whitelist — match grants access, mismatch shows access denied"
   ],
   "known_issues": [
     "Admin panel create product and create category flows throw errors; backend addCategory/addProduct calls and frontend admin panel components need fixing",
     "Previous deployment attempt failed; user requested rebuild and successful deployment",
-    "Admin panel denies access with 'no admin permissions' even for whitelisted users (Frosty); isAdminUsername check or username-based gate logic is broken in frontend-backend wiring",
     "Admin category creation is broken — admins cannot create categories; addCategory backend/frontend flow needs end-to-end fix",
-    "Step 1 build (admin wallet settings + crypto checkout QR display) failed twice; retrying with tighter scope"
+    "Step 1 build (admin wallet settings + crypto checkout QR display) failed twice; retrying with tighter scope",
+    "Product creation in admin panel silently fails — clicking Create does nothing (no error, no toast, no dialog close); addProduct mutation or ProductForm.tsx submit handler is broken",
+    "Admin panel stuck in 'verifying access' spin loop after Version 22 — AdminAccessControl.tsx sequential gate (auth → username → isAdminUsername) never resolves to granted or denied state"
   ],
-  "isFixRequest": false,
+  "isFixRequest": true,
   "existing_features": [
     {
       "id": "feature-build-a-3d-three-js-react-three-fiber-animated-loading-screen-that-plays-before-the-main-store-loads-the-scene-must-depict-a-new-york-city-sunset-skyline-as-the-backdrop-with-a-mix-of-sports-cars-motorcycles-and-realistic-irl-style-cars-driving-along-a-road-toward-the-horizon-the-animation-should-feel-cinematic-last-approximately-4-6-seconds-and-then-transition-smoothly-into-the-main-store",
@@ -523,6 +524,46 @@
         "REQ-81"
       ],
       "version": 1
+    },
+    {
+      "id": "feature-fix-frontend-src-components-admin-productform-tsx-so-that-the-add-product-and-edit-product-form-submission-handlers-are-correctly-wired-to-the-addproduct-and-updateproduct-mutations-from-usequeries-ts-on-successful-submission-display-a-success-toast-notification-and-close-the-dialog-on-failure-display-an-error-toast-notification-with-the-error-message-and-keep-the-dialog-open-ensure-the-form-correctly-parses-the-price-field-as-a-javascript-number-float-and-the-availability-field-as-a-boolean-before-passing-them-to-the-mutation",
+      "title": "Fix `frontend/src/components/admin/ProductForm.tsx` so that the 'Add Product' and 'Edit Product' form submission handlers are correctly wired to the `addProduct` and `updateProduct` mutations from `useQueries.ts`. On successful submission, display a success toast notification and close the dialog. On failure, display an error toast notification with the error message and keep the dialog open. Ensure the form correctly parses the price field as a JavaScript `number` (Float) and the availability field as a `boolean` before passing them to the mutation.",
+      "reqIds": [
+        "REQ-87"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-rewrite-frontend-src-components-adminaccesscontrol-tsx-with-a-strict-non-looping-sequential-gate-1-if-the-user-is-not-authenticated-via-internet-identity-render-a-please-log-in-prompt-immediately-do-not-spin-2-once-authenticated-fetch-the-stored-username-via-the-useusername-getusername-react-query-hook-3-if-the-authenticated-user-has-no-username-yet-trigger-the-username-creation-flow-profilesetupmodal-instead-of-spinning-4-once-a-non-empty-username-string-is-confirmed-call-isadminusername-with-that-username-string-never-pass-a-principal-undefined-or-null-5-as-soon-as-both-the-username-query-and-the-isadminusername-check-resolve-transition-immediately-to-either-access-granted-render-children-or-access-denied-render-accessdeniedscreen-no-looping-no-re-fetching-no-perpetual-spin-6-show-a-loading-spinner-only-during-the-brief-in-flight-period-while-the-username-fetch-or-admin-check-is-actually-pending",
+      "title": "Rewrite `frontend/src/components/AdminAccessControl.tsx` with a strict, non-looping sequential gate: (1) if the user is not authenticated via Internet Identity, render a 'Please log in' prompt immediately — do not spin; (2) once authenticated, fetch the stored username via the `useUsername` / `getUsername` React Query hook; (3) if the authenticated user has no username yet, trigger the username creation flow (ProfileSetupModal) instead of spinning; (4) once a non-empty username string is confirmed, call `isAdminUsername` with that username string — never pass a principal, undefined, or null; (5) as soon as both the username query and the `isAdminUsername` check resolve, transition immediately to either 'access granted' (render children) or 'access denied' (render `AccessDeniedScreen`) — no looping, no re-fetching, no perpetual spin; (6) show a loading spinner only during the brief in-flight period while the username fetch or admin check is actually pending.",
+      "reqIds": [
+        "REQ-88"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-audit-and-fix-the-useusername-getusername-query-and-the-useisadminusername-query-or-equivalent-hooks-in-frontend-src-hooks-usequeries-ts-that-are-consumed-by-adminaccesscontrol-set-staletime-to-at-least-60-000-ms-and-retry-to-1-on-both-queries-ensure-the-username-query-is-enabled-only-when-isauthenticated-is-true-ensure-the-isadminusername-query-is-enabled-only-when-a-valid-non-empty-username-string-has-been-loaded-ensure-isadminusername-is-invoked-with-the-username-string-value-not-a-principal-or-any-other-identifier-these-settings-must-prevent-re-fetch-loops-and-excessive-retry-delays-that-cause-the-admin-gate-to-hang",
+      "title": "Audit and fix the `useUsername` / `getUsername` query and the `useIsAdminUsername` query (or equivalent hooks) in `frontend/src/hooks/useQueries.ts` that are consumed by `AdminAccessControl`: set `staleTime` to at least 60 000 ms and `retry` to 1 on both queries; ensure the username query is `enabled` only when `isAuthenticated` is true; ensure the `isAdminUsername` query is `enabled` only when a valid, non-empty username string has been loaded; ensure `isAdminUsername` is invoked with the username string value, not a principal or any other identifier. These settings must prevent re-fetch loops and excessive retry delays that cause the admin gate to hang.",
+      "reqIds": [
+        "REQ-89"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-rewrite-frontend-src-components-adminaccesscontrol-tsx-using-a-useeffect-local-state-imperative-async-flow-instead-of-chained-react-query-enabled-flags-the-component-must-1-immediately-render-a-please-log-in-prompt-if-the-user-is-not-authenticated-no-spinner-2-once-authenticated-perform-a-single-async-resolution-call-the-backend-getusername-function-directly-or-via-the-actor-to-retrieve-the-stored-username-for-the-authenticated-principal-3-if-the-resolved-username-is-empty-or-null-render-the-profilesetupmodal-to-trigger-username-creation-instead-of-spinning-4-once-a-non-empty-username-string-is-confirmed-call-isadminusername-with-that-exact-string-never-pass-a-principal-undefined-or-null-5-transition-immediately-and-permanently-to-either-access-granted-render-children-or-access-denied-render-accessdeniedscreen-as-soon-as-both-calls-complete-use-a-local-status-state-variable-with-values-loading-granted-denied-unauthenticated-no-username-to-drive-rendering-and-prevent-any-re-entry-or-loop-6-show-a-spinner-only-while-status-is-loading-7-do-not-use-chained-react-query-enabled-dependencies-for-the-admin-gate-logic-all-async-work-must-be-done-imperatively-inside-a-single-useeffect-that-runs-once-when-authentication-status-is-confirmed",
+      "title": "Rewrite `frontend/src/components/AdminAccessControl.tsx` using a `useEffect` + local state imperative async flow instead of chained React Query `enabled` flags. The component must: (1) immediately render a 'Please log in' prompt if the user is not authenticated — no spinner; (2) once authenticated, perform a single async resolution: call the backend `getUsername` function directly (or via the actor) to retrieve the stored username for the authenticated principal; (3) if the resolved username is empty or null, render the `ProfileSetupModal` to trigger username creation instead of spinning; (4) once a non-empty username string is confirmed, call `isAdminUsername` with that exact string — never pass a principal, undefined, or null; (5) transition immediately and permanently to either 'access granted' (render children) or 'access denied' (render `AccessDeniedScreen`) as soon as both calls complete — use a local `status` state variable with values `'loading' | 'granted' | 'denied' | 'unauthenticated' | 'no-username'` to drive rendering and prevent any re-entry or loop; (6) show a spinner only while status is `'loading'`; (7) do NOT use chained React Query `enabled` dependencies for the admin gate logic — all async work must be done imperatively inside a single `useEffect` that runs once when authentication status is confirmed.",
+      "reqIds": [
+        "REQ-91"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-rewrite-frontend-src-components-adminaccesscontrol-tsx-to-replace-all-previous-auto-resolved-gate-logic-with-a-manual-username-entry-screen-when-any-user-navigates-to-the-admin-panel-the-component-must-immediately-render-a-styled-form-containing-a-heading-e-g-admin-access-a-text-input-labelled-enter-your-username-and-a-submit-button-on-submit-call-the-backend-isadminusername-function-with-the-exact-string-the-user-typed-if-the-backend-returns-true-transition-to-access-granted-and-render-the-children-if-the-backend-returns-false-render-the-accessdeniedscreen-with-an-access-denied-message-do-not-silently-fetch-the-authenticated-user-s-stored-username-do-not-call-getusername-or-any-react-query-hook-as-part-of-the-gate-decision-and-do-not-auto-resolve-access-based-on-internet-identity-authentication-state-the-username-the-user-types-is-the-only-input-used-for-the-whitelist-check-show-a-loading-spinner-state-only-while-the-isadminusername-backend-call-is-in-flight-apply-the-sunset-theme-dusk-bg-dusk-mid-backgrounds-sunset-gold-sunset-orange-accent-colours-orbitron-rajdhani-fonts-sunset-glow-effects-to-the-username-entry-form",
+      "title": "Rewrite `frontend/src/components/AdminAccessControl.tsx` to replace all previous auto-resolved gate logic with a manual username-entry screen. When any user navigates to the admin panel, the component must immediately render a styled form containing: a heading (e.g. 'Admin Access'), a text input labelled 'Enter your username', and a 'Submit' button. On submit, call the backend `isAdminUsername` function with the exact string the user typed. If the backend returns `true`, transition to 'access granted' and render the children. If the backend returns `false`, render the `AccessDeniedScreen` with an access-denied message. Do NOT silently fetch the authenticated user's stored username, do NOT call `getUsername` or any React Query hook as part of the gate decision, and do NOT auto-resolve access based on Internet Identity authentication state. The username the user types is the only input used for the whitelist check. Show a loading/spinner state only while the `isAdminUsername` backend call is in-flight. Apply the sunset theme (dusk-bg/dusk-mid backgrounds, sunset-gold/sunset-orange accent colours, Orbitron/Rajdhani fonts, sunset glow effects) to the username-entry form.",
+      "reqIds": [
+        "REQ-94"
+      ],
+      "version": 1
     }
   ],
   "new_feature_requests": [
@@ -842,6 +883,44 @@
       "reqIds": [
         "REQ-85"
       ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-64",
+      "summary": "Fix the `addProduct` and `updateProduct` mutation functions in `frontend/src/hooks/useQueries.ts` so they correctly await the actor call, pass all required product fields (gameName, title, description, accountDetails, price as Float, availability as Bool) with correct types, properly unwrap the Motoko `#ok`/`#err` Result variant, throw a JavaScript `Error` when the backend returns `#err` so that `onError` handlers fire, and invalidate the `products` React Query cache on success. The `category` field must NOT be included in the payload.",
+      "reqIds": [
+        "REQ-86"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-67",
+      "summary": "Audit `frontend/src/pages/AdminPanelPage.tsx` to confirm it relies solely on the `AdminAccessControl` wrapper for its access gate and does not introduce any additional async delays, redundant `isAdminUsername` calls, internal state conditions, or effects that could produce a perpetual loading or 'verifying access' state. The page must render its tabbed content (Products, Orders, Payments, Admins, Subscriptions, Settings) immediately once `AdminAccessControl` grants access.",
+      "reqIds": [
+        "REQ-90"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-69",
+      "summary": "Audit `frontend/src/hooks/useQueries.ts` and ensure the `useUsername` / `getUsername` query and any `useIsAdminUsername` query are NOT used as the primary control flow mechanism inside `AdminAccessControl.tsx` after the rewrite. If these hooks are still present in `useQueries.ts` for other consumers, ensure they have `staleTime` of at least 60 000 ms and `retry` set to 1. Confirm that no query configuration in `useQueries.ts` can cause `AdminAccessControl` to enter an infinite re-fetch loop.",
+      "reqIds": [
+        "REQ-92"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-70",
+      "summary": "Audit `frontend/src/pages/AdminPanelPage.tsx` to confirm it contains zero additional async gates, internal `isAdminUsername` calls, loading states, or `useEffect` checks of its own. The page must render its tabbed content (Products, Orders, Payments, Admins, Subscriptions, Settings) immediately and unconditionally once `AdminAccessControl` renders its children — any access gating must be handled exclusively by the `AdminAccessControl` wrapper.",
+      "reqIds": [
+        "REQ-93"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-71",
+      "summary": "Replace the current auto-resolved admin gate with a manual username-entry screen: when any user navigates to the admin panel, show a username input field; on submit, check the typed username against the backend isAdminUsername whitelist; if match → grant access, if no match → show access denied. This replaces all previous AdminAccessControl logic.",
+      "reqIds": [],
       "status": "pending"
     }
   ],

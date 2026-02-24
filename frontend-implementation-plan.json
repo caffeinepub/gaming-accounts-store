@@ -1,60 +1,26 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Step 3: UK Gift Card submission flow end-to-end",
+  "title": "Replace admin gate with manual username-entry screen",
   "requirements": [
     {
-      "id": "REQ-83",
-      "summary": "Update GiftCardPayment component to capture Gift Card Number and Gift Card Balance fields with validation",
+      "id": "REQ-94",
+      "summary": "Rewrite AdminAccessControl to use manual username-entry screen instead of auto-resolved gate logic",
       "acceptanceCriteria": [
-        "The GiftCardPayment component renders a 'Gift Card Number' text input field",
-        "The GiftCardPayment component renders a 'Gift Card Balance' text input field",
-        "Both fields are required — the confirm/proceed button is disabled or validation errors are shown if either field is empty",
-        "The entered gift card number and balance values are passed up to the parent checkout flow for inclusion in the order record",
-        "The sunset theme (dusk-bg/dusk-mid backgrounds, sunset-gold/sunset-orange accent colours, Orbitron/Rajdhani fonts) is applied to the new fields"
+        "Navigating to /admin (or the admin panel route) always shows a username input form, regardless of the user's Internet Identity authentication state.",
+        "The form contains a text input and a 'Submit' button; no automatic resolution or silent checks occur before the user submits.",
+        "On submit, the typed username string is passed directly to the backend `isAdminUsername` function.",
+        "If `isAdminUsername` returns true, the admin panel content (children) is rendered immediately.",
+        "If `isAdminUsername` returns false, the `AccessDeniedScreen` component is rendered with an access-denied message.",
+        "A loading/spinner state is shown only while the `isAdminUsername` backend call is pending.",
+        "No call to `getUsername`, no React Query username hooks, and no Internet Identity identity checks are used as part of the gate decision flow.",
+        "The username-entry form uses sunset theme styling (dusk-bg/dusk-mid backgrounds, sunset-gold/sunset-orange accents, Orbitron/Rajdhani fonts)."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/checkout/GiftCardPayment.tsx",
+          "path": "frontend/src/components/AdminAccessControl.tsx",
           "operation": "modify",
-          "description": "Add two new controlled text input fields: 'Gift Card Number' and 'Gift Card Balance'. Implement local state management for both fields. Add validation to ensure both fields are non-empty before enabling the confirm button. Update the component's props interface to accept callback functions (onGiftCardNumberChange, onGiftCardBalanceChange) or use a single callback that passes both values to the parent. Apply the sunset theme styling (dusk-bg/dusk-mid backgrounds, sunset-gold/sunset-orange accent colours, Orbitron/Rajdhani fonts) to the new input fields to match the existing component design. Ensure the confirm button is disabled when either field is empty."
-        }
-      ]
-    },
-    {
-      "id": "REQ-84",
-      "summary": "Update placeOrder mutation in useQueries.ts to include giftCardNumber and giftCardBalance fields",
-      "acceptanceCriteria": [
-        "The `placeOrder` mutation input type includes `giftCardNumber: string` and `giftCardBalance: string` fields",
-        "When payment method is 'Gift Card', `giftCardNumber` and `giftCardBalance` are populated with values from the checkout form",
-        "For PayPal, Crypto, and Pay in 3 payment methods, `giftCardNumber` and `giftCardBalance` are sent as empty strings",
-        "The mutation awaits the actor call and correctly unwraps the `#ok`/`#err` variant",
-        "A JavaScript Error is thrown when the backend returns `#err`, triggering `onError` handlers",
-        "The orders query cache is invalidated on success"
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/hooks/useQueries.ts",
-          "operation": "modify",
-          "description": "Update the usePlaceOrder mutation to accept two additional string parameters: giftCardNumber and giftCardBalance. Modify the mutation function to pass these fields to the backend actor's addOrder method. The mutation must populate giftCardNumber and giftCardBalance with the provided values when the payment method is 'ukGiftCard', and pass empty strings (\"\") for all other payment methods (paypal, cryptocurrency, payIn3Installments). Ensure the mutation continues to await the actor call, unwrap the Result variant, throw a JavaScript Error on #err, and invalidate the orders query cache on success. Do not modify the backend actor call signature or error handling logic."
-        }
-      ]
-    },
-    {
-      "id": "REQ-85",
-      "summary": "Update CheckoutPage to collect and pass gift card fields through to placeOrder mutation",
-      "acceptanceCriteria": [
-        "CheckoutPage.tsx captures `giftCardNumber` and `giftCardBalance` from the GiftCardPayment component via props or shared state",
-        "When the payment method is 'Gift Card', both values are included in the `placeOrder` mutation call",
-        "For all other payment methods (PayPal, Crypto, Pay in 3), `giftCardNumber` and `giftCardBalance` are passed as empty strings to the mutation",
-        "The checkout cannot proceed to order confirmation via Gift Card if either gift card field is empty",
-        "Existing checkout steps and flows for other payment methods remain unaffected"
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/pages/CheckoutPage.tsx",
-          "operation": "modify",
-          "description": "Add local state variables to track giftCardNumber and giftCardBalance (initially empty strings). Update the GiftCardPayment component usage to pass callback props that update these state variables when the user enters values. Modify the order placement logic (handlePlaceOrder or equivalent) to include giftCardNumber and giftCardBalance in the placeOrder mutation call. When paymentMethod is 'ukGiftCard', pass the captured values; for all other payment methods (paypal, cryptocurrency, payIn3Installments), pass empty strings. Add validation to prevent order placement when paymentMethod is 'ukGiftCard' and either giftCardNumber or giftCardBalance is empty (disable the confirm button or show an error message). Ensure existing payment method flows remain unchanged and only the Gift Card flow is affected."
+          "description": "Replace all previous auto-resolved gate logic (including useEffect with username resolution, React Query hooks, and identity checks) with a manual username-entry form. Implement a controlled text input for username entry with a Submit button. On form submission, call the backend `isAdminUsername` function with the exact typed username string. If the backend returns true, set local state to 'granted' and render children. If false, render the AccessDeniedScreen component with an access-denied message. Show a loading/spinner state only while the `isAdminUsername` backend call is in-flight. Remove all dependencies on useInternetIdentity, useGetUsername, useIsAdminUsername, or any other React Query hooks for gate decision logic. Apply sunset theme styling to the username-entry form: use dusk-bg/dusk-mid for backgrounds, sunset-gold/sunset-orange for accent colors, Orbitron for headings, Rajdhani for body text, and include sunset glow effects. Ensure the form is always displayed on navigation to the admin panel route, regardless of authentication state."
         }
       ]
     }

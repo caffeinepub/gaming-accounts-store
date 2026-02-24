@@ -1,41 +1,25 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-24T19:49:19.016Z",
+  "generatedAt": "2026-02-24T20:37:06.569Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 3,
-    "implemented": 0,
+    "total": 1,
+    "implemented": 1,
     "items": [
       {
-        "id": "REQ-83",
-        "summary": "Update `frontend/src/components/checkout/GiftCardPayment.tsx` to capture two additional required fields during the gift card checkout step: a 'Gift Card Number' text input and a 'Gift Card Balance' text input. Both fields must be validated as non-empty before the user can confirm the order. These values must be surfaced to the parent checkout flow (via callback props or shared state) so they can be included in the order placement call.",
-        "status": "missing",
+        "id": "REQ-94",
+        "summary": "Rewrite `frontend/src/components/AdminAccessControl.tsx` to replace all previous auto-resolved gate logic with a manual username-entry screen. When any user navigates to the admin panel, the component must immediately render a styled form containing: a heading (e.g. 'Admin Access'), a text input labelled 'Enter your username', and a 'Submit' button. On submit, call the backend `isAdminUsername` function with the exact string the user typed. If the backend returns `true`, transition to 'access granted' and render the children. If the backend returns `false`, render the `AccessDeniedScreen` with an access-denied message. Do NOT silently fetch the authenticated user's stored username, do NOT call `getUsername` or any React Query hook as part of the gate decision, and do NOT auto-resolve access based on Internet Identity authentication state. The username the user types is the only input used for the whitelist check. Show a loading/spinner state only while the `isAdminUsername` backend call is in-flight. Apply the sunset theme (dusk-bg/dusk-mid backgrounds, sunset-gold/sunset-orange accent colours, Orbitron/Rajdhani fonts, sunset glow effects) to the username-entry form.",
+        "status": "implemented",
         "plannedFiles": [
-          "frontend/src/components/checkout/GiftCardPayment.tsx"
+          "frontend/src/components/AdminAccessControl.tsx"
         ],
-        "matchedFiles": []
-      },
-      {
-        "id": "REQ-84",
-        "summary": "Update the `placeOrder` mutation in `frontend/src/hooks/useQueries.ts` to accept and pass `giftCardNumber: string` and `giftCardBalance: string` fields in the order payload sent to the backend actor. When the payment method is 'Gift Card', both fields must be populated with the values collected in `GiftCardPayment.tsx`. For all other payment methods, both fields must be sent as empty strings (`\"\"`). The mutation must still correctly await the actor call, unwrap the `#ok`/`#err` Result variant, throw a JavaScript `Error` on `#err`, and invalidate the relevant query caches on success.",
-        "status": "missing",
-        "plannedFiles": [
-          "frontend/src/hooks/useQueries.ts"
-        ],
-        "matchedFiles": []
-      },
-      {
-        "id": "REQ-85",
-        "summary": "Update the order placement logic in `frontend/src/pages/CheckoutPage.tsx` to collect `giftCardNumber` and `giftCardBalance` from the `GiftCardPayment` component and pass them through to the `placeOrder` mutation call. When the selected payment method is 'Gift Card', both values must be forwarded; for all other payment methods, empty strings must be passed. Ensure the checkout flow does not allow order placement via Gift Card if either field is empty.",
-        "status": "missing",
-        "plannedFiles": [
-          "frontend/src/pages/CheckoutPage.tsx"
-        ],
-        "matchedFiles": []
+        "matchedFiles": [
+          "frontend/src/components/AdminAccessControl.tsx"
+        ]
       }
     ]
   },
@@ -44,6 +28,7 @@
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
+    "frontend/src/components/AdminAccessControl.tsx",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

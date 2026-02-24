@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { useAddProduct, useUpdateProduct } from '../../hooks/useQueries';
 import type { Product } from '../../backend';
 
@@ -22,35 +23,65 @@ export default function ProductForm({ product, onSuccess }: ProductFormProps) {
   const isEditing = !!product;
   const isPending = addProduct.isPending || updateProduct.isPending;
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const priceInPence = Math.round(parseFloat(price) * 100);
+
+    const parsedPrice = parseFloat(price);
+    if (isNaN(parsedPrice) || parsedPrice < 0) {
+      toast.error('Please enter a valid price.');
+      return;
+    }
+
+    const priceInPence = BigInt(Math.round(parsedPrice * 100));
 
     if (isEditing) {
-      await updateProduct.mutateAsync({
-        id: product.id,
-        gameName,
-        title,
-        description,
-        accountDetails,
-        price: BigInt(priceInPence),
-        available,
-      });
+      updateProduct.mutate(
+        {
+          id: product.id,
+          gameName: gameName.trim(),
+          title: title.trim(),
+          description: description.trim(),
+          accountDetails: accountDetails.trim(),
+          price: priceInPence,
+          available,
+        },
+        {
+          onSuccess: () => {
+            toast.success('Product updated successfully!');
+            onSuccess();
+          },
+          onError: (error: Error) => {
+            toast.error(`Failed to update product: ${error.message}`);
+          },
+        }
+      );
     } else {
-      await addProduct.mutateAsync({
-        gameName,
-        title,
-        description,
-        accountDetails,
-        price: BigInt(priceInPence),
-        available,
-      });
+      addProduct.mutate(
+        {
+          gameName: gameName.trim(),
+          title: title.trim(),
+          description: description.trim(),
+          accountDetails: accountDetails.trim(),
+          price: priceInPence,
+          available,
+        },
+        {
+          onSuccess: () => {
+            toast.success('Product created successfully!');
+            onSuccess();
+          },
+          onError: (error: Error) => {
+            toast.error(`Failed to create product: ${error.message}`);
+          },
+        }
+      );
     }
-    onSuccess();
   };
 
-  const inputClass = "w-full px-3 py-2 rounded-sm border border-border bg-input text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-sunset-gold focus:ring-1 focus:ring-sunset-gold/30 font-rajdhani transition-colors text-sm";
-  const labelClass = "font-rajdhani text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1";
+  const inputClass =
+    'w-full px-3 py-2 rounded-sm border border-border bg-input text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-sunset-gold focus:ring-1 focus:ring-sunset-gold/30 font-rajdhani transition-colors text-sm';
+  const labelClass =
+    'font-rajdhani text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1';
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
@@ -122,7 +153,9 @@ export default function ProductForm({ product, onSuccess }: ProductFormProps) {
               onChange={(e) => setAvailable(e.target.checked)}
               className="accent-sunset-gold w-4 h-4"
             />
-            <span className="font-rajdhani font-semibold text-sm text-foreground">Available for purchase</span>
+            <span className="font-rajdhani font-semibold text-sm text-foreground">
+              Available for purchase
+            </span>
           </label>
         </div>
       </div>
@@ -137,8 +170,10 @@ export default function ProductForm({ product, onSuccess }: ProductFormProps) {
             <Loader2 className="w-4 h-4 animate-spin" />
             Saving...
           </>
+        ) : isEditing ? (
+          'Update Product'
         ) : (
-          isEditing ? 'Update Product' : 'Add Product'
+          'Add Product'
         )}
       </button>
     </form>

@@ -1,217 +1,167 @@
-import React from 'react';
-import { Shield, Loader2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { Shield, Loader2, KeyRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useInternetIdentity } from '../hooks/useInternetIdentity';
-import { useIsAdminUsername } from '../hooks/useQueries';
-import { useQueryClient } from '@tanstack/react-query';
+import { Input } from '@/components/ui/input';
 import { useActor } from '../hooks/useActor';
-import { useQuery } from '@tanstack/react-query';
-import { Principal } from '@dfinity/principal';
+
+type AccessStatus = 'idle' | 'checking' | 'granted' | 'denied';
 
 interface AdminAccessControlProps {
   children: React.ReactNode;
 }
 
-/**
- * Fetches the username for the currently authenticated principal using the
- * public (no-auth-required) `getUsernameByPrincipal` query.
- * This avoids any role-permission traps that can occur with `getCallerUserProfile`.
- */
-function useAdminUsername(principalStr: string | undefined) {
+export default function AdminAccessControl({ children }: AdminAccessControlProps) {
   const { actor, isFetching: actorFetching } = useActor();
 
-  const isEnabled = !!actor && !actorFetching && !!principalStr;
+  const [username, setUsername] = useState('');
+  const [status, setStatus] = useState<AccessStatus>('idle');
+  const [errorMessage, setErrorMessage] = useState('');
 
-  const query = useQuery<string | null>({
-    queryKey: ['usernameByPrincipal', principalStr],
-    queryFn: async () => {
-      if (!actor || !principalStr) return null;
-      try {
-        const principal = Principal.fromText(principalStr);
-        return actor.getUsernameByPrincipal(principal);
-      } catch {
-        return null;
-      }
-    },
-    enabled: isEnabled,
-    staleTime: 60_000,
-    retry: 1,
-  });
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!username.trim() || !actor || actorFetching) return;
 
-  return {
-    username: query.data ?? null,
-    isLoading: actorFetching || (isEnabled && query.isLoading),
-    isFetched: isEnabled ? query.isFetched : false,
-    isError: query.isError,
-  };
-}
+    setStatus('checking');
+    setErrorMessage('');
 
-export default function AdminAccessControl({ children }: AdminAccessControlProps) {
-  const { login, clear, loginStatus, identity } = useInternetIdentity();
-  const queryClient = useQueryClient();
-  const isAuthenticated = !!identity;
-  const isLoggingIn = loginStatus === 'logging-in';
-
-  // Get the principal string for the current user
-  const principalStr = identity?.getPrincipal().toString();
-
-  // Step 1: Fetch username via the public getUsernameByPrincipal query
-  // This query has NO auth requirement so it can never trap due to missing roles
-  const {
-    username,
-    isLoading: usernameLoading,
-    isFetched: usernameFetched,
-    isError: usernameError,
-  } = useAdminUsername(principalStr);
-
-  // Step 2: Only check admin status once we have a non-empty username string
-  const safeUsername = username ?? '';
-  const {
-    data: isAdmin,
-    isLoading: adminLoading,
-    isFetched: adminFetched,
-  } = useIsAdminUsername(safeUsername);
-
-  const handleLogin = async () => {
     try {
-      await login();
-    } catch (error: unknown) {
-      const err = error as Error;
-      if (err.message === 'User is already authenticated') {
-        await clear();
-        setTimeout(() => login(), 300);
+      const isAdmin = await actor.isAdminUsername(username.trim());
+      if (isAdmin) {
+        setStatus('granted');
+      } else {
+        setStatus('denied');
+        setErrorMessage(`"${username.trim()}" is not on the admin whitelist.`);
       }
+    } catch {
+      setStatus('denied');
+      setErrorMessage('Could not verify username. Please try again.');
     }
   };
 
-  const handleLogout = async () => {
-    await clear();
-    queryClient.clear();
+  const handleReset = () => {
+    setStatus('idle');
+    setUsername('');
+    setErrorMessage('');
   };
 
-  // ── Not logged in ──────────────────────────────────────────────────────────
-  if (!isAuthenticated) {
+  // ── Granted ────────────────────────────────────────────────────────────────
+  if (status === 'granted') {
+    return <>{children}</>;
+  }
+
+  // ── Access Denied ──────────────────────────────────────────────────────────
+  if (status === 'denied') {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="max-w-sm w-full mx-4 text-center space-y-6">
+      <div className="flex items-center justify-center min-h-[60vh] px-4">
+        <div className="max-w-sm w-full text-center space-y-6">
           <div className="flex justify-center">
-            <div className="p-4 rounded-full bg-primary/10 border border-primary/20">
-              <Shield className="w-10 h-10 text-primary" />
+            <div className="p-4 rounded-full bg-destructive/10 border border-destructive/30 shadow-[0_0_24px_rgba(239,68,68,0.15)]">
+              <Shield className="w-10 h-10 text-destructive" />
             </div>
           </div>
           <div>
-            <h2 className="font-orbitron text-xl font-bold mb-2">Admin Access Required</h2>
-            <p className="text-muted-foreground font-rajdhani text-sm">
-              Please log in to access the admin panel.
+            <h2 className="font-orbitron text-xl font-bold mb-2 text-foreground">Access Denied</h2>
+            <p className="text-muted-foreground font-rajdhani text-sm leading-relaxed">
+              {errorMessage}
             </p>
           </div>
           <Button
-            onClick={handleLogin}
-            disabled={isLoggingIn}
-            className="w-full font-rajdhani tracking-wider"
+            onClick={handleReset}
+            variant="outline"
+            className="w-full font-rajdhani tracking-wider border-sunset-gold/40 text-sunset-gold hover:bg-sunset-gold/10 hover:border-sunset-gold"
           >
-            {isLoggingIn ? (
+            Try Again
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Username Entry Form (idle + checking) ──────────────────────────────────
+  return (
+    <div className="flex items-center justify-center min-h-[60vh] px-4">
+      <div className="max-w-sm w-full space-y-6">
+        {/* Icon */}
+        <div className="flex justify-center">
+          <div className="p-4 rounded-full bg-sunset-gold/10 border border-sunset-gold/30 shadow-[0_0_32px_rgba(251,191,36,0.12)]">
+            <KeyRound className="w-10 h-10 text-sunset-gold" />
+          </div>
+        </div>
+
+        {/* Heading */}
+        <div className="text-center">
+          <h2 className="font-orbitron text-xl font-bold mb-2 text-foreground tracking-wide">
+            Admin Panel
+          </h2>
+          <p className="text-muted-foreground font-rajdhani text-sm leading-relaxed">
+            Enter your admin username to access the panel.
+          </p>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <label
+              htmlFor="admin-username"
+              className="block font-rajdhani text-sm font-semibold text-sunset-gold tracking-wider uppercase"
+            >
+              Username
+            </label>
+            <Input
+              id="admin-username"
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="Enter your username"
+              disabled={status === 'checking'}
+              autoComplete="off"
+              autoFocus
+              className="
+                bg-dusk-mid border-sunset-gold/30 text-foreground
+                placeholder:text-muted-foreground/50
+                focus:border-sunset-gold focus:ring-sunset-gold/20
+                font-rajdhani tracking-wide
+                disabled:opacity-50
+              "
+            />
+          </div>
+
+          <Button
+            type="submit"
+            disabled={!username.trim() || status === 'checking' || actorFetching}
+            className="
+              w-full font-orbitron tracking-widest text-sm
+              bg-sunset-gold hover:bg-sunset-orange
+              text-dusk-bg font-bold
+              border-0
+              shadow-[0_0_16px_rgba(251,191,36,0.25)]
+              hover:shadow-[0_0_24px_rgba(251,191,36,0.4)]
+              transition-all duration-200
+              disabled:opacity-50 disabled:cursor-not-allowed
+            "
+          >
+            {status === 'checking' || actorFetching ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Logging in...
+                Verifying...
               </>
             ) : (
-              'LOGIN'
+              'ENTER'
             )}
           </Button>
-        </div>
-      </div>
-    );
-  }
+        </form>
 
-  // ── Loading username ───────────────────────────────────────────────────────
-  // Wait until the username query has completed before making any access decision
-  if (usernameLoading || !usernameFetched) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
-          <p className="text-muted-foreground font-rajdhani">Verifying access...</p>
+        {/* Decorative divider */}
+        <div className="flex items-center gap-3 opacity-30">
+          <div className="flex-1 h-px bg-sunset-gold/40" />
+          <Shield className="w-3 h-3 text-sunset-gold" />
+          <div className="flex-1 h-px bg-sunset-gold/40" />
         </div>
-      </div>
-    );
-  }
 
-  // ── Username fetch error ───────────────────────────────────────────────────
-  if (usernameError) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="max-w-sm w-full mx-4 text-center space-y-4">
-          <div className="p-4 rounded-full bg-destructive/10 border border-destructive/20 w-fit mx-auto">
-            <Shield className="w-10 h-10 text-destructive" />
-          </div>
-          <h2 className="font-orbitron text-xl font-bold">Connection Error</h2>
-          <p className="text-muted-foreground font-rajdhani text-sm">
-            Could not verify your identity. Please try again.
-          </p>
-          <Button variant="outline" onClick={handleLogout} className="font-rajdhani">
-            Logout
-          </Button>
-        </div>
+        <p className="text-center text-muted-foreground/50 font-rajdhani text-xs">
+          Authorised personnel only
+        </p>
       </div>
-    );
-  }
-
-  // ── No username set ────────────────────────────────────────────────────────
-  // Username fetch succeeded but returned null — user hasn't set a username yet
-  if (!safeUsername) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="max-w-sm w-full mx-4 text-center space-y-4">
-          <Shield className="w-10 h-10 text-muted-foreground mx-auto" />
-          <h2 className="font-orbitron text-xl font-bold">Username Required</h2>
-          <p className="text-muted-foreground font-rajdhani text-sm">
-            You need to set up a username before accessing the admin panel.
-            Please return to the store and complete your profile setup.
-          </p>
-          <Button variant="outline" onClick={handleLogout} className="font-rajdhani">
-            Logout
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  // ── Checking admin status ──────────────────────────────────────────────────
-  // Username is non-empty, so useIsAdminUsername query is now enabled.
-  // Show spinner only while the admin check is actively in-flight.
-  if (adminLoading || !adminFetched) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
-          <p className="text-muted-foreground font-rajdhani">Checking permissions...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // ── Not an admin ───────────────────────────────────────────────────────────
-  if (!isAdmin) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="max-w-sm w-full mx-4 text-center space-y-4">
-          <div className="p-4 rounded-full bg-destructive/10 border border-destructive/20 w-fit mx-auto">
-            <Shield className="w-10 h-10 text-destructive" />
-          </div>
-          <h2 className="font-orbitron text-xl font-bold">Access Denied</h2>
-          <p className="text-muted-foreground font-rajdhani text-sm">
-            Your username <strong className="text-foreground">"{safeUsername}"</strong> is not on the
-            admin whitelist.
-          </p>
-          <Button variant="outline" onClick={handleLogout} className="font-rajdhani">
-            Logout
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  // ── Authorised ─────────────────────────────────────────────────────────────
-  return <>{children}</>;
+    </div>
+  );
 }

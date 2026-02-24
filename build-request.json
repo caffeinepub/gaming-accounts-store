@@ -1,84 +1,48 @@
 {
   "kind": "build_request",
-  "title": "Step 3: UK Gift Card submission flow end-to-end",
+  "title": "Replace admin gate with manual username-entry screen",
   "projectName": "Game Vault",
-  "priority": "normal",
+  "priority": "high",
   "requirements": [
     {
-      "id": "REQ-83",
-      "text": "Update `frontend/src/components/checkout/GiftCardPayment.tsx` to capture two additional required fields during the gift card checkout step: a 'Gift Card Number' text input and a 'Gift Card Balance' text input. Both fields must be validated as non-empty before the user can confirm the order. These values must be surfaced to the parent checkout flow (via callback props or shared state) so they can be included in the order placement call.",
+      "id": "REQ-94",
+      "text": "Rewrite `frontend/src/components/AdminAccessControl.tsx` to replace all previous auto-resolved gate logic with a manual username-entry screen. When any user navigates to the admin panel, the component must immediately render a styled form containing: a heading (e.g. 'Admin Access'), a text input labelled 'Enter your username', and a 'Submit' button. On submit, call the backend `isAdminUsername` function with the exact string the user typed. If the backend returns `true`, transition to 'access granted' and render the children. If the backend returns `false`, render the `AccessDeniedScreen` with an access-denied message. Do NOT silently fetch the authenticated user's stored username, do NOT call `getUsername` or any React Query hook as part of the gate decision, and do NOT auto-resolve access based on Internet Identity authentication state. The username the user types is the only input used for the whitelist check. Show a loading/spinner state only while the `isAdminUsername` backend call is in-flight. Apply the sunset theme (dusk-bg/dusk-mid backgrounds, sunset-gold/sunset-orange accent colours, Orbitron/Rajdhani fonts, sunset glow effects) to the username-entry form.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-6"
+          "msg-recent-user-1",
+          "msg-recent-user-2"
         ],
         "quotes": [
-          "GiftCardPayment.tsx — adding Gift Card Number and Gift Card Balance required input fields"
+          "make it so the user has to enter there username to get into the admin pannel if they are on the admin whitelist",
+          "The admin gate screen should show a manual username input field where the user types their username",
+          "On submit, it checks that typed username against the backend isAdminUsername whitelist",
+          "This replaces the current auto-resolved gate"
         ]
       },
       "acceptanceCriteria": [
-        "The GiftCardPayment component renders a 'Gift Card Number' text input field",
-        "The GiftCardPayment component renders a 'Gift Card Balance' text input field",
-        "Both fields are required — the confirm/proceed button is disabled or validation errors are shown if either field is empty",
-        "The entered gift card number and balance values are passed up to the parent checkout flow for inclusion in the order record",
-        "The sunset theme (dusk-bg/dusk-mid backgrounds, sunset-gold/sunset-orange accent colours, Orbitron/Rajdhani fonts) is applied to the new fields"
-      ]
-    },
-    {
-      "id": "REQ-84",
-      "text": "Update the `placeOrder` mutation in `frontend/src/hooks/useQueries.ts` to accept and pass `giftCardNumber: string` and `giftCardBalance: string` fields in the order payload sent to the backend actor. When the payment method is 'Gift Card', both fields must be populated with the values collected in `GiftCardPayment.tsx`. For all other payment methods, both fields must be sent as empty strings (`\"\"`). The mutation must still correctly await the actor call, unwrap the `#ok`/`#err` Result variant, throw a JavaScript `Error` on `#err`, and invalidate the relevant query caches on success.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-6"
-        ],
-        "quotes": [
-          "useQueries.ts — updating the placeOrder mutation to include both gift card fields in the payload"
-        ]
-      },
-      "acceptanceCriteria": [
-        "The `placeOrder` mutation input type includes `giftCardNumber: string` and `giftCardBalance: string` fields",
-        "When payment method is 'Gift Card', `giftCardNumber` and `giftCardBalance` are populated with values from the checkout form",
-        "For PayPal, Crypto, and Pay in 3 payment methods, `giftCardNumber` and `giftCardBalance` are sent as empty strings",
-        "The mutation awaits the actor call and correctly unwraps the `#ok`/`#err` variant",
-        "A JavaScript Error is thrown when the backend returns `#err`, triggering `onError` handlers",
-        "The orders query cache is invalidated on success"
-      ]
-    },
-    {
-      "id": "REQ-85",
-      "text": "Update the order placement logic in `frontend/src/pages/CheckoutPage.tsx` to collect `giftCardNumber` and `giftCardBalance` from the `GiftCardPayment` component and pass them through to the `placeOrder` mutation call. When the selected payment method is 'Gift Card', both values must be forwarded; for all other payment methods, empty strings must be passed. Ensure the checkout flow does not allow order placement via Gift Card if either field is empty.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-6"
-        ],
-        "quotes": [
-          "CheckoutPage.tsx — passing giftCardNumber and giftCardBalance through to the order placement call when payment method is 'Gift Card', empty strings otherwise"
-        ]
-      },
-      "acceptanceCriteria": [
-        "CheckoutPage.tsx captures `giftCardNumber` and `giftCardBalance` from the GiftCardPayment component via props or shared state",
-        "When the payment method is 'Gift Card', both values are included in the `placeOrder` mutation call",
-        "For all other payment methods (PayPal, Crypto, Pay in 3), `giftCardNumber` and `giftCardBalance` are passed as empty strings to the mutation",
-        "The checkout cannot proceed to order confirmation via Gift Card if either gift card field is empty",
-        "Existing checkout steps and flows for other payment methods remain unaffected"
+        "Navigating to /admin (or the admin panel route) always shows a username input form, regardless of the user's Internet Identity authentication state.",
+        "The form contains a text input and a 'Submit' button; no automatic resolution or silent checks occur before the user submits.",
+        "On submit, the typed username string is passed directly to the backend `isAdminUsername` function.",
+        "If `isAdminUsername` returns true, the admin panel content (children) is rendered immediately.",
+        "If `isAdminUsername` returns false, the `AccessDeniedScreen` component is rendered with an access-denied message.",
+        "A loading/spinner state is shown only while the `isAdminUsername` backend call is pending.",
+        "No call to `getUsername`, no React Query username hooks, and no Internet Identity identity checks are used as part of the gate decision flow.",
+        "The username-entry form uses sunset theme styling (dusk-bg/dusk-mid backgrounds, sunset-gold/sunset-orange accents, Orbitron/Rajdhani fonts)."
       ]
     }
   ],
   "constraints": [
-    "Do not modify any files under frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, or frontend/src/components/ui",
-    "The backend Order type already includes giftCardNumber and giftCardBalance fields — do not alter the backend data model",
-    "PaymentsManager.tsx already displays gift card number and balance for gift card orders — do not alter that component",
-    "The 'Game Vault' gradient text (red → purple → orange) must remain unchanged wherever it appears",
-    "The sunset theme must be applied consistently to any new or modified UI elements"
+    "Do not use the authenticated user's stored username or any React Query hook (getUsername, useUsername, useIsAdminUsername) as part of the admin gate decision — only the manually typed username is checked.",
+    "Do not alter the backend `isAdminUsername` function signature or the admin whitelist data.",
+    "The 'Game Vault' gradient text (red → purple → orange) must remain unchanged wherever it appears.",
+    "Immutable frontend paths (frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, frontend/src/components/ui) must not be modified."
   ],
   "nonGoals": [
-    "No backend changes required — the Order type already has giftCardNumber and giftCardBalance fields",
-    "No changes to PaymentsManager.tsx — it already surfaces gift card fields in the admin Payments tab",
-    "No changes to other payment method flows (PayPal, Crypto, Pay in 3)",
-    "No real payment gateway integration — this is a mock UI flow only",
-    "No changes to the loading screen, subscriptions page, or admin whitelist management"
+    "Changing any backend Motoko logic.",
+    "Modifying the admin whitelist management UI or its data.",
+    "Adding password or passcode fields — username text input is the only credential.",
+    "Changing any other frontend page or component outside of AdminAccessControl.tsx."
   ],
   "imageRequirements": {
     "required": [],

@@ -76,12 +76,14 @@ export function useIsUsernameAvailable(username: string) {
 
 /**
  * Fetches the username for a given principal using the public (no-auth) query.
- * This is the safest way to get a username for the admin gate because it
- * cannot trap due to missing role assignments.
+ * Returns a custom state object that properly reflects actor loading state.
+ * When the actor is still initialising, isLoading=true and isFetched=false.
+ * When the actor is ready and the query has resolved, isFetched=true.
  */
 export function useGetUsernameByPrincipal(principalStr: string | undefined) {
   const { actor, isFetching: actorFetching } = useActor();
 
+  // Only fire the query when the actor is ready AND we have a principal to look up.
   const isEnabled = !!actor && !actorFetching && !!principalStr && principalStr.length > 0;
 
   const query = useQuery<string | null>({
@@ -90,7 +92,8 @@ export function useGetUsernameByPrincipal(principalStr: string | undefined) {
       if (!actor || !principalStr) return null;
       try {
         const principal = Principal.fromText(principalStr);
-        return actor.getUsernameByPrincipal(principal);
+        const result = await actor.getUsernameByPrincipal(principal);
+        return result ?? null;
       } catch {
         return null;
       }
@@ -100,10 +103,15 @@ export function useGetUsernameByPrincipal(principalStr: string | undefined) {
     retry: 1,
   });
 
+  // While the actor is still loading, treat as loading (not yet fetched).
+  // Once the actor is ready, delegate to the query's own state.
+  const isLoading = actorFetching || (isEnabled && query.isLoading);
+  const isFetched = !actorFetching && isEnabled && query.isFetched;
+
   return {
     ...query,
-    isLoading: actorFetching || (isEnabled && query.isLoading),
-    isFetched: isEnabled ? query.isFetched : false,
+    isLoading,
+    isFetched,
   };
 }
 
@@ -352,9 +360,15 @@ export function useOrdersByBuyer(principal: Principal | undefined) {
 
 // ── Admin Whitelist ───────────────────────────────────────────────────────────
 
+/**
+ * Checks whether a given username is on the admin whitelist.
+ * Only fires when a non-empty username string is provided and the actor is ready.
+ * Returns custom isFetched/isLoading that properly reflect actor loading state.
+ */
 export function useIsAdminUsername(username: string) {
   const { actor, isFetching: actorFetching } = useActor();
 
+  // Only fire when actor is ready AND we have a real username to check.
   const isEnabled = !!actor && !actorFetching && username.trim().length > 0;
 
   const query = useQuery<boolean>({
@@ -368,10 +382,15 @@ export function useIsAdminUsername(username: string) {
     retry: 1,
   });
 
+  // While actor is loading, treat as loading (not yet fetched).
+  // Once actor is ready and query has resolved, isFetched=true.
+  const isLoading = actorFetching || (isEnabled && query.isLoading);
+  const isFetched = !actorFetching && isEnabled && query.isFetched;
+
   return {
     ...query,
-    isFetched: isEnabled ? query.isFetched : false,
-    isLoading: actorFetching || (isEnabled && query.isLoading),
+    isLoading,
+    isFetched,
   };
 }
 

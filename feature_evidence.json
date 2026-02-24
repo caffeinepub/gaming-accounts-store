@@ -1,4 +1,26 @@
 {
   "kind": "feature_evidence_report",
-  "features": []
+  "features": [
+    {
+      "featureId": "feature-rewrite-frontend-src-components-adminaccesscontrol-tsx-to-replace-all-previous-auto-resolved-gate-logic-with-a-manual-username-entry-screen-when-any-user-navigates-to-the-admin-panel-the-component-must-immediately-render-a-styled-form-containing-a-heading-e-g-admin-access-a-text-input-labelled-enter-your-username-and-a-submit-button-on-submit-call-the-backend-isadminusername-function-with-the-exact-string-the-user-typed-if-the-backend-returns-true-transition-to-access-granted-and-render-the-children-if-the-backend-returns-false-render-the-accessdeniedscreen-with-an-access-denied-message-do-not-silently-fetch-the-authenticated-user-s-stored-username-do-not-call-getusername-or-any-react-query-hook-as-part-of-the-gate-decision-and-do-not-auto-resolve-access-based-on-internet-identity-authentication-state-the-username-the-user-types-is-the-only-input-used-for-the-whitelist-check-show-a-loading-spinner-state-only-while-the-isadminusername-backend-call-is-in-flight-apply-the-sunset-theme-dusk-bg-dusk-mid-backgrounds-sunset-gold-sunset-orange-accent-colours-orbitron-rajdhani-fonts-sunset-glow-effects-to-the-username-entry-form",
+      "featureTitle": "Rewrite `frontend/src/components/AdminAccessControl.tsx` to replace all previous auto-resolved gate logic with a manual username-entry screen. When any user navigates to the admin panel, the component must immediately render a styled form containing: a heading (e.g. 'Admin Access'), a text input labelled 'Enter your username', and a 'Submit' button. On submit, call the backend `isAdminUsername` function with the exact string the user typed. If the backend returns `true`, transition to 'access granted' and render the children. If the backend returns `false`, render the `AccessDeniedScreen` with an access-denied message. Do NOT silently fetch the authenticated user's stored username, do NOT call `getUsername` or any React Query hook as part of the gate decision, and do NOT auto-resolve access based on Internet Identity authentication state. The username the user types is the only input used for the whitelist check. Show a loading/spinner state only while the `isAdminUsername` backend call is in-flight. Apply the sunset theme (dusk-bg/dusk-mid backgrounds, sunset-gold/sunset-orange accent colours, Orbitron/Rajdhani fonts, sunset glow effects) to the username-entry form.",
+      "files": [
+        "frontend/src/components/AdminAccessControl.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "qr-code@1.0.0",
+        "camera@1.0.0"
+      ],
+      "testIds": [
+        "REQ-94"
+      ],
+      "confidence": "high"
+    }
+  ]
 }
