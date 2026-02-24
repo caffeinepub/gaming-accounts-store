@@ -1,7 +1,7 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-24T20:37:06.569Z",
+  "generatedAt": "2026-02-24T20:48:56.179Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
@@ -11,8 +11,8 @@
     "implemented": 1,
     "items": [
       {
-        "id": "REQ-94",
-        "summary": "Rewrite `frontend/src/components/AdminAccessControl.tsx` to replace all previous auto-resolved gate logic with a manual username-entry screen. When any user navigates to the admin panel, the component must immediately render a styled form containing: a heading (e.g. 'Admin Access'), a text input labelled 'Enter your username', and a 'Submit' button. On submit, call the backend `isAdminUsername` function with the exact string the user typed. If the backend returns `true`, transition to 'access granted' and render the children. If the backend returns `false`, render the `AccessDeniedScreen` with an access-denied message. Do NOT silently fetch the authenticated user's stored username, do NOT call `getUsername` or any React Query hook as part of the gate decision, and do NOT auto-resolve access based on Internet Identity authentication state. The username the user types is the only input used for the whitelist check. Show a loading/spinner state only while the `isAdminUsername` backend call is in-flight. Apply the sunset theme (dusk-bg/dusk-mid backgrounds, sunset-gold/sunset-orange accent colours, Orbitron/Rajdhani fonts, sunset glow effects) to the username-entry form.",
+        "id": "REQ-95",
+        "summary": "Rewrite the form submission handler in `frontend/src/components/AdminAccessControl.tsx` so that: (1) the root element is a `<form>` with an `onSubmit` handler (not an `onClick` only), so pressing Enter in the username input natively triggers submission; (2) the Submit button has `type=\"submit\"` so both Enter key and button click invoke the same handler; (3) the `onSubmit` handler calls `event.preventDefault()` to prevent page reload, then calls the backend `isAdminUsername` function with the exact string the user typed; (4) a local loading/spinner state is set to true while the call is in-flight and reset to false when it resolves; (5) if the backend returns `true`, local status transitions to `'granted'` and the children are rendered; (6) if the backend returns `false`, local status transitions to `'denied'` and `AccessDeniedScreen` is rendered; (7) any thrown error from the backend call is caught in a try/catch and displayed as an inline error message beneath the input field rather than being swallowed silently; (8) the retry/back option on `AccessDeniedScreen` resets local status back to the initial form state so the user can try again. The sunset theme (dusk-bg/dusk-mid backgrounds, sunset-gold/sunset-orange accent colours, Orbitron/Rajdhani fonts, sunset glow effects) must be preserved on the form.",
         "status": "implemented",
         "plannedFiles": [
           "frontend/src/components/AdminAccessControl.tsx"

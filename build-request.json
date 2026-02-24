@@ -1,48 +1,47 @@
 {
   "kind": "build_request",
-  "title": "Replace admin gate with manual username-entry screen",
+  "title": "Fix admin panel username entry form — silent submit with no feedback",
   "projectName": "Game Vault",
   "priority": "high",
   "requirements": [
     {
-      "id": "REQ-94",
-      "text": "Rewrite `frontend/src/components/AdminAccessControl.tsx` to replace all previous auto-resolved gate logic with a manual username-entry screen. When any user navigates to the admin panel, the component must immediately render a styled form containing: a heading (e.g. 'Admin Access'), a text input labelled 'Enter your username', and a 'Submit' button. On submit, call the backend `isAdminUsername` function with the exact string the user typed. If the backend returns `true`, transition to 'access granted' and render the children. If the backend returns `false`, render the `AccessDeniedScreen` with an access-denied message. Do NOT silently fetch the authenticated user's stored username, do NOT call `getUsername` or any React Query hook as part of the gate decision, and do NOT auto-resolve access based on Internet Identity authentication state. The username the user types is the only input used for the whitelist check. Show a loading/spinner state only while the `isAdminUsername` backend call is in-flight. Apply the sunset theme (dusk-bg/dusk-mid backgrounds, sunset-gold/sunset-orange accent colours, Orbitron/Rajdhani fonts, sunset glow effects) to the username-entry form.",
+      "id": "REQ-95",
+      "text": "Rewrite the form submission handler in `frontend/src/components/AdminAccessControl.tsx` so that: (1) the root element is a `<form>` with an `onSubmit` handler (not an `onClick` only), so pressing Enter in the username input natively triggers submission; (2) the Submit button has `type=\"submit\"` so both Enter key and button click invoke the same handler; (3) the `onSubmit` handler calls `event.preventDefault()` to prevent page reload, then calls the backend `isAdminUsername` function with the exact string the user typed; (4) a local loading/spinner state is set to true while the call is in-flight and reset to false when it resolves; (5) if the backend returns `true`, local status transitions to `'granted'` and the children are rendered; (6) if the backend returns `false`, local status transitions to `'denied'` and `AccessDeniedScreen` is rendered; (7) any thrown error from the backend call is caught in a try/catch and displayed as an inline error message beneath the input field rather than being swallowed silently; (8) the retry/back option on `AccessDeniedScreen` resets local status back to the initial form state so the user can try again. The sunset theme (dusk-bg/dusk-mid backgrounds, sunset-gold/sunset-orange accent colours, Orbitron/Rajdhani fonts, sunset glow effects) must be preserved on the form.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-recent-user-1",
-          "msg-recent-user-2"
+          "msg-recent-1",
+          "msg-recent-2",
+          "msg-recent-3"
         ],
         "quotes": [
-          "make it so the user has to enter there username to get into the admin pannel if they are on the admin whitelist",
-          "The admin gate screen should show a manual username input field where the user types their username",
-          "On submit, it checks that typed username against the backend isAdminUsername whitelist",
-          "This replaces the current auto-resolved gate"
+          "Fix thr admin panel sign in with username it doesn't show any errors just nothing when u press enter",
+          "Please fix fully sp ir doesn't happen again",
+          "the admin panel username entry form is silently doing nothing when you press Enter or click Submit"
         ]
       },
       "acceptanceCriteria": [
-        "Navigating to /admin (or the admin panel route) always shows a username input form, regardless of the user's Internet Identity authentication state.",
-        "The form contains a text input and a 'Submit' button; no automatic resolution or silent checks occur before the user submits.",
-        "On submit, the typed username string is passed directly to the backend `isAdminUsername` function.",
-        "If `isAdminUsername` returns true, the admin panel content (children) is rendered immediately.",
-        "If `isAdminUsername` returns false, the `AccessDeniedScreen` component is rendered with an access-denied message.",
-        "A loading/spinner state is shown only while the `isAdminUsername` backend call is pending.",
-        "No call to `getUsername`, no React Query username hooks, and no Internet Identity identity checks are used as part of the gate decision flow.",
-        "The username-entry form uses sunset theme styling (dusk-bg/dusk-mid backgrounds, sunset-gold/sunset-orange accents, Orbitron/Rajdhani fonts)."
+        "Pressing Enter in the username input field triggers form submission without requiring a mouse click on the button",
+        "Clicking the Submit button also triggers form submission",
+        "A loading spinner or disabled state is visible on the button while the `isAdminUsername` backend call is in-flight",
+        "If the backend returns `true`, the admin panel content (children) is rendered immediately",
+        "If the backend returns `false`, the AccessDeniedScreen is rendered with an access-denied message",
+        "If the backend call throws an error, an inline error message is displayed beneath the input field — no silent failure",
+        "The form never silently does nothing; every submission path has visible feedback",
+        "The retry option on AccessDeniedScreen resets the component back to the username entry form"
       ]
     }
   ],
   "constraints": [
-    "Do not use the authenticated user's stored username or any React Query hook (getUsername, useUsername, useIsAdminUsername) as part of the admin gate decision — only the manually typed username is checked.",
-    "Do not alter the backend `isAdminUsername` function signature or the admin whitelist data.",
-    "The 'Game Vault' gradient text (red → purple → orange) must remain unchanged wherever it appears.",
-    "Immutable frontend paths (frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, frontend/src/components/ui) must not be modified."
+    "Do not alter any other component, page, or hook — this fix is scoped exclusively to `frontend/src/components/AdminAccessControl.tsx`",
+    "The username typed by the user must remain the sole input passed to `isAdminUsername` — do not auto-fetch or inject the authenticated user's stored username",
+    "Preserve the existing sunset theme styling on the form (dusk-bg/dusk-mid backgrounds, sunset-gold/sunset-orange accents, Orbitron/Rajdhani fonts)"
   ],
   "nonGoals": [
-    "Changing any backend Motoko logic.",
-    "Modifying the admin whitelist management UI or its data.",
-    "Adding password or passcode fields — username text input is the only credential.",
-    "Changing any other frontend page or component outside of AdminAccessControl.tsx."
+    "Changing any backend Motoko logic",
+    "Modifying `AdminPanelPage.tsx` or any admin sub-components",
+    "Altering `useQueries.ts` hooks",
+    "Changing the AccessDeniedScreen component"
   ],
   "imageRequirements": {
     "required": [],

@@ -1,28 +1,35 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-24T20:37:06.563Z",
-  "summary": "The diff modifies frontend/src/components/AdminAccessControl.tsx to implement a manual username-entry screen as required by REQ-94. The implementation replaces the auto-resolved gate logic with a form-based flow, calls isAdminUsername on submit, handles granted/denied/loading states, and applies sunset theme styling. Most acceptance criteria appear to be met. The AccessDeniedScreen component referenced in the spec is not used — instead, an inline denied UI is rendered. The form label reads 'Username' rather than 'Enter your username'. No React Query hooks or getUsername calls are present in the new implementation.",
+  "generatedAt": "2026-02-24T20:48:56.174Z",
+  "summary": "The diff modifies `frontend/src/components/AdminAccessControl.tsx` to address REQ-95. The implementation covers nearly all sub-requirements: a form with onSubmit, event.preventDefault(), type=submit button, loading/spinner state, granted/denied/error status transitions, inline error messages, try/catch error handling, and a reset handler. The sunset theme styling is preserved. However, the diff uses an inline custom Access Denied block rather than the existing AccessDeniedScreen component, which the spec requires.",
   "missing_requirements": [
     {
-      "id": "REQ-94",
-      "requirement": "If isAdminUsername returns false, render the AccessDeniedScreen component with an access-denied message.",
-      "reason": "The diff implements an inline denied UI instead of using the AccessDeniedScreen component. The acceptance criteria explicitly states the AccessDeniedScreen component is rendered with an access-denied message, but the code does not import or render AccessDeniedScreen.",
-      "evidence": [
-        "frontend/src/components/AdminAccessControl.tsx"
-      ]
-    },
-    {
-      "id": "REQ-94",
-      "requirement": "The text input must be labelled 'Enter your username'.",
-      "reason": "The label in the diff reads 'Username' (uppercased via CSS), not 'Enter your username' as specified in the requirement.",
+      "id": "REQ-95",
+      "requirement": "If the backend returns false, the AccessDeniedScreen component must be rendered (sub-requirement 6 and AC: 'If the backend returns false, the AccessDeniedScreen is rendered with an access-denied message'). The build request references AccessDeniedScreen specifically and the constraints say do not alter it, implying it must still be used.",
+      "reason": "The diff implements a custom inline JSX block for the denied state (Shield icon, heading, Try Again button) instead of importing and rendering the existing AccessDeniedScreen component. No import of AccessDeniedScreen is visible in the diff.",
       "evidence": [
         "frontend/src/components/AdminAccessControl.tsx"
       ]
     }
   ],
-  "hallucinated_features": [],
-  "confidence": 0.78,
+  "hallucinated_features": [
+    {
+      "description": "A deniedUsername state variable is introduced to display the rejected username back to the user in the denied view.",
+      "reason": "The build request does not specify showing the typed username in the denial message. This is an addition not described in REQ-95.",
+      "evidence": [
+        "frontend/src/components/AdminAccessControl.tsx"
+      ]
+    },
+    {
+      "description": "An explicit guard for actorFetching or actor being null is added before the backend call, producing a specific error message about network connectivity.",
+      "reason": "The build request does not describe handling the actor-not-ready case as a distinct error path. This is an extra validation step not mentioned in REQ-95.",
+      "evidence": [
+        "frontend/src/components/AdminAccessControl.tsx"
+      ]
+    }
+  ],
+  "confidence": 0.72,
   "changed_files": [
     "frontend-file-summaries.txt",
     "frontend/src/components/AdminAccessControl.tsx",

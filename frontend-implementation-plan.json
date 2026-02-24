@@ -1,26 +1,26 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Replace admin gate with manual username-entry screen",
+  "title": "Fix admin panel username entry form — silent submit with no feedback",
   "requirements": [
     {
-      "id": "REQ-94",
-      "summary": "Rewrite AdminAccessControl to use manual username-entry screen instead of auto-resolved gate logic",
+      "id": "REQ-95",
+      "summary": "Rewrite the form submission handler in AdminAccessControl.tsx to fix silent submission behavior, add proper form semantics, loading states, error handling, and retry functionality while preserving the sunset theme",
       "acceptanceCriteria": [
-        "Navigating to /admin (or the admin panel route) always shows a username input form, regardless of the user's Internet Identity authentication state.",
-        "The form contains a text input and a 'Submit' button; no automatic resolution or silent checks occur before the user submits.",
-        "On submit, the typed username string is passed directly to the backend `isAdminUsername` function.",
-        "If `isAdminUsername` returns true, the admin panel content (children) is rendered immediately.",
-        "If `isAdminUsername` returns false, the `AccessDeniedScreen` component is rendered with an access-denied message.",
-        "A loading/spinner state is shown only while the `isAdminUsername` backend call is pending.",
-        "No call to `getUsername`, no React Query username hooks, and no Internet Identity identity checks are used as part of the gate decision flow.",
-        "The username-entry form uses sunset theme styling (dusk-bg/dusk-mid backgrounds, sunset-gold/sunset-orange accents, Orbitron/Rajdhani fonts)."
+        "Pressing Enter in the username input field triggers form submission without requiring a mouse click on the button",
+        "Clicking the Submit button also triggers form submission",
+        "A loading spinner or disabled state is visible on the button while the `isAdminUsername` backend call is in-flight",
+        "If the backend returns `true`, the admin panel content (children) is rendered immediately",
+        "If the backend returns `false`, the AccessDeniedScreen is rendered with an access-denied message",
+        "If the backend call throws an error, an inline error message is displayed beneath the input field — no silent failure",
+        "The form never silently does nothing; every submission path has visible feedback",
+        "The retry option on AccessDeniedScreen resets the component back to the username entry form"
       ],
       "file_operations": [
         {
           "path": "frontend/src/components/AdminAccessControl.tsx",
           "operation": "modify",
-          "description": "Replace all previous auto-resolved gate logic (including useEffect with username resolution, React Query hooks, and identity checks) with a manual username-entry form. Implement a controlled text input for username entry with a Submit button. On form submission, call the backend `isAdminUsername` function with the exact typed username string. If the backend returns true, set local state to 'granted' and render children. If false, render the AccessDeniedScreen component with an access-denied message. Show a loading/spinner state only while the `isAdminUsername` backend call is in-flight. Remove all dependencies on useInternetIdentity, useGetUsername, useIsAdminUsername, or any other React Query hooks for gate decision logic. Apply sunset theme styling to the username-entry form: use dusk-bg/dusk-mid for backgrounds, sunset-gold/sunset-orange for accent colors, Orbitron for headings, Rajdhani for body text, and include sunset glow effects. Ensure the form is always displayed on navigation to the admin panel route, regardless of authentication state."
+          "description": "Rewrite the form submission handler to use proper HTML form semantics: (1) Change the root element from a div with onClick to a <form> element with an onSubmit handler that calls event.preventDefault(); (2) Set the Submit button type to 'submit' so both Enter key in the input and button clicks invoke the same handler; (3) Add local loading state (useState) that is set to true when the backend call starts and false when it resolves or rejects; (4) Disable the input and button while loading is true; (5) Add a loading spinner or 'Verifying...' text on the button during the in-flight state; (6) Wrap the backend isAdminUsername call in a try/catch block; (7) On successful response of true, transition local status to 'granted' and render children; (8) On successful response of false, transition local status to 'denied' and render AccessDeniedScreen; (9) On caught error, display an inline error message beneath the input field using a <p> element with sunset-themed error styling (e.g., text-sunset-orange or text-red-400); (10) Ensure the AccessDeniedScreen retry/back option resets the local status state back to the initial form state so the user can re-enter their username; (11) Preserve all existing sunset theme styling (dusk-bg/dusk-mid backgrounds, sunset-gold/sunset-orange accents, Orbitron/Rajdhani fonts, sunset glow effects) on the form, input, button, and error message. Verify the component's usage instructions before implementing."
         }
       ]
     }

@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { Shield, Loader2, KeyRound } from 'lucide-react';
+import { Shield, Loader2, KeyRound, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useActor } from '../hooks/useActor';
 
-type AccessStatus = 'idle' | 'checking' | 'granted' | 'denied';
+type AccessStatus = 'idle' | 'checking' | 'granted' | 'denied' | 'error';
 
 interface AdminAccessControlProps {
   children: React.ReactNode;
@@ -16,25 +16,40 @@ export default function AdminAccessControl({ children }: AdminAccessControlProps
   const [username, setUsername] = useState('');
   const [status, setStatus] = useState<AccessStatus>('idle');
   const [errorMessage, setErrorMessage] = useState('');
+  const [deniedUsername, setDeniedUsername] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!username.trim() || !actor || actorFetching) return;
+
+    const trimmed = username.trim();
+
+    if (!trimmed) {
+      setStatus('error');
+      setErrorMessage('Please enter your username.');
+      return;
+    }
+
+    if (actorFetching || !actor) {
+      setStatus('error');
+      setErrorMessage('Still connecting to the network. Please wait a moment and try again.');
+      return;
+    }
 
     setStatus('checking');
     setErrorMessage('');
 
     try {
-      const isAdmin = await actor.isAdminUsername(username.trim());
+      const isAdmin = await actor.isAdminUsername(trimmed);
       if (isAdmin) {
         setStatus('granted');
       } else {
+        setDeniedUsername(trimmed);
         setStatus('denied');
-        setErrorMessage(`"${username.trim()}" is not on the admin whitelist.`);
       }
-    } catch {
-      setStatus('denied');
-      setErrorMessage('Could not verify username. Please try again.');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setStatus('error');
+      setErrorMessage(`Verification failed: ${msg || 'Please try again.'}`);
     }
   };
 
@@ -42,6 +57,7 @@ export default function AdminAccessControl({ children }: AdminAccessControlProps
     setStatus('idle');
     setUsername('');
     setErrorMessage('');
+    setDeniedUsername('');
   };
 
   // ── Granted ────────────────────────────────────────────────────────────────
@@ -62,7 +78,7 @@ export default function AdminAccessControl({ children }: AdminAccessControlProps
           <div>
             <h2 className="font-orbitron text-xl font-bold mb-2 text-foreground">Access Denied</h2>
             <p className="text-muted-foreground font-rajdhani text-sm leading-relaxed">
-              {errorMessage}
+              <span className="text-sunset-orange font-semibold">"{deniedUsername}"</span> is not on the admin whitelist.
             </p>
           </div>
           <Button
@@ -77,7 +93,10 @@ export default function AdminAccessControl({ children }: AdminAccessControlProps
     );
   }
 
-  // ── Username Entry Form (idle + checking) ──────────────────────────────────
+  // ── Username Entry Form (idle + checking + error) ──────────────────────────
+  const isChecking = status === 'checking';
+  const hasError = status === 'error' && errorMessage;
+
   return (
     <div className="flex items-center justify-center min-h-[60vh] px-4">
       <div className="max-w-sm w-full space-y-6">
@@ -99,7 +118,7 @@ export default function AdminAccessControl({ children }: AdminAccessControlProps
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} noValidate className="space-y-4">
           <div className="space-y-2">
             <label
               htmlFor="admin-username"
@@ -111,24 +130,41 @@ export default function AdminAccessControl({ children }: AdminAccessControlProps
               id="admin-username"
               type="text"
               value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              onChange={(e) => {
+                setUsername(e.target.value);
+                // Clear inline error as user types
+                if (status === 'error') {
+                  setStatus('idle');
+                  setErrorMessage('');
+                }
+              }}
               placeholder="Enter your username"
-              disabled={status === 'checking'}
+              disabled={isChecking}
               autoComplete="off"
               autoFocus
-              className="
+              className={`
                 bg-dusk-mid border-sunset-gold/30 text-foreground
                 placeholder:text-muted-foreground/50
                 focus:border-sunset-gold focus:ring-sunset-gold/20
                 font-rajdhani tracking-wide
                 disabled:opacity-50
-              "
+                ${hasError ? 'border-destructive/60 focus:border-destructive' : ''}
+              `}
             />
+            {/* Inline error message */}
+            {hasError && (
+              <div className="flex items-start gap-2 mt-1">
+                <AlertCircle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
+                <p className="text-destructive font-rajdhani text-sm leading-snug">
+                  {errorMessage}
+                </p>
+              </div>
+            )}
           </div>
 
           <Button
             type="submit"
-            disabled={!username.trim() || status === 'checking' || actorFetching}
+            disabled={isChecking}
             className="
               w-full font-orbitron tracking-widest text-sm
               bg-sunset-gold hover:bg-sunset-orange
@@ -140,7 +176,7 @@ export default function AdminAccessControl({ children }: AdminAccessControlProps
               disabled:opacity-50 disabled:cursor-not-allowed
             "
           >
-            {status === 'checking' || actorFetching ? (
+            {isChecking ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 Verifying...
