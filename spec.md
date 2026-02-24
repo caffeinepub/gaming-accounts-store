@@ -1,12 +1,13 @@
 # Specification
 
 ## Summary
-**Goal:** Fix the permanent "connecting" spinner on the Admin panel by rewriting the admin access control flow, stripping redundant loading states from the admin page, and ensuring the backend actor initialises correctly in production.
+**Goal:** Rewrite the admin access gate in `AdminAccessControl.tsx` to use a single `useEffect` with an imperative async flow and run-once guard, eliminating infinite loops and perpetual loading states, and strip `AdminPanelPage.tsx` of all internal async gating logic.
 
 **Planned changes:**
-- Rewrite `AdminAccessControl.tsx` with a self-contained local `status` state (`'connecting' | 'form' | 'checking' | 'granted' | 'denied' | 'timeout'`) that polls actor availability on mount, transitions to the username entry form as soon as the actor is ready, and shows a timeout error message after 10 seconds instead of spinning indefinitely
-- The username entry form renders with a heading, labelled text input, and submit button; both Enter key and button click trigger submission; backend errors are displayed inline; `AccessDeniedScreen` retry resets to `'form'`; sunset theme applied throughout
-- Audit and strip `AdminPanelPage.tsx` of any internal `isAdminUsername` calls, `useEffect` gates, loading/verifying states, or spinner logic — the page renders all tabs (Products, Orders, Payments, Admins, Subscriptions, Settings) immediately and unconditionally once `AdminAccessControl` grants access, with "Products" as the default tab
-- Audit `useActor.ts` to ensure the agent host is `https://ic0.app` in production, the canister ID resolves from the correct source, initialisation errors are surfaced to consumers, and the actor re-creates correctly on login/logout
+- Rewrite `AdminAccessControl.tsx` with a `useEffect` + `hasRun` ref guard that imperatively calls `getUsername` then `isAdminUsername` directly on the backend actor (no React Query hooks for gating)
+- Use a local `status` state typed `'loading' | 'granted' | 'denied' | 'unauthenticated' | 'no-username'` to drive rendering: login prompt when unauthenticated, spinner only while loading, `ProfileSetupModal` if no username, children if granted, `AccessDeniedScreen` if denied
+- Apply sunset theme (dusk backgrounds, sunset-gold/orange accents, Orbitron/Rajdhani fonts, glow effects) to the loading spinner and login prompt
+- Rewrite `AdminPanelPage.tsx` to remove all internal async gates, `isAdminUsername` calls, loading/verifying states, and `useEffect` access checks — tabs render unconditionally when children are rendered
+- Audit `useQueries.ts` to set `staleTime ≥ 60000` and `retry = 1` on any remaining `useUsername`/`useIsAdminUsername` hooks, and confirm neither is imported into `AdminAccessControl.tsx` for gate decisions
 
-**User-visible outcome:** Navigating to `/admin` will either show the username entry form within seconds (when the actor is available) or display a clear error message after 10 seconds — the permanent spinning loader will no longer occur.
+**User-visible outcome:** Navigating to `/admin` immediately shows a login prompt if unauthenticated, a brief spinner while resolving, and then instantly grants or denies access with no perpetual spinning or looping states.

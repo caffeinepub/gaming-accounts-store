@@ -60,7 +60,8 @@ function ApprovalStatusBadge({ status }: { status: ApprovalStatus }) {
 
 export default function OrderConfirmationPage({ orderId, onContinueShopping }: OrderConfirmationPageProps) {
   // Refetch every 30 seconds so the buyer sees live approval status updates
-  const { data: order, isLoading, error } = useGetOrderById(orderId, 30_000);
+  // useGetOrderById accepts only one argument (id); refetchInterval is configured inside the hook
+  const { data: order, isLoading, error } = useGetOrderById(orderId);
 
   if (isLoading) {
     return (
@@ -149,75 +150,61 @@ export default function OrderConfirmationPage({ orderId, onContinueShopping }: O
               <ProductDetails productId={order.productId} />
             </div>
 
-            {/* Buyer info */}
-            <div className="pt-4 border-t border-border">
-              <h2 className="font-orbitron text-sm font-bold text-sunset-gold uppercase tracking-wider mb-3">
-                Order Details
-              </h2>
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="font-rajdhani text-sm text-muted-foreground">Username</span>
-                  <span className="font-rajdhani text-sm font-semibold text-foreground">{order.buyerUsername}</span>
-                </div>
-                {order.buyerEmail && (
-                  <div className="flex justify-between">
-                    <span className="font-rajdhani text-sm text-muted-foreground">Email</span>
-                    <span className="font-rajdhani text-sm font-semibold text-foreground">{order.buyerEmail}</span>
+            {/* Payment method */}
+            <div>
+              <p className="font-rajdhani text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+                Payment Method
+              </p>
+              <p className="font-rajdhani text-sm text-foreground">
+                {paymentMethodLabels[order.paymentMethod as string] ?? order.paymentMethod}
+              </p>
+            </div>
+
+            {/* Gift card details */}
+            {order.paymentMethod === PaymentMethod.ukGiftCard && (
+              <div className="p-3 rounded-sm border border-sunset-gold/20 bg-sunset-gold/5 space-y-2">
+                <p className="font-orbitron text-xs font-bold text-sunset-gold uppercase tracking-wider">
+                  Gift Card Details
+                </p>
+                {order.giftCardNumber && (
+                  <div>
+                    <p className="font-rajdhani text-xs text-muted-foreground">Card Number</p>
+                    <p className="font-rajdhani text-sm text-foreground">{order.giftCardNumber}</p>
                   </div>
                 )}
-                <div className="flex justify-between">
-                  <span className="font-rajdhani text-sm text-muted-foreground">Payment</span>
-                  <span className="font-rajdhani text-sm font-semibold text-foreground">
-                    {paymentMethodLabels[order.paymentMethod] ?? order.paymentMethod}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="font-rajdhani text-sm text-muted-foreground">Status</span>
-                  <span className="font-rajdhani text-sm font-semibold text-success capitalize">{order.status}</span>
-                </div>
-                {/* Gift card details if applicable */}
-                {order.paymentMethod === PaymentMethod.ukGiftCard && order.giftCardNumber && (
-                  <div className="flex justify-between">
-                    <span className="font-rajdhani text-sm text-muted-foreground">Gift Card #</span>
-                    <span className="font-mono text-sm font-semibold text-foreground">
-                      {order.giftCardNumber}
-                    </span>
-                  </div>
-                )}
-                {order.paymentMethod === PaymentMethod.ukGiftCard && order.giftCardBalance && (
-                  <div className="flex justify-between">
-                    <span className="font-rajdhani text-sm text-muted-foreground">Card Balance</span>
-                    <span className="font-rajdhani text-sm font-semibold text-foreground">
-                      {order.giftCardBalance}
-                    </span>
+                {order.giftCardBalance && (
+                  <div>
+                    <p className="font-rajdhani text-xs text-muted-foreground">Balance</p>
+                    <p className="font-rajdhani text-sm text-foreground">£{order.giftCardBalance}</p>
                   </div>
                 )}
               </div>
-            </div>
+            )}
           </div>
         </div>
 
         {/* Next steps */}
-        {order.approvalStatus !== ApprovalStatus.declined && (
-          <div className="rounded-sm border border-border bg-card p-5 mb-6">
-            <h2 className="font-orbitron text-sm font-bold text-sunset-gold uppercase tracking-wider mb-3">
-              Next Steps
-            </h2>
-            <ul className="space-y-2">
-              {[
-                'Your account credentials will be delivered to your email once approved.',
-                "Check your spam folder if you don't receive an email within 10 minutes.",
-                'Contact support if you have any issues with your order.',
-              ].map((s, i) => (
-                <li key={i} className="flex items-start gap-2">
-                  <div className="w-1.5 h-1.5 rounded-full bg-sunset-gold mt-1.5 shrink-0" />
-                  <span className="font-rajdhani text-sm text-muted-foreground">{s}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
+        <div className="rounded-sm border border-border bg-card p-5 mb-8">
+          <h3 className="font-orbitron text-sm font-bold text-foreground mb-3 uppercase tracking-wider">
+            What Happens Next?
+          </h3>
+          <ol className="space-y-2">
+            {[
+              'Our team will review your order and payment.',
+              'Once approved, your account credentials will be sent to your email.',
+              'If you have any issues, contact us via Discord or email.',
+            ].map((step, i) => (
+              <li key={i} className="flex items-start gap-3">
+                <span className="w-5 h-5 rounded-full bg-sunset-orange/20 border border-sunset-orange/40 text-sunset-orange text-xs font-orbitron font-bold flex items-center justify-center flex-shrink-0 mt-0.5">
+                  {i + 1}
+                </span>
+                <p className="font-rajdhani text-sm text-muted-foreground">{step}</p>
+              </li>
+            ))}
+          </ol>
+        </div>
 
+        {/* CTA */}
         <button
           onClick={onContinueShopping}
           className="w-full flex items-center justify-center gap-2 py-3 rounded-sm bg-gradient-to-r from-sunset-orange to-sunset-pink text-white font-rajdhani font-bold tracking-wider uppercase hover:opacity-90 transition-all sunset-glow"

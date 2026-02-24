@@ -6,7 +6,11 @@ import { Label } from '@/components/ui/label';
 import { useCreateUsername, useIsUsernameAvailable } from '../hooks/useQueries';
 import { toast } from 'sonner';
 
-export default function ProfileSetupModal() {
+interface ProfileSetupModalProps {
+  onSuccess?: () => void;
+}
+
+export default function ProfileSetupModal({ onSuccess }: ProfileSetupModalProps) {
   const [username, setUsername] = useState('');
   const [debouncedUsername, setDebouncedUsername] = useState('');
 
@@ -31,6 +35,7 @@ export default function ProfileSetupModal() {
     try {
       await createUsername.mutateAsync(username.trim());
       toast.success('Username created successfully!');
+      onSuccess?.();
     } catch (error: unknown) {
       const err = error as Error;
       toast.error(err.message || 'Failed to create username');

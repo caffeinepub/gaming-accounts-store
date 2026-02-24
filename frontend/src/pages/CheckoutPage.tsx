@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ArrowLeft, ArrowRight, ShoppingCart, User, CreditCard, CheckCircle, Loader2 } from 'lucide-react';
-import { PaymentMethod } from '../backend';
+import { PaymentMethod, ApprovalStatus } from '../backend';
 import type { Product } from '../backend';
 import { usePlaceOrder } from '../hooks/useQueries';
 import PaymentMethodSelector from '../components/checkout/PaymentMethodSelector';
@@ -49,6 +49,7 @@ export default function CheckoutPage({ cartItems, onOrderComplete, onBack }: Che
       productId: product.id,
       paymentMethod: selectedMethod,
       status: 'confirmed',
+      approvalStatus: ApprovalStatus.pending,
       giftCardNumber: '',
       giftCardBalance: '',
     });
@@ -62,6 +63,7 @@ export default function CheckoutPage({ cartItems, onOrderComplete, onBack }: Che
       productId: product.id,
       paymentMethod: selectedMethod,
       status: 'confirmed',
+      approvalStatus: ApprovalStatus.pending,
       giftCardNumber: cardNumber,
       giftCardBalance: cardBalance,
     });

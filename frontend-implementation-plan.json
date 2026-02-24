@@ -1,62 +1,61 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Fix AdminAccessControl permanent connecting spinner",
+  "title": "Fully auto-resolved admin gate rewrite (useEffect + imperative async flow)",
   "requirements": [
     {
-      "id": "REQ-102",
-      "summary": "Rewrite AdminAccessControl with self-contained manual username gate that polls actor readiness with 10-second timeout",
+      "id": "REQ-111",
+      "summary": "Rewrite AdminAccessControl.tsx with a fully auto-resolved, non-looping sequential gate using useEffect + local state imperative async flow",
       "acceptanceCriteria": [
-        "Navigating to /admin never results in a permanent spinning loader — within 10 seconds the username entry form appears or an error message is shown",
-        "If the actor is unavailable after 10 seconds, the message 'Unable to connect to the server. Please refresh the page and try again.' is displayed instead of a spinner",
-        "If the actor is available, the username entry form renders immediately without waiting for Internet Identity authentication state",
-        "Submitting a whitelisted username (e.g. 'Frosty') grants access and renders the admin panel tab content",
-        "Submitting a non-whitelisted username renders AccessDeniedScreen",
-        "Pressing Enter in the username input triggers the same submission as clicking the Submit button",
-        "Any backend error during the isAdminUsername call is displayed inline below the input field",
-        "The retry/back option on AccessDeniedScreen returns the user to the username entry form",
-        "The sunset theme (dusk-bg/dusk-mid backgrounds, sunset-gold/sunset-orange accent colours, Orbitron/Rajdhani fonts) is applied to the form"
+        "When an unauthenticated user navigates to /admin, a 'Please log in via Internet Identity' prompt is shown immediately — no spinner, no form",
+        "When an authenticated user with stored username 'Frosty' navigates to /admin, the component automatically fetches the username and calls isAdminUsername without any manual input",
+        "If isAdminUsername returns true, the admin panel content (children) renders immediately",
+        "If isAdminUsername returns false, AccessDeniedScreen renders immediately",
+        "If the authenticated user has no username, ProfileSetupModal is triggered instead of a spinner",
+        "The useEffect executes exactly once per authentication session — navigating away and back does not trigger duplicate calls or loops",
+        "No chained React Query enabled flags or useIsAdminUsername/useUsername hooks are used for the gate decision",
+        "A loading spinner is shown only during the brief in-flight period while getUsername or isAdminUsername calls are pending",
+        "The component never enters a perpetual spinning/verifying state"
       ],
       "file_operations": [
         {
           "path": "frontend/src/components/AdminAccessControl.tsx",
           "operation": "modify",
-          "description": "Completely rewrite the component with a local status state machine ('connecting' | 'form' | 'checking' | 'granted' | 'denied' | 'timeout') that polls the actor from useActor with a 10-second timeout. On mount, check actor availability every 200ms for up to 10 seconds; if actor becomes available, immediately transition to 'form' state and render a styled username entry form with heading 'Admin Access', text input labelled 'Enter your username', and submit button. Handle form submission with preventDefault, transition to 'checking', call actor.isAdminUsername with the typed username, and transition to 'granted' (render children) or 'denied' (render AccessDeniedScreen) based on the boolean result. Catch and display any thrown errors inline below the input. If actor is not ready after 10 seconds, transition to 'timeout' and display 'Unable to connect to the server. Please refresh the page and try again.' Ensure AccessDeniedScreen's retry/back option resets status to 'form'. Apply sunset theme styling (dusk-bg/dusk-mid backgrounds, sunset-gold/sunset-orange accents, Orbitron/Rajdhani fonts, sunset glow effects) to all rendered states. Do not depend on Internet Identity authentication state or React Query hooks for control flow."
+          "description": "Rewrite the component to use a fully auto-resolved imperative async flow inside a single useEffect with a hasRun ref guard. Define a local status state variable typed 'loading' | 'granted' | 'denied' | 'unauthenticated' | 'no-username'. When isAuthenticated is false, immediately render a 'Please log in via Internet Identity' prompt (no spinner, no form). Once isAuthenticated is true, run a useEffect that: (1) checks if hasRun.current is true and returns early if so; (2) sets hasRun.current = true; (3) imperatively calls actor.getUsername() to retrieve the stored username; (4) if the username is empty/null/undefined, set status to 'no-username' and render ProfileSetupModal; (5) if username is non-empty, imperatively call actor.isAdminUsername(username) with that exact string; (6) based on the result, set status to 'granted' or 'denied' and render children or AccessDeniedScreen accordingly. Show a loading spinner only while status === 'loading'. Do NOT use useIsAdminUsername, useUsername, or chained React Query enabled flags for the gate decision. Apply the sunset theme (dusk-bg/dusk-mid backgrounds, sunset-gold/sunset-orange accent colours, Orbitron/Rajdhani fonts, sunset glow effects) to the loading spinner, login prompt, and any intermediate states. Ensure the component never enters a perpetual spinning/verifying state by transitioning immediately once both calls complete."
         }
       ]
     },
     {
-      "id": "REQ-103",
-      "summary": "Strip all internal async gates and loading states from AdminPanelPage so it renders immediately once AdminAccessControl grants access",
+      "id": "REQ-112",
+      "summary": "Audit and rewrite AdminPanelPage.tsx to remove any internal async gates or loading states",
       "acceptanceCriteria": [
-        "AdminPanelPage.tsx contains no calls to isAdminUsername, no useEffect that gates rendering, and no loading/verifying state variables",
-        "Once AdminAccessControl renders its children, all tabs (Products, Orders, Payments, Admins, Subscriptions, Settings) are immediately visible",
-        "The default active tab is 'Products' or the first tab in the list",
-        "The admin panel content never enters a perpetual loading state after AdminAccessControl grants access"
+        "AdminPanelPage.tsx contains no isAdminUsername calls, no useEffect with async access checks, and no internal loading/verifying states",
+        "Once AdminAccessControl renders its children, the Products tab (default active tab) is visible immediately",
+        "All tabs — Products, Orders, Payments, Admins, Subscriptions, Settings — are rendered without any additional async gating",
+        "No 'Verifying access…' or spinner state originates from AdminPanelPage.tsx itself"
       ],
       "file_operations": [
         {
           "path": "frontend/src/pages/AdminPanelPage.tsx",
           "operation": "modify",
-          "description": "Audit the component and remove any internal isAdminUsername calls, useEffect checks that gate rendering, loading/verifying state variables, or async authorization logic. Ensure the tabbed content (Products, Orders, Payments, Admins, Subscriptions, Settings) renders immediately and unconditionally when the component mounts. Set the default active tab to 'Products'. Confirm no code path can produce an independent perpetual loading or spinner state after AdminAccessControl has already granted access."
+          "description": "Audit the component to confirm it contains zero internal async gates, isAdminUsername calls, loading states, useEffect checks, or 'verifying access' state logic of its own. Remove any redundant admin checks, verifying-access states, or internal async logic that could produce a perpetual loading state independent of AdminAccessControl. The page must render its tabbed content (Products, Orders, Payments, Admins, Subscriptions, Settings) immediately and unconditionally as soon as AdminAccessControl renders its children. Ensure the Products tab (default active tab) is visible immediately without any additional async gating. Do not introduce any new loading or verification states within this component."
         }
       ]
     },
     {
-      "id": "REQ-104",
-      "summary": "Audit useActor hook to ensure correct production agent host and synchronous actor availability",
+      "id": "REQ-113",
+      "summary": "Audit useQueries.ts to ensure no query configuration can cause AdminAccessControl to enter an infinite re-fetch loop",
       "acceptanceCriteria": [
-        "The actor hook uses https://ic0.app as the agent host in production builds",
-        "The canister ID is resolved from the correct source (environment variable or DFX-generated declarations)",
-        "The actor is available to AdminAccessControl.tsx within the 10-second window defined in REQ-102",
-        "Initialisation errors are surfaced to a readable state so consumers can detect when the actor is unavailable",
-        "The actor re-creates correctly when the user logs in or logs out via Internet Identity"
+        "Any useUsername / getUsername query hook remaining in useQueries.ts has staleTime ≥ 60 000 ms and retry = 1",
+        "Any useIsAdminUsername query hook remaining in useQueries.ts has staleTime ≥ 60 000 ms and retry = 1",
+        "Neither hook is imported or called inside AdminAccessControl.tsx for the gate decision",
+        "No query configuration in useQueries.ts triggers repeated background refetches that could loop the admin gate"
       ],
       "file_operations": [
         {
-          "path": "frontend/src/hooks/useActor.ts",
+          "path": "frontend/src/hooks/useQueries.ts",
           "operation": "modify",
-          "description": "Verify the agent host is set to https://ic0.app for production builds (check environment variable or build mode detection). Confirm the canister ID is resolved from the correct environment variable or DFX-generated declarations file. Ensure the actor is created and exposed synchronously or with minimal async delay so consumers (AdminAccessControl) can poll it successfully within 10 seconds. Surface any initialization errors to a readable error state that components can check. Verify the hook correctly re-creates the actor on identity changes (login/logout) and invalidates dependent React Query caches. Do not add new backend capabilities; focus on ensuring the actor is available reliably in production."
+          "description": "Audit the file to ensure no query or hook configuration can cause AdminAccessControl.tsx to enter an infinite re-fetch loop. If useUsername/getUsername or useIsAdminUsername hooks are still present for other consumers, set their staleTime to at least 60 000 ms and retry to 1. Confirm that none of these hooks are wired into AdminAccessControl's access-gating logic after the REQ-111 rewrite — the admin gate must rely solely on the imperative actor calls (getUsername and isAdminUsername) inside the useEffect. Do not remove the hooks if they are used elsewhere in the application, but ensure their configurations do not trigger repeated background refetches that could loop the admin gate."
         }
       ]
     }

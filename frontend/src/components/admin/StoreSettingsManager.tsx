@@ -3,9 +3,9 @@ import { Save, Loader2, Bitcoin, Wallet, CreditCard } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   useStoreSettings,
-  useUpdatePaypalWalletAddress,
-  useUpdateBitcoinWalletAddress,
-  useUpdateEthereumWalletAddress,
+  useUpdatePaypalWallet,
+  useUpdateBitcoinWallet,
+  useUpdateEthereumWallet,
 } from '../../hooks/useQueries';
 
 interface WalletFieldProps {
@@ -67,9 +67,9 @@ export default function StoreSettingsManager() {
   const [bitcoinAddress, setBitcoinAddress] = useState('');
   const [ethereumAddress, setEthereumAddress] = useState('');
 
-  const updatePaypal = useUpdatePaypalWalletAddress();
-  const updateBitcoin = useUpdateBitcoinWalletAddress();
-  const updateEthereum = useUpdateEthereumWalletAddress();
+  const updatePaypal = useUpdatePaypalWallet();
+  const updateBitcoin = useUpdateBitcoinWallet();
+  const updateEthereum = useUpdateEthereumWallet();
 
   // Pre-populate fields when settings load
   useEffect(() => {

@@ -113,6 +113,25 @@ export function useGetUsernameByPrincipal(principalStr: string | undefined) {
   return { ...query, isLoading, isFetched };
 }
 
+// ─── Admin Check (NOT used as control-flow in AdminAccessControl) ─────────────
+// These hooks are available for other consumers but must NOT be used to gate
+// admin access — AdminAccessControl uses imperative actor calls instead.
+
+export function useIsAdminUsername(username: string | undefined) {
+  const { actor, isFetching: actorFetching } = useActor();
+
+  return useQuery<boolean>({
+    queryKey: ['isAdminUsername', username],
+    queryFn: async () => {
+      if (!actor || !username) return false;
+      return actor.isAdminUsername(username);
+    },
+    enabled: !!actor && !actorFetching && !!username && username.length > 0,
+    staleTime: 60_000,
+    retry: 1,
+  });
+}
+
 // ─── Categories ───────────────────────────────────────────────────────────────
 
 export function useGetAllCategories() {
@@ -210,9 +229,6 @@ export function useGetAllProductsAdmin() {
   });
 }
 
-/**
- * Accepts bigint | undefined | null — returns null data when id is not provided.
- */
 export function useGetProductById(id: bigint | undefined | null) {
   const { actor, isFetching: actorFetching } = useActor();
 
@@ -302,38 +318,6 @@ export function useDeleteProduct() {
 
 // ─── Orders ───────────────────────────────────────────────────────────────────
 
-interface PlaceOrderVars {
-  productId: bigint;
-  paymentMethod: PaymentMethod;
-  status: string;
-  approvalStatus?: ApprovalStatus;
-  giftCardNumber?: string;
-  giftCardBalance?: string;
-}
-
-export function usePlaceOrder() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
-  return useMutation<bigint, Error, PlaceOrderVars>({
-    mutationFn: async ({
-      productId,
-      paymentMethod,
-      status,
-      approvalStatus = ApprovalStatus.pending,
-      giftCardNumber = '',
-      giftCardBalance = '',
-    }) => {
-      if (!actor) throw new Error('Actor not available');
-      return actor.addOrder(productId, paymentMethod, status, approvalStatus, giftCardNumber, giftCardBalance);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['orders'] });
-      queryClient.invalidateQueries({ queryKey: ['allOrders'] });
-    },
-  });
-}
-
 export function useGetAllOrders() {
   const { actor, isFetching: actorFetching } = useActor();
 
@@ -349,22 +333,62 @@ export function useGetAllOrders() {
   });
 }
 
-/**
- * Accepts an optional refetchInterval as second argument for live polling.
- */
-export function useGetOrderById(id: bigint | undefined, refetchInterval?: number) {
+export function useGetOrdersByBuyer(principalStr: string | undefined) {
+  const { actor, isFetching: actorFetching } = useActor();
+
+  return useQuery<Order[]>({
+    queryKey: ['ordersByBuyer', principalStr],
+    queryFn: async () => {
+      if (!actor || !principalStr) return [];
+      const principal = Principal.fromText(principalStr);
+      return actor.getOrdersByBuyer(principal);
+    },
+    enabled: !!actor && !actorFetching && !!principalStr,
+    staleTime: 30_000,
+    retry: 1,
+  });
+}
+
+export function useGetOrderById(id: bigint | undefined | null) {
   const { actor, isFetching: actorFetching } = useActor();
 
   return useQuery<Order | null>({
     queryKey: ['order', id?.toString()],
     queryFn: async () => {
-      if (!actor || id === undefined) return null;
+      if (!actor || id === undefined || id === null) return null;
       return actor.getOrderById(id);
     },
-    enabled: !!actor && !actorFetching && id !== undefined,
+    enabled: !!actor && !actorFetching && id !== undefined && id !== null,
     staleTime: 30_000,
     retry: 1,
-    refetchInterval: refetchInterval,
+    refetchInterval: 30_000,
+  });
+}
+
+export function usePlaceOrder() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    bigint,
+    Error,
+    {
+      productId: bigint;
+      paymentMethod: PaymentMethod;
+      status: string;
+      approvalStatus: ApprovalStatus;
+      giftCardNumber: string;
+      giftCardBalance: string;
+    }
+  >({
+    mutationFn: async ({ productId, paymentMethod, status, approvalStatus, giftCardNumber, giftCardBalance }) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.addOrder(productId, paymentMethod, status, approvalStatus, giftCardNumber, giftCardBalance);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ordersByBuyer'] });
+      queryClient.invalidateQueries({ queryKey: ['allOrders'] });
+    },
   });
 }
 
@@ -402,59 +426,72 @@ export function useDeclineOrder() {
   });
 }
 
-export function useOrdersByBuyer(principal: Principal | undefined) {
+// ─── Store Settings ───────────────────────────────────────────────────────────
+
+export function useStoreSettings() {
   const { actor, isFetching: actorFetching } = useActor();
 
-  return useQuery<Order[]>({
-    queryKey: ['ordersByBuyer', principal?.toString()],
+  return useQuery<StoreSettings>({
+    queryKey: ['storeSettings'],
     queryFn: async () => {
-      if (!actor || !principal) return [];
-      return actor.getOrdersByBuyer(principal);
-    },
-    enabled: !!actor && !actorFetching && !!principal,
-    staleTime: 30_000,
-    retry: 1,
-  });
-}
-
-// ─── Admin Whitelist ──────────────────────────────────────────────────────────
-
-export function useIsAdminUsername(username: string) {
-  const { actor, isFetching: actorFetching } = useActor();
-
-  const isEnabled = !!actor && !actorFetching && username.trim().length > 0;
-
-  const query = useQuery<boolean>({
-    queryKey: ['isAdminUsername', username],
-    queryFn: async () => {
-      if (!actor || !username.trim()) return false;
-      return actor.isAdminUsername(username.trim());
-    },
-    enabled: isEnabled,
-    staleTime: 60_000,
-    retry: 1,
-  });
-
-  const isLoading = actorFetching || (isEnabled && query.isLoading);
-  const isFetched = !actorFetching && isEnabled && query.isFetched;
-
-  return { ...query, isLoading, isFetched };
-}
-
-export function useGetAdminWhitelist() {
-  const { actor, isFetching: actorFetching } = useActor();
-
-  return useQuery<string[]>({
-    queryKey: ['adminWhitelist'],
-    queryFn: async () => {
-      if (!actor) return [];
-      return [];
+      if (!actor) throw new Error('Actor not available');
+      return actor.getStoreSettings();
     },
     enabled: !!actor && !actorFetching,
     staleTime: 60_000,
     retry: 1,
   });
 }
+
+export function useUpdatePaypalWallet() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, string>({
+    mutationFn: async (address: string) => {
+      if (!actor) throw new Error('Actor not available');
+      const result = await actor.updatePaypalWalletAddress(address);
+      if (result.__kind__ === 'err') throw new Error(result.err);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['storeSettings'] });
+    },
+  });
+}
+
+export function useUpdateBitcoinWallet() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, string>({
+    mutationFn: async (address: string) => {
+      if (!actor) throw new Error('Actor not available');
+      const result = await actor.updateBitcoinWalletAddress(address);
+      if (result.__kind__ === 'err') throw new Error(result.err);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['storeSettings'] });
+    },
+  });
+}
+
+export function useUpdateEthereumWallet() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, string>({
+    mutationFn: async (address: string) => {
+      if (!actor) throw new Error('Actor not available');
+      const result = await actor.updateEthereumWalletAddress(address);
+      if (result.__kind__ === 'err') throw new Error(result.err);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['storeSettings'] });
+    },
+  });
+}
+
+// ─── Admin Whitelist ──────────────────────────────────────────────────────────
 
 export function useAddAdminUser() {
   const { actor } = useActor();
@@ -466,7 +503,6 @@ export function useAddAdminUser() {
       await actor.addAdminUser(username);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['adminWhitelist'] });
       queryClient.invalidateQueries({ queryKey: ['isAdminUsername'] });
     },
   });
@@ -482,7 +518,6 @@ export function useRemoveAdminUser() {
       await actor.removeAdminUser(username);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['adminWhitelist'] });
       queryClient.invalidateQueries({ queryKey: ['isAdminUsername'] });
     },
   });
@@ -490,7 +525,6 @@ export function useRemoveAdminUser() {
 
 // ─── Subscription Tiers ───────────────────────────────────────────────────────
 
-/** Primary export — used by SubscriptionsPage and SubscriptionManager */
 export function useGetSubscriptionTiers() {
   const { actor, isFetching: actorFetching } = useActor();
 
@@ -506,8 +540,20 @@ export function useGetSubscriptionTiers() {
   });
 }
 
-/** Alias kept for backward compatibility */
-export const useSubscriptionTiers = useGetSubscriptionTiers;
+export function useInitializeDefaultTiers() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, void>({
+    mutationFn: async () => {
+      if (!actor) throw new Error('Actor not available');
+      await actor.initializeDefaultTiers();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['subscriptionTiers'] });
+    },
+  });
+}
 
 export function useUpdateSubscriptionTierPrices() {
   const { actor } = useActor();
@@ -537,86 +583,6 @@ export function useSetSubscriptionTierFreeTrial() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['subscriptionTiers'] });
-    },
-  });
-}
-
-export function useInitializeDefaultTiers() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
-  return useMutation<void, Error, void>({
-    mutationFn: async () => {
-      if (!actor) throw new Error('Actor not available');
-      await actor.initializeDefaultTiers();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['subscriptionTiers'] });
-    },
-  });
-}
-
-// ─── Store Settings ───────────────────────────────────────────────────────────
-
-export function useStoreSettings() {
-  const { actor, isFetching: actorFetching } = useActor();
-
-  return useQuery<StoreSettings>({
-    queryKey: ['storeSettings'],
-    queryFn: async () => {
-      if (!actor) throw new Error('Actor not available');
-      return actor.getStoreSettings();
-    },
-    enabled: !!actor && !actorFetching,
-    staleTime: 60_000,
-    retry: 1,
-  });
-}
-
-export function useUpdatePaypalWalletAddress() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
-  return useMutation<void, Error, string>({
-    mutationFn: async (address: string) => {
-      if (!actor) throw new Error('Actor not available');
-      const result = await actor.updatePaypalWalletAddress(address);
-      if (result.__kind__ === 'err') throw new Error(result.err);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['storeSettings'] });
-    },
-  });
-}
-
-export function useUpdateBitcoinWalletAddress() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
-  return useMutation<void, Error, string>({
-    mutationFn: async (address: string) => {
-      if (!actor) throw new Error('Actor not available');
-      const result = await actor.updateBitcoinWalletAddress(address);
-      if (result.__kind__ === 'err') throw new Error(result.err);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['storeSettings'] });
-    },
-  });
-}
-
-export function useUpdateEthereumWalletAddress() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
-  return useMutation<void, Error, string>({
-    mutationFn: async (address: string) => {
-      if (!actor) throw new Error('Actor not available');
-      const result = await actor.updateEthereumWalletAddress(address);
-      if (result.__kind__ === 'err') throw new Error(result.err);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['storeSettings'] });
     },
   });
 }

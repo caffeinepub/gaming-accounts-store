@@ -5,7 +5,7 @@ import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
-  useSubscriptionTiers,
+  useGetSubscriptionTiers,
   useUpdateSubscriptionTierPrices,
   useSetSubscriptionTierFreeTrial,
   useInitializeDefaultTiers,
@@ -206,32 +206,30 @@ function TierRow({ tier }: { tier: SubscriptionTier }) {
       </div>
 
       {/* Perks preview */}
-      <div className="mt-3">
-        <p className="font-rajdhani text-xs text-muted-foreground uppercase tracking-wider mb-1.5">Perks</p>
-        <div className="flex flex-wrap gap-1.5">
+      <div className="mt-4">
+        <p className="font-rajdhani text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+          Perks
+        </p>
+        <ul className="space-y-1">
           {tier.perks.map((perk, idx) => (
-            <span
-              key={idx}
-              className="text-xs font-rajdhani px-2 py-0.5 rounded-full border border-border bg-muted/30 text-muted-foreground"
-            >
+            <li key={idx} className="font-rajdhani text-xs text-muted-foreground flex items-start gap-1.5">
+              <span className="text-success mt-0.5">✓</span>
               {perk}
-            </span>
+            </li>
           ))}
-        </div>
+        </ul>
       </div>
     </div>
   );
 }
 
 export default function SubscriptionManager() {
-  const { data: tiers, isLoading, error } = useSubscriptionTiers();
-  const initTiers = useInitializeDefaultTiers();
-
-  const orderedTiers = tiers ? [...tiers].sort((a, b) => Number(a.id) - Number(b.id)) : [];
+  const { data: tiers, isLoading, error } = useGetSubscriptionTiers();
+  const initializeTiers = useInitializeDefaultTiers();
 
   const handleInitialize = async () => {
     try {
-      await initTiers.mutateAsync();
+      await initializeTiers.mutateAsync();
       toast.success('Default subscription tiers initialized');
     } catch (err: any) {
       toast.error(err?.message ?? 'Failed to initialize tiers');
@@ -241,39 +239,37 @@ export default function SubscriptionManager() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-16">
-        <Loader2 className="w-8 h-8 animate-spin text-sunset-gold" />
+        <Loader2 className="w-6 h-6 animate-spin text-sunset-gold" />
+        <span className="ml-2 font-rajdhani text-muted-foreground">Loading tiers...</span>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex items-center justify-center py-16">
-        <div className="text-center space-y-2">
-          <AlertCircle className="w-10 h-10 text-destructive mx-auto" />
-          <p className="font-rajdhani text-muted-foreground">Failed to load subscription tiers.</p>
-        </div>
+      <div className="flex items-center justify-center py-16 gap-2">
+        <AlertCircle className="w-5 h-5 text-destructive" />
+        <span className="font-rajdhani text-muted-foreground">Failed to load subscription tiers.</span>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="font-orbitron text-lg font-bold text-foreground">Subscription Tiers</h2>
-          <p className="font-rajdhani text-sm text-muted-foreground mt-0.5">
-            Manage pricing and free trial settings for each membership tier.
+          <h2 className="font-orbitron text-lg font-black text-foreground mb-1">Subscription Tiers</h2>
+          <p className="font-rajdhani text-sm text-muted-foreground">
+            Manage pricing and free trial settings for each subscription tier.
           </p>
         </div>
-        {orderedTiers.length === 0 && (
+        {(!tiers || tiers.length === 0) && (
           <button
             onClick={handleInitialize}
-            disabled={initTiers.isPending}
-            className="flex items-center gap-2 px-4 py-2 rounded-sm bg-gradient-to-r from-sunset-orange to-sunset-pink text-white font-rajdhani font-bold text-sm tracking-wider uppercase hover:opacity-90 transition-all sunset-glow-sm disabled:opacity-50"
+            disabled={initializeTiers.isPending}
+            className="flex items-center gap-2 px-4 py-2 rounded-sm bg-sunset-gold/10 border border-sunset-gold/30 text-sunset-gold hover:bg-sunset-gold/20 font-rajdhani font-semibold text-sm uppercase tracking-wider transition-all disabled:opacity-50"
           >
-            {initTiers.isPending ? (
+            {initializeTiers.isPending ? (
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
               <Crown className="w-4 h-4" />
@@ -283,16 +279,16 @@ export default function SubscriptionManager() {
         )}
       </div>
 
-      {orderedTiers.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 border border-dashed border-border rounded-sm">
-          <Crown className="w-10 h-10 text-muted-foreground mb-3" />
+      {(!tiers || tiers.length === 0) ? (
+        <div className="flex flex-col items-center justify-center py-16 gap-3">
+          <Crown className="w-10 h-10 text-muted-foreground" />
           <p className="font-rajdhani text-muted-foreground text-center">
-            No subscription tiers found. Click "Initialize Default Tiers" to create the default plans.
+            No subscription tiers found. Click "Initialize Default Tiers" to create the default set.
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {orderedTiers.map((tier) => (
+        <div className="space-y-4">
+          {[...tiers].sort((a, b) => Number(a.id) - Number(b.id)).map((tier) => (
             <TierRow key={tier.id.toString()} tier={tier} />
           ))}
         </div>

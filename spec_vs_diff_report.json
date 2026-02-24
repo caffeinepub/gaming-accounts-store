@@ -1,30 +1,62 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-24T21:54:45.338Z",
-  "summary": "The diff modifies frontend-file-summaries.txt and project_state.json. The summary for AdminPanelPage.tsx confirms REQ-103 is implemented (no internal async gates, defaults to Products tab). However, there is no evidence of changes to AdminAccessControl.tsx or useActor.ts, which are required by REQ-102 and REQ-104 respectively. The diff only shows modifications to two metadata/summary files, not the actual component source files.",
+  "generatedAt": "2026-02-24T22:40:27.340Z",
+  "summary": "The diff implements most of the three requirements. AdminAccessControl.tsx is rewritten with imperative async flow, a ref guard (principal-based rather than hasRun boolean), and sunset theming. AdminPanelPage.tsx is described as having no internal async gates. useQueries.ts retains useIsAdminUsername and useGetUsernameByPrincipal with staleTime >= 60,000 ms and retry = 1. However, several specific sub-requirements have deviations or are not clearly met.",
   "missing_requirements": [
     {
-      "id": "REQ-102",
-      "requirement": "Rewrite frontend/src/components/AdminAccessControl.tsx with a fully self-contained manual username-entry gate using local status state, polling actor with 10-second timeout, styled form with heading 'Admin Access', onSubmit handler calling isAdminUsername, granted/denied/timeout states, inline error display, retry resets to form, and sunset theme applied.",
-      "reason": "The diff does not include any changes to frontend/src/components/AdminAccessControl.tsx. The file is not listed in added, modified, or removed files. Only frontend-file-summaries.txt and project_state.json were modified.",
+      "id": "REQ-111",
+      "requirement": "The useEffect must include a hasRun ref guard using 'if (hasRun.current) return; hasRun.current = true;' — a boolean ref that fires once per authentication session.",
+      "reason": "The diff uses a checkedPrincipalRef (principal string ref) instead of the required boolean hasRun ref pattern. While functionally similar, this deviates from the specified implementation contract and could behave differently on re-authentication with the same principal.",
       "evidence": [
-        "frontend-file-summaries.txt"
+        "frontend/src/components/AdminAccessControl.tsx"
       ]
     },
     {
-      "id": "REQ-104",
-      "requirement": "Audit frontend/src/hooks/useActor.ts to ensure agent host is https://ic0.app in production, correct canister ID resolution, synchronous actor creation, surfaced initialisation errors, and actor re-creation on login/logout.",
-      "reason": "The diff does not include any changes to frontend/src/hooks/useActor.ts. The file is not listed in added, modified, or removed files.",
+      "id": "REQ-111",
+      "requirement": "Step (2): imperatively call the backend actor's getUsername function directly to retrieve the stored username.",
+      "reason": "The diff calls actor.getUsernameByPrincipal(principal) (passing a Principal object) rather than actor.getUsername() as specified. The build request explicitly states getUsername should be called imperatively.",
       "evidence": [
+        "frontend/src/components/AdminAccessControl.tsx"
+      ]
+    },
+    {
+      "id": "REQ-112",
+      "requirement": "Audit and rewrite AdminPanelPage.tsx — the actual file content is not shown in the diff.",
+      "reason": "The file-diff summary describes AdminPanelPage.tsx as having no internal async gates, but the actual file content was not included in the diff (only the frontend-file-summaries.txt entry references it). Cannot fully verify compliance from diff alone.",
+      "evidence": [
+        "frontend/src/pages/AdminPanelPage.tsx",
         "frontend-file-summaries.txt"
       ]
     }
   ],
-  "hallucinated_features": [],
-  "confidence": 0.8,
+  "hallucinated_features": [
+    {
+      "description": "The admin gate uses a principal-string ref (checkedPrincipalRef) instead of the specified boolean hasRun ref, adding logic to reset the ref on logout by setting it to null — this reset-on-unauthenticated behavior was not specified in the requirements.",
+      "reason": "REQ-111 specifies a simple boolean hasRun ref. The principal-tracking ref introduces additional behavior (reset on unauthentication, per-principal deduplication) not requested.",
+      "evidence": [
+        "frontend/src/components/AdminAccessControl.tsx"
+      ]
+    },
+    {
+      "description": "isLoggingIn state derived from loginStatus === 'logging-in' is imported and computed but does not appear to be used in any render branch based on the visible truncated code.",
+      "reason": "The build request does not mention tracking or displaying a logging-in intermediate state; this appears to be unused scaffolding not requested by any requirement.",
+      "evidence": [
+        "frontend/src/components/AdminAccessControl.tsx"
+      ]
+    }
+  ],
+  "confidence": 0.72,
   "changed_files": [
     "frontend-file-summaries.txt",
+    "frontend/src/components/AdminAccessControl.tsx",
+    "frontend/src/components/ProfileSetupModal.tsx",
+    "frontend/src/components/admin/StoreSettingsManager.tsx",
+    "frontend/src/components/admin/SubscriptionManager.tsx",
+    "frontend/src/hooks/useQueries.ts",
+    "frontend/src/pages/CheckoutPage.tsx",
+    "frontend/src/pages/OrderConfirmationPage.tsx",
+    "frontend/src/pages/SubscriptionsPage.tsx",
     "project_state.json"
   ]
 }

@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { Check, Star, Zap, Crown, Sparkles, AlertCircle, Loader2 } from 'lucide-react';
-import { useSubscriptionTiers } from '../hooks/useQueries';
+import { useGetSubscriptionTiers } from '../hooks/useQueries';
 import type { SubscriptionTier } from '../backend';
-import { Badge } from '@/components/ui/badge';
 
 interface SubscriptionsPageProps {
   onSubscribe: (tier: SubscriptionTier, billingCycle: 'monthly' | 'yearly', price: number) => void;
@@ -143,7 +142,7 @@ function TierCard({
 
 export default function SubscriptionsPage({ onSubscribe }: SubscriptionsPageProps) {
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
-  const { data: tiers, isLoading, error } = useSubscriptionTiers();
+  const { data: tiers, isLoading, error } = useGetSubscriptionTiers();
 
   const orderedTiers = tiers
     ? [...tiers].sort((a, b) => Number(a.id) - Number(b.id))
