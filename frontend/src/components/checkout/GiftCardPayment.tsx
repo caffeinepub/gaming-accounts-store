@@ -1,165 +1,95 @@
-import { useState } from 'react';
-import { Gift, CheckCircle, Loader2 } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import React, { useState } from 'react';
+import { Gift, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 
 interface GiftCardPaymentProps {
-  total: bigint;
-  onConfirm: () => void;
-  onBack: () => void;
+  amount: number;
+  onConfirm: () => Promise<void>;
   isLoading: boolean;
 }
 
-export default function GiftCardPayment({ total, onConfirm, onBack, isLoading }: GiftCardPaymentProps) {
+export default function GiftCardPayment({ amount, onConfirm, isLoading }: GiftCardPaymentProps) {
   const [code, setCode] = useState('');
-  const [applying, setApplying] = useState(false);
-  const [applied, setApplied] = useState(false);
-  const [error, setError] = useState('');
+  const [validating, setValidating] = useState(false);
+  const [validationState, setValidationState] = useState<'idle' | 'valid' | 'invalid'>('idle');
 
-  const formatPrice = (price: bigint) => `£${(Number(price) / 100).toFixed(2)}`;
-
-  const handleApply = () => {
-    if (!code.trim()) {
-      setError('Please enter a gift card code');
-      return;
-    }
-    setError('');
-    setApplying(true);
-    setTimeout(() => {
-      setApplying(false);
-      if (code.trim().length >= 4) {
-        setApplied(true);
-      } else {
-        setError('Invalid gift card code. Please check and try again.');
-      }
-    }, 1500);
+  const handleValidate = async () => {
+    if (!code.trim()) return;
+    setValidating(true);
+    await new Promise((r) => setTimeout(r, 1200));
+    setValidationState(code.length >= 8 ? 'valid' : 'invalid');
+    setValidating(false);
   };
 
   return (
-    <div className="flex flex-col gap-5">
-      {/* Gift card visual */}
-      <div
-        className="rounded-xl p-6"
-        style={{
-          background: 'linear-gradient(135deg, oklch(0.13 0.008 260), oklch(0.15 0.04 195))',
-          border: '1px solid oklch(0.65 0.25 195 / 0.4)',
-        }}
-      >
-        <div className="flex items-center gap-3 mb-4">
-          <Gift size={28} style={{ color: 'oklch(0.65 0.25 195)' }} />
-          <div>
-            <p className="font-heading font-bold" style={{ color: 'oklch(0.9 0.01 260)' }}>
-              UK Gift Card
-            </p>
-            <p className="text-xs" style={{ color: 'oklch(0.5 0.02 260)' }}>
-              Enter your gift card code to redeem
-            </p>
-          </div>
+    <div className="space-y-5">
+      {/* Header */}
+      <div className="flex items-center gap-3 p-4 rounded-sm border border-border bg-muted/30">
+        <Gift className="w-6 h-6 text-sunset-pink" />
+        <div>
+          <p className="font-orbitron text-sm font-bold text-foreground">UK Gift Card</p>
+          <p className="font-rajdhani text-xs text-muted-foreground">Enter your gift card code below</p>
         </div>
+      </div>
 
-        <div
-          className="p-3 rounded-lg text-center mb-4"
-          style={{
-            background: 'oklch(0.65 0.25 195 / 0.1)',
-            border: '1px solid oklch(0.65 0.25 195 / 0.3)',
-          }}
-        >
-          <p className="text-xs mb-1" style={{ color: 'oklch(0.55 0.02 260)' }}>Amount due</p>
-          <p className="font-gaming text-2xl" style={{ color: 'oklch(0.65 0.25 195)' }}>
-            {formatPrice(total)}
-          </p>
-        </div>
+      {/* Amount */}
+      <div className="flex items-center justify-between p-4 rounded-sm border border-border bg-card">
+        <span className="font-rajdhani font-semibold text-muted-foreground">Amount to pay</span>
+        <span className="font-orbitron font-bold text-sunset-gold text-lg">
+          £{(amount / 100).toFixed(2)}
+        </span>
+      </div>
 
-        {!applied ? (
-          <div className="flex flex-col gap-3">
-            <div>
-              <Label
-                htmlFor="gift-code"
-                className="text-xs font-heading font-semibold uppercase tracking-wide mb-1.5 block"
-                style={{ color: 'oklch(0.55 0.02 260)' }}
-              >
-                Gift Card Code
-              </Label>
-              <Input
-                id="gift-code"
-                value={code}
-                onChange={e => setCode(e.target.value.toUpperCase())}
-                placeholder="XXXX-XXXX-XXXX-XXXX"
-                className="font-gaming tracking-widest text-center"
-                style={{
-                  background: 'oklch(0.1 0.005 260)',
-                  border: `1px solid ${error ? 'oklch(0.6 0.22 25)' : 'oklch(0.3 0.015 260)'}`,
-                  color: 'oklch(0.9 0.01 260)',
-                }}
-                onKeyDown={e => e.key === 'Enter' && handleApply()}
-              />
-              {error && (
-                <p className="text-xs mt-1" style={{ color: 'oklch(0.6 0.22 25)' }}>
-                  {error}
-                </p>
-              )}
-            </div>
-            <button
-              onClick={handleApply}
-              disabled={applying || !code.trim()}
-              className="w-full py-2.5 rounded font-heading font-bold tracking-wide uppercase text-sm transition-all duration-200 disabled:opacity-40 flex items-center justify-center gap-2"
-              style={{
-                background: 'oklch(0.65 0.25 195)',
-                color: 'oklch(0.08 0.005 260)',
-              }}
-            >
-              {applying ? <Loader2 size={14} className="animate-spin" /> : null}
-              {applying ? 'Validating...' : 'Apply Gift Card'}
-            </button>
-          </div>
-        ) : (
-          <div
-            className="flex items-center gap-3 p-3 rounded-lg"
-            style={{
-              background: 'oklch(0.5 0.18 145 / 0.15)',
-              border: '1px solid oklch(0.5 0.18 145 / 0.4)',
-            }}
+      {/* Code input */}
+      <div className="space-y-2">
+        <label className="font-rajdhani text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+          Gift Card Code
+        </label>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={code}
+            onChange={(e) => { setCode(e.target.value.toUpperCase()); setValidationState('idle'); }}
+            placeholder="XXXX-XXXX-XXXX-XXXX"
+            className="flex-1 px-3 py-2 rounded-sm border border-border bg-input text-foreground font-mono text-sm placeholder:text-muted-foreground focus:outline-none focus:border-sunset-pink focus:ring-1 focus:ring-sunset-pink/30 transition-colors"
+          />
+          <button
+            onClick={handleValidate}
+            disabled={!code.trim() || validating}
+            className="px-4 py-2 rounded-sm border border-sunset-pink bg-sunset-pink/10 text-sunset-pink font-rajdhani font-semibold text-sm hover:bg-sunset-pink/20 transition-colors disabled:opacity-50"
           >
-            <CheckCircle size={20} style={{ color: 'oklch(0.5 0.18 145)' }} />
-            <div>
-              <p className="font-heading font-semibold text-sm" style={{ color: 'oklch(0.5 0.18 145)' }}>
-                Gift card applied!
-              </p>
-              <p className="text-xs" style={{ color: 'oklch(0.5 0.02 260)' }}>
-                Code: {code} — {formatPrice(total)} covered
-              </p>
-            </div>
+            {validating ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Validate'}
+          </button>
+        </div>
+
+        {/* Validation feedback */}
+        {validationState === 'valid' && (
+          <div className="flex items-center gap-2 text-success">
+            <CheckCircle className="w-4 h-4" />
+            <span className="font-rajdhani text-sm">Gift card validated successfully!</span>
+          </div>
+        )}
+        {validationState === 'invalid' && (
+          <div className="flex items-center gap-2 text-destructive">
+            <XCircle className="w-4 h-4" />
+            <span className="font-rajdhani text-sm">Invalid gift card code. Please try again.</span>
           </div>
         )}
       </div>
 
-      <div className="flex gap-3">
-        <button
-          onClick={onBack}
-          disabled={isLoading}
-          className="flex-1 py-3 rounded font-heading font-bold tracking-widest uppercase text-sm transition-all duration-200 disabled:opacity-40"
-          style={{
-            background: 'oklch(0.18 0.01 260)',
-            color: 'oklch(0.7 0.02 260)',
-            border: '1px solid oklch(0.25 0.015 260)',
-          }}
-        >
-          Back
-        </button>
-        <button
-          onClick={onConfirm}
-          disabled={!applied || isLoading}
-          className="flex-1 py-3 rounded font-heading font-bold tracking-widest uppercase text-sm transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-          style={{
-            background: 'oklch(0.72 0.22 35)',
-            color: 'oklch(0.08 0.005 260)',
-            boxShadow: applied && !isLoading ? '0 0 20px oklch(0.72 0.22 35 / 0.4)' : 'none',
-          }}
-        >
-          {isLoading ? <Loader2 size={14} className="animate-spin" /> : null}
-          {isLoading ? 'Placing Order...' : 'Place Order'}
-        </button>
-      </div>
+      <button
+        onClick={onConfirm}
+        disabled={validationState !== 'valid' || isLoading}
+        className="w-full flex items-center justify-center gap-2 py-3 rounded-sm bg-gradient-to-r from-sunset-orange to-sunset-pink text-white font-rajdhani font-bold tracking-wider uppercase hover:opacity-90 transition-all sunset-glow disabled:opacity-50"
+      >
+        {isLoading ? (
+          <>
+            <Loader2 className="w-4 h-4 animate-spin" />
+            Placing Order...
+          </>
+        ) : (
+          'Confirm Order'
+        )}
+      </button>
     </div>
   );
 }

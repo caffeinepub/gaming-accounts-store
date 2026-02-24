@@ -1,42 +1,94 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-24T12:37:07.139Z",
+  "generatedAt": "2026-02-24T14:48:42.197Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 2,
-    "implemented": 2,
+    "total": 4,
+    "implemented": 3,
     "items": [
       {
-        "id": "REQ-7",
-        "summary": "Remove the logo image/icon from the Navigation component so that only the 'Game Vault' text brand name is displayed in the navbar — no image, SVG, or icon logo should appear alongside or in place of the text.",
+        "id": "REQ-37",
+        "summary": "Replace the existing dark neon gaming theme in `frontend/src/index.css` with a full sunset aesthetic. Define new CSS custom properties using the NYC sunset palette: deep dusk purple/navy-black backgrounds (e.g. `#1a0a2e`, `#0d0519`, `#1c0f3f`), warm dark mid-tones (e.g. `#2d1b4e`, `#3a1a2a`), and sunset accent colors — golden yellow (`#f5a623`), burnt orange (`#e85d04`), dusky pink/rose (`#d63384`), soft purple (`#9b59b6`). Replace all neon-cyan, electric-orange, and hot-pink CSS variables with these sunset tones. Update glow utility classes (e.g. `neon-glow`, `neon-border`) to emit warm sunset glows (orange/pink/golden box-shadows and text-shadows) instead of cyan/green neon glows. Retain the Orbitron and Rajdhani Google Font imports. Do NOT alter the `--game-vault-gradient` or any inline style producing the red → purple → orange 'Game Vault' text gradient.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/components/Navigation.tsx"
+          "frontend/src/index.css"
         ],
         "matchedFiles": [
-          "frontend/src/components/Navigation.tsx"
+          "frontend/src/index.css"
         ]
       },
       {
-        "id": "REQ-8",
-        "summary": "Apply a 3-tone CSS linear gradient flowing red → purple → orange to the 'Game Vault' site name text in every location it appears: the Navigation bar brand text, the Footer brand name, the LoadingScreen3D intro/title text, and any other component that renders the site name as visible text. Use a background-clip text technique or equivalent CSS to render the gradient directly on the characters.",
+        "id": "REQ-38",
+        "summary": "Update `frontend/tailwind.config.js` to replace all neon-themed color tokens (neon-cyan, electric-orange, hot-pink, etc.) with sunset palette tokens: `sunset-gold` (`#f5a623`), `sunset-orange` (`#e85d04`), `sunset-pink` (`#d63384`), `sunset-purple` (`#9b59b6`), `dusk-bg` (`#0d0519`), `dusk-mid` (`#1a0a2e`). Update any existing `pulse-glow` or custom keyframe animation colors to use sunset warm tones. Ensure CSS variable-based color references still resolve correctly against the updated `index.css` tokens.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/index.css",
-          "frontend/src/components/Navigation.tsx",
-          "frontend/src/components/Footer.tsx",
-          "frontend/src/components/LoadingScreen3D.tsx"
+          "frontend/tailwind.config.js"
         ],
         "matchedFiles": [
-          "frontend/src/index.css",
+          "frontend/tailwind.config.js"
+        ]
+      },
+      {
+        "id": "REQ-39",
+        "summary": "Apply the sunset theme consistently across all frontend page and layout components: `StorefrontPage.tsx`, `ProductDetailPage.tsx`, `CheckoutPage.tsx`, `OrderConfirmationPage.tsx`, `AdminPanelPage.tsx`, `Navigation.tsx`, `Footer.tsx`, `ProductCard.tsx`, `CartDrawer.tsx`, `CategoryCard.tsx`, all checkout sub-components (`PayPalPayment.tsx`, `CryptoPayment.tsx`, `GiftCardPayment.tsx`, `PayIn3Payment.tsx`, `PaymentMethodSelector.tsx`), and all admin sub-components (`CategoryManager.tsx`, `ProductManager.tsx`, `OrderManager.tsx`, `AdminWhitelistManager.tsx`, `CategoryForm.tsx`, `ProductForm.tsx`). Replace all hardcoded neon color classes (e.g. `text-cyan-400`, `border-cyan-500`, `bg-gray-900`, `shadow-cyan`, neon-specific utility classes) with their sunset palette equivalents. Buttons, cards, borders, hover states, badges, and focus rings must all use sunset accent colors. The 'Game Vault' gradient text must remain unchanged wherever it appears.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/pages/StorefrontPage.tsx",
+          "frontend/src/pages/ProductDetailPage.tsx",
+          "frontend/src/pages/CheckoutPage.tsx",
+          "frontend/src/pages/OrderConfirmationPage.tsx",
+          "frontend/src/pages/AdminPanelPage.tsx",
           "frontend/src/components/Navigation.tsx",
           "frontend/src/components/Footer.tsx",
-          "frontend/src/components/LoadingScreen3D.tsx"
+          "frontend/src/components/ProductCard.tsx",
+          "frontend/src/components/CartDrawer.tsx",
+          "frontend/src/components/CategoryCard.tsx",
+          "frontend/src/components/checkout/PayPalPayment.tsx",
+          "frontend/src/components/checkout/CryptoPayment.tsx",
+          "frontend/src/components/checkout/GiftCardPayment.tsx",
+          "frontend/src/components/checkout/PayIn3Payment.tsx",
+          "frontend/src/components/checkout/PaymentMethodSelector.tsx",
+          "frontend/src/components/admin/CategoryManager.tsx",
+          "frontend/src/components/admin/ProductManager.tsx",
+          "frontend/src/components/admin/OrderManager.tsx",
+          "frontend/src/components/admin/AdminWhitelistManager.tsx",
+          "frontend/src/components/admin/CategoryForm.tsx",
+          "frontend/src/components/admin/ProductForm.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/pages/StorefrontPage.tsx",
+          "frontend/src/pages/ProductDetailPage.tsx",
+          "frontend/src/pages/CheckoutPage.tsx",
+          "frontend/src/pages/OrderConfirmationPage.tsx",
+          "frontend/src/pages/AdminPanelPage.tsx",
+          "frontend/src/components/Navigation.tsx",
+          "frontend/src/components/Footer.tsx",
+          "frontend/src/components/ProductCard.tsx",
+          "frontend/src/components/CartDrawer.tsx",
+          "frontend/src/components/CategoryCard.tsx",
+          "frontend/src/components/checkout/PayPalPayment.tsx",
+          "frontend/src/components/checkout/CryptoPayment.tsx",
+          "frontend/src/components/checkout/GiftCardPayment.tsx",
+          "frontend/src/components/checkout/PayIn3Payment.tsx",
+          "frontend/src/components/checkout/PaymentMethodSelector.tsx",
+          "frontend/src/components/admin/CategoryManager.tsx",
+          "frontend/src/components/admin/ProductManager.tsx",
+          "frontend/src/components/admin/CategoryForm.tsx",
+          "frontend/src/components/admin/ProductForm.tsx"
         ]
+      },
+      {
+        "id": "REQ-40",
+        "summary": "Update the `LoadingScreen3D.tsx` component's non-3D overlay UI elements (title text container background, progress bar colors, any HTML overlay text styling) to use sunset palette colors. The Three.js scene itself (sky gradient, building colors, road, vehicle colors, ambient/directional light colors) must also use warm sunset tones — golden-orange sky (#ff7043 → #ff8c00 → #4a0e8f gradient from horizon to top), deep purple upper sky, warm orange/yellow street lighting on vehicles and buildings. Ensure the 'Game Vault' gradient text in the loading screen overlay remains unchanged.",
+        "status": "missing",
+        "plannedFiles": [
+          "frontend/src/components/LoadingScreen3D.tsx"
+        ],
+        "matchedFiles": []
       }
     ]
   },
@@ -45,10 +97,28 @@
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
+    "frontend/src/App.tsx",
+    "frontend/src/components/CartDrawer.tsx",
+    "frontend/src/components/CategoryCard.tsx",
     "frontend/src/components/Footer.tsx",
-    "frontend/src/components/LoadingScreen3D.tsx",
     "frontend/src/components/Navigation.tsx",
+    "frontend/src/components/ProductCard.tsx",
+    "frontend/src/components/admin/CategoryForm.tsx",
+    "frontend/src/components/admin/CategoryManager.tsx",
+    "frontend/src/components/admin/ProductForm.tsx",
+    "frontend/src/components/admin/ProductManager.tsx",
+    "frontend/src/components/checkout/CryptoPayment.tsx",
+    "frontend/src/components/checkout/GiftCardPayment.tsx",
+    "frontend/src/components/checkout/PayIn3Payment.tsx",
+    "frontend/src/components/checkout/PayPalPayment.tsx",
+    "frontend/src/components/checkout/PaymentMethodSelector.tsx",
     "frontend/src/index.css",
+    "frontend/src/pages/AdminPanelPage.tsx",
+    "frontend/src/pages/CheckoutPage.tsx",
+    "frontend/src/pages/OrderConfirmationPage.tsx",
+    "frontend/src/pages/ProductDetailPage.tsx",
+    "frontend/src/pages/StorefrontPage.tsx",
+    "frontend/tailwind.config.js",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

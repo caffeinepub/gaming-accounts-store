@@ -1,132 +1,112 @@
-import { X, Trash2, ShoppingBag } from 'lucide-react';
-import { useCart } from '../hooks/useCart';
-import { useInternetIdentity } from '../hooks/useInternetIdentity';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
+import React from 'react';
+import { X, ShoppingCart, Trash2, ArrowRight } from 'lucide-react';
+import type { Product } from '../backend';
+
+interface CartItem {
+  product: Product;
+  quantity: number;
+}
 
 interface CartDrawerProps {
-  open: boolean;
+  isOpen: boolean;
   onClose: () => void;
+  cartItems: CartItem[];
+  onRemoveItem: (productId: bigint) => void;
   onCheckout: () => void;
 }
 
-export default function CartDrawer({ open, onClose, onCheckout }: CartDrawerProps) {
-  const { items, removeItem, totalPrice } = useCart();
-  const { identity } = useInternetIdentity();
-  const isAuthenticated = !!identity;
-
-  const formatPrice = (price: bigint) => `£${(Number(price) / 100).toFixed(2)}`;
+export default function CartDrawer({ isOpen, onClose, cartItems, onRemoveItem, onCheckout }: CartDrawerProps) {
+  const total = cartItems.reduce((sum, item) => sum + Number(item.product.price) * item.quantity, 0);
 
   return (
-    <Sheet open={open} onOpenChange={onClose}>
-      <SheetContent
-        side="right"
-        className="w-full sm:max-w-md flex flex-col p-0"
-        style={{
-          background: 'oklch(0.12 0.008 260)',
-          borderColor: 'oklch(0.25 0.015 260)',
-        }}
+    <>
+      {/* Overlay */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
+          onClick={onClose}
+        />
+      )}
+
+      {/* Drawer */}
+      <div
+        className={`fixed right-0 top-0 h-full w-full sm:w-96 bg-card border-l border-border z-50 transform transition-transform duration-300 flex flex-col ${
+          isOpen ? 'translate-x-0' : 'translate-x-full'
+        }`}
       >
-        <SheetHeader className="px-6 py-4 border-b" style={{ borderColor: 'oklch(0.25 0.015 260)' }}>
-          <SheetTitle className="font-heading text-xl tracking-wide flex items-center gap-2" style={{ color: 'oklch(0.95 0.01 260)' }}>
-            <ShoppingBag size={20} style={{ color: 'oklch(0.72 0.22 35)' }} />
-            Your Cart
-            {items.length > 0 && (
-              <span
-                className="ml-auto text-sm font-gaming px-2 py-0.5 rounded"
-                style={{ background: 'oklch(0.72 0.22 35 / 0.2)', color: 'oklch(0.72 0.22 35)' }}
-              >
-                {items.length} item{items.length !== 1 ? 's' : ''}
+        {/* Header */}
+        <div className="flex items-center justify-between p-5 border-b border-border">
+          <div className="flex items-center gap-2">
+            <ShoppingCart className="w-5 h-5 text-sunset-gold" />
+            <h2 className="font-orbitron text-base font-bold text-foreground">Cart</h2>
+            {cartItems.length > 0 && (
+              <span className="w-5 h-5 rounded-full bg-sunset-orange text-white text-xs font-bold flex items-center justify-center">
+                {cartItems.length}
               </span>
             )}
-          </SheetTitle>
-        </SheetHeader>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-sm text-muted-foreground hover:text-sunset-pink hover:bg-muted transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
 
-        <div className="flex-1 overflow-y-auto scrollbar-gaming px-6 py-4">
-          {items.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-48 gap-3">
-              <ShoppingBag size={40} style={{ color: 'oklch(0.35 0.015 260)' }} />
-              <p className="font-heading text-lg" style={{ color: 'oklch(0.45 0.02 260)' }}>
-                Your cart is empty
-              </p>
-              <p className="text-sm text-center" style={{ color: 'oklch(0.35 0.015 260)' }}>
-                Browse the store and add gaming accounts
-              </p>
+        {/* Items */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-3">
+          {cartItems.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full gap-3 text-center">
+              <ShoppingCart className="w-12 h-12 text-muted-foreground/30" />
+              <p className="font-rajdhani text-muted-foreground">Your cart is empty</p>
             </div>
           ) : (
-            <div className="flex flex-col gap-3">
-              {items.map(({ product, quantity }) => (
-                <div
-                  key={product.id.toString()}
-                  className="flex items-start gap-3 p-3 rounded-lg"
-                  style={{ background: 'oklch(0.15 0.01 260)', border: '1px solid oklch(0.22 0.012 260)' }}
-                >
-                  <div
-                    className="w-10 h-10 rounded flex items-center justify-center flex-shrink-0"
-                    style={{ background: 'oklch(0.72 0.22 35 / 0.15)' }}
-                  >
-                    <span className="text-lg">🎮</span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-heading font-semibold text-sm truncate" style={{ color: 'oklch(0.9 0.01 260)' }}>
-                      {product.title}
-                    </p>
-                    <p className="text-xs mt-0.5" style={{ color: 'oklch(0.55 0.02 260)' }}>
-                      {product.gameName}
-                    </p>
-                    <div className="flex items-center justify-between mt-1">
-                      <span className="text-xs" style={{ color: 'oklch(0.55 0.02 260)' }}>
-                        Qty: {quantity}
-                      </span>
-                      <span className="font-gaming text-sm" style={{ color: 'oklch(0.72 0.22 35)' }}>
-                        {formatPrice(product.price * BigInt(quantity))}
-                      </span>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => removeItem(product.id)}
-                    className="p-1.5 rounded transition-colors hover:bg-red-500/20"
-                    style={{ color: 'oklch(0.55 0.02 260)' }}
-                  >
-                    <Trash2 size={14} />
-                  </button>
+            cartItems.map((item) => (
+              <div
+                key={item.product.id.toString()}
+                className="flex items-start gap-3 p-3 rounded-sm border border-border bg-background hover:border-sunset-gold/30 transition-colors"
+              >
+                <div className="flex-1 min-w-0">
+                  <p className="font-orbitron text-xs font-bold text-foreground truncate">
+                    {item.product.gameName}
+                  </p>
+                  <p className="font-rajdhani text-xs text-muted-foreground truncate mt-0.5">
+                    {item.product.title}
+                  </p>
+                  <p className="font-orbitron text-sm font-bold text-sunset-gold mt-1">
+                    £{(Number(item.product.price) / 100).toFixed(2)}
+                  </p>
                 </div>
-              ))}
-            </div>
+                <button
+                  onClick={() => onRemoveItem(item.product.id)}
+                  className="p-1.5 rounded-sm text-muted-foreground hover:text-sunset-pink hover:bg-muted transition-colors flex-shrink-0"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ))
           )}
         </div>
 
-        {items.length > 0 && (
-          <div className="px-6 py-4 border-t" style={{ borderColor: 'oklch(0.25 0.015 260)' }}>
-            <div className="flex items-center justify-between mb-4">
-              <span className="font-heading font-semibold" style={{ color: 'oklch(0.7 0.02 260)' }}>
-                Total
-              </span>
-              <span className="font-gaming text-xl" style={{ color: 'oklch(0.72 0.22 35)' }}>
-                {formatPrice(totalPrice)}
+        {/* Footer */}
+        {cartItems.length > 0 && (
+          <div className="p-4 border-t border-border space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="font-rajdhani font-semibold text-muted-foreground">Total</span>
+              <span className="font-orbitron font-bold text-sunset-gold text-lg">
+                £{(total / 100).toFixed(2)}
               </span>
             </div>
-            {!isAuthenticated && (
-              <p className="text-xs mb-3 text-center" style={{ color: 'oklch(0.55 0.02 260)' }}>
-                Please login to proceed to checkout
-              </p>
-            )}
             <button
               onClick={onCheckout}
-              disabled={!isAuthenticated}
-              className="w-full py-3 rounded font-heading font-bold tracking-widest uppercase text-sm transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
-              style={{
-                background: 'oklch(0.72 0.22 35)',
-                color: 'oklch(0.08 0.005 260)',
-                boxShadow: isAuthenticated ? '0 0 20px oklch(0.72 0.22 35 / 0.4)' : 'none',
-              }}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-sm bg-gradient-to-r from-sunset-orange to-sunset-pink text-white font-rajdhani font-bold tracking-wider uppercase hover:opacity-90 transition-all sunset-glow"
             >
-              {isAuthenticated ? 'Proceed to Checkout' : 'Login to Checkout'}
+              Checkout
+              <ArrowRight className="w-4 h-4" />
             </button>
           </div>
         )}
-      </SheetContent>
-    </Sheet>
+      </div>
+    </>
   );
 }

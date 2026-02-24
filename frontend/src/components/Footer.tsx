@@ -1,62 +1,55 @@
-import { Heart } from 'lucide-react';
+import React from 'react';
+import { Heart, Store } from 'lucide-react';
 
 export default function Footer() {
   const year = new Date().getFullYear();
-  const appId = encodeURIComponent(window.location.hostname || 'gamevault-store');
+  const appId = encodeURIComponent(window.location.hostname || 'game-vault');
 
   return (
-    <footer
-      className="border-t mt-auto"
-      style={{
-        background: 'oklch(0.1 0.005 260)',
-        borderColor: 'oklch(0.2 0.01 260)',
-      }}
-    >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+    <footer className="border-t border-border bg-background mt-auto">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* Brand */}
-          <div>
-            <div className="flex items-center gap-2 mb-3">
-              <span className="brand-gradient-text font-gaming text-lg font-bold tracking-wider">
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-sm bg-gradient-to-br from-sunset-orange to-sunset-pink flex items-center justify-center">
+                <Store className="w-3.5 h-3.5 text-white" />
+              </div>
+              <span className="text-lg font-orbitron font-bold game-vault-gradient">
                 Game Vault
               </span>
             </div>
-            <p className="text-xs leading-relaxed" style={{ color: 'oklch(0.45 0.02 260)' }}>
-              Premium gaming accounts marketplace. Buy verified accounts for your favorite games.
+            <p className="text-muted-foreground text-sm font-rajdhani leading-relaxed">
+              Your premier destination for digital game accounts. Secure, instant, and reliable.
             </p>
           </div>
 
-          {/* Links */}
-          <div>
-            <h4 className="font-heading font-bold text-sm mb-3 uppercase tracking-wide" style={{ color: 'oklch(0.65 0.02 260)' }}>
+          {/* Store Links */}
+          <div className="space-y-3">
+            <h4 className="font-orbitron text-sm font-semibold text-sunset-gold uppercase tracking-wider">
               Store
             </h4>
-            <ul className="flex flex-col gap-2">
-              {['Browse Accounts', 'Car Parking Multiplayer', 'New Arrivals'].map(link => (
+            <ul className="space-y-2">
+              {['Browse Games', 'New Arrivals', 'Best Sellers', 'Special Offers'].map((link) => (
                 <li key={link}>
-                  <a href="/" className="text-xs transition-colors hover:text-primary" style={{ color: 'oklch(0.45 0.02 260)' }}>
+                  <span className="text-muted-foreground hover:text-sunset-gold text-sm font-rajdhani cursor-pointer transition-colors">
                     {link}
-                  </a>
+                  </span>
                 </li>
               ))}
             </ul>
           </div>
 
-          {/* Payment methods */}
-          <div>
-            <h4 className="font-heading font-bold text-sm mb-3 uppercase tracking-wide" style={{ color: 'oklch(0.65 0.02 260)' }}>
+          {/* Payment Methods */}
+          <div className="space-y-3">
+            <h4 className="font-orbitron text-sm font-semibold text-sunset-gold uppercase tracking-wider">
               Payment Methods
             </h4>
             <div className="flex flex-wrap gap-2">
-              {['PayPal', 'Crypto', 'Gift Card', 'Pay in 3'].map(method => (
+              {['PayPal', 'Crypto', 'Gift Card', 'Pay in 3'].map((method) => (
                 <span
                   key={method}
-                  className="text-xs px-2 py-1 rounded"
-                  style={{
-                    background: 'oklch(0.18 0.01 260)',
-                    color: 'oklch(0.55 0.02 260)',
-                    border: '1px solid oklch(0.22 0.012 260)',
-                  }}
+                  className="px-2.5 py-1 rounded-sm border border-border bg-muted text-muted-foreground text-xs font-rajdhani font-semibold tracking-wide"
                 >
                   {method}
                 </span>
@@ -65,23 +58,20 @@ export default function Footer() {
           </div>
         </div>
 
-        <div
-          className="pt-6 border-t flex flex-col sm:flex-row items-center justify-between gap-3"
-          style={{ borderColor: 'oklch(0.18 0.01 260)' }}
-        >
-          <p className="text-xs" style={{ color: 'oklch(0.35 0.015 260)' }}>
+        {/* Bottom bar */}
+        <div className="mt-8 pt-6 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-3">
+          <p className="text-muted-foreground text-xs font-rajdhani">
             © {year} Game Vault. All rights reserved.
           </p>
-          <p className="text-xs flex items-center gap-1" style={{ color: 'oklch(0.35 0.015 260)' }}>
+          <p className="text-muted-foreground text-xs font-rajdhani flex items-center gap-1">
             Built with{' '}
-            <Heart size={12} fill="oklch(0.72 0.22 35)" style={{ color: 'oklch(0.72 0.22 35)' }} />
-            {' '}using{' '}
+            <Heart className="w-3 h-3 text-sunset-pink fill-sunset-pink" />{' '}
+            using{' '}
             <a
               href={`https://caffeine.ai/?utm_source=Caffeine-footer&utm_medium=referral&utm_content=${appId}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="transition-colors hover:text-primary"
-              style={{ color: 'oklch(0.72 0.22 35)' }}
+              className="text-sunset-gold hover:text-sunset-orange transition-colors"
             >
               caffeine.ai
             </a>

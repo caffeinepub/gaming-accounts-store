@@ -1,24 +1,22 @@
-import { Link, useNavigate } from '@tanstack/react-router';
-import { ShoppingCart, Gamepad2, Shield, Menu, X } from 'lucide-react';
-import { useState } from 'react';
-import { useCart } from '../hooks/useCart';
+import React, { useState } from 'react';
+import { ShoppingCart, Menu, X, Shield, Store } from 'lucide-react';
 import { useInternetIdentity } from '../hooks/useInternetIdentity';
 import { useQueryClient } from '@tanstack/react-query';
-import { useIsCallerAdmin } from '../hooks/useQueries';
-import CartDrawer from './CartDrawer';
 
-export default function Navigation() {
-  const { items } = useCart();
-  const { identity, login, clear, loginStatus } = useInternetIdentity();
+interface NavigationProps {
+  cartItemCount: number;
+  onCartClick: () => void;
+  onNavigate: (page: string) => void;
+  currentPage: string;
+}
+
+export default function Navigation({ cartItemCount, onCartClick, onNavigate, currentPage }: NavigationProps) {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { login, clear, loginStatus, identity } = useInternetIdentity();
   const queryClient = useQueryClient();
-  const { data: isAdmin } = useIsCallerAdmin();
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [cartOpen, setCartOpen] = useState(false);
-  const navigate = useNavigate();
 
   const isAuthenticated = !!identity;
   const isLoggingIn = loginStatus === 'logging-in';
-  const totalItems = items.reduce((s, i) => s + i.quantity, 0);
 
   const handleAuth = async () => {
     if (isAuthenticated) {
@@ -27,8 +25,8 @@ export default function Navigation() {
     } else {
       try {
         await login();
-      } catch (error: unknown) {
-        if (error instanceof Error && error.message === 'User is already authenticated') {
+      } catch (error: any) {
+        if (error.message === 'User is already authenticated') {
           await clear();
           setTimeout(() => login(), 300);
         }
@@ -37,152 +35,112 @@ export default function Navigation() {
   };
 
   return (
-    <>
-      <nav
-        className="sticky top-0 z-40 border-b"
-        style={{
-          background: 'oklch(0.1 0.005 260 / 0.95)',
-          borderColor: 'oklch(0.25 0.015 260)',
-          backdropFilter: 'blur(12px)',
-        }}
-      >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            {/* Brand name with gradient */}
-            <Link to="/" className="flex items-center gap-2 group">
-              <span
-                className="brand-gradient-text font-gaming text-xl font-bold tracking-wider"
-              >
-                Game Vault
-              </span>
-            </Link>
+    <nav className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur-md">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16">
+          {/* Logo */}
+          <button
+            onClick={() => onNavigate('storefront')}
+            className="flex items-center gap-2 group"
+          >
+            <div className="w-8 h-8 rounded-sm bg-gradient-to-br from-sunset-orange to-sunset-pink flex items-center justify-center sunset-glow-sm">
+              <Store className="w-4 h-4 text-white" />
+            </div>
+            <span className="text-xl font-orbitron font-bold game-vault-gradient">
+              Game Vault
+            </span>
+          </button>
 
-            {/* Desktop nav */}
-            <div className="hidden md:flex items-center gap-6">
-              <Link
-                to="/"
-                className="text-sm font-heading font-semibold tracking-wide uppercase transition-colors hover:text-primary"
-                style={{ color: 'oklch(0.7 0.02 260)' }}
-                activeProps={{ style: { color: 'oklch(0.72 0.22 35)' } }}
-              >
-                Store
-              </Link>
-              {isAdmin && (
-                <Link
-                  to="/admin"
-                  className="flex items-center gap-1 text-sm font-heading font-semibold tracking-wide uppercase transition-colors"
-                  style={{ color: 'oklch(0.65 0.25 195)' }}
-                >
-                  <Shield size={14} />
-                  Admin
-                </Link>
+          {/* Desktop Nav */}
+          <div className="hidden md:flex items-center gap-6">
+            <button
+              onClick={() => onNavigate('storefront')}
+              className={`font-rajdhani font-semibold text-sm tracking-wider uppercase transition-colors ${
+                currentPage === 'storefront'
+                  ? 'text-sunset-gold neon-text'
+                  : 'text-muted-foreground hover:text-sunset-gold'
+              }`}
+            >
+              Store
+            </button>
+            <button
+              onClick={() => onNavigate('admin')}
+              className={`font-rajdhani font-semibold text-sm tracking-wider uppercase transition-colors flex items-center gap-1 ${
+                currentPage === 'admin'
+                  ? 'text-sunset-pink neon-text-pink'
+                  : 'text-muted-foreground hover:text-sunset-pink'
+              }`}
+            >
+              <Shield className="w-3.5 h-3.5" />
+              Admin
+            </button>
+          </div>
+
+          {/* Right side */}
+          <div className="flex items-center gap-3">
+            {/* Cart */}
+            <button
+              onClick={onCartClick}
+              className="relative p-2 rounded-md text-muted-foreground hover:text-sunset-gold hover:bg-muted transition-colors"
+            >
+              <ShoppingCart className="w-5 h-5" />
+              {cartItemCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-sunset-orange text-white text-xs font-bold flex items-center justify-center sunset-glow-sm">
+                  {cartItemCount}
+                </span>
               )}
-            </div>
+            </button>
 
-            {/* Right side */}
-            <div className="flex items-center gap-3">
-              {/* Cart */}
-              <button
-                onClick={() => setCartOpen(true)}
-                className="relative p-2 rounded-lg transition-all duration-200 hover:bg-white/5"
-                style={{ color: 'oklch(0.7 0.02 260)' }}
-              >
-                <ShoppingCart size={20} />
-                {totalItems > 0 && (
-                  <span
-                    className="absolute -top-1 -right-1 w-5 h-5 rounded-full text-xs font-bold flex items-center justify-center"
-                    style={{
-                      background: 'oklch(0.72 0.22 35)',
-                      color: 'oklch(0.08 0.005 260)',
-                      fontFamily: 'Orbitron, monospace',
-                    }}
-                  >
-                    {totalItems}
-                  </span>
-                )}
-              </button>
+            {/* Auth button */}
+            <button
+              onClick={handleAuth}
+              disabled={isLoggingIn}
+              className={`px-4 py-1.5 rounded-sm font-rajdhani font-semibold text-sm tracking-wider uppercase transition-all ${
+                isAuthenticated
+                  ? 'border border-border text-muted-foreground hover:border-sunset-pink hover:text-sunset-pink'
+                  : 'bg-gradient-to-r from-sunset-orange to-sunset-pink text-white hover:opacity-90 sunset-glow-sm'
+              } disabled:opacity-50`}
+            >
+              {isLoggingIn ? 'Logging in...' : isAuthenticated ? 'Logout' : 'Login'}
+            </button>
 
-              {/* Auth button */}
-              <button
-                onClick={handleAuth}
-                disabled={isLoggingIn}
-                className="hidden md:flex items-center gap-2 px-4 py-2 rounded text-sm font-heading font-bold tracking-wide uppercase transition-all duration-200 disabled:opacity-50"
-                style={
-                  isAuthenticated
-                    ? {
-                        background: 'oklch(0.18 0.01 260)',
-                        color: 'oklch(0.7 0.02 260)',
-                        border: '1px solid oklch(0.25 0.015 260)',
-                      }
-                    : {
-                        background: 'oklch(0.72 0.22 35)',
-                        color: 'oklch(0.08 0.005 260)',
-                        boxShadow: '0 0 15px oklch(0.72 0.22 35 / 0.4)',
-                      }
-                }
-              >
-                <Gamepad2 size={14} />
-                {isLoggingIn ? 'Connecting...' : isAuthenticated ? 'Logout' : 'Login'}
-              </button>
-
-              {/* Mobile menu */}
-              <button
-                className="md:hidden p-2"
-                onClick={() => setMobileOpen(!mobileOpen)}
-                style={{ color: 'oklch(0.7 0.02 260)' }}
-              >
-                {mobileOpen ? <X size={20} /> : <Menu size={20} />}
-              </button>
-            </div>
+            {/* Mobile menu toggle */}
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="md:hidden p-2 rounded-md text-muted-foreground hover:text-sunset-gold hover:bg-muted transition-colors"
+            >
+              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
           </div>
         </div>
 
         {/* Mobile menu */}
-        {mobileOpen && (
-          <div
-            className="md:hidden border-t px-4 py-4 flex flex-col gap-3"
-            style={{
-              background: 'oklch(0.12 0.008 260)',
-              borderColor: 'oklch(0.25 0.015 260)',
-            }}
-          >
-            <Link
-              to="/"
-              className="text-sm font-heading font-semibold tracking-wide uppercase py-2"
-              style={{ color: 'oklch(0.7 0.02 260)' }}
-              onClick={() => setMobileOpen(false)}
+        {mobileMenuOpen && (
+          <div className="md:hidden border-t border-border py-3 space-y-1">
+            <button
+              onClick={() => { onNavigate('storefront'); setMobileMenuOpen(false); }}
+              className={`w-full text-left px-3 py-2 rounded-sm font-rajdhani font-semibold text-sm tracking-wider uppercase transition-colors ${
+                currentPage === 'storefront'
+                  ? 'text-sunset-gold bg-muted'
+                  : 'text-muted-foreground hover:text-sunset-gold hover:bg-muted'
+              }`}
             >
               Store
-            </Link>
-            {isAdmin && (
-              <Link
-                to="/admin"
-                className="flex items-center gap-1 text-sm font-heading font-semibold tracking-wide uppercase py-2"
-                style={{ color: 'oklch(0.65 0.25 195)' }}
-                onClick={() => setMobileOpen(false)}
-              >
-                <Shield size={14} />
-                Admin Panel
-              </Link>
-            )}
+            </button>
             <button
-              onClick={() => { handleAuth(); setMobileOpen(false); }}
-              disabled={isLoggingIn}
-              className="flex items-center gap-2 px-4 py-2 rounded text-sm font-heading font-bold tracking-wide uppercase w-full justify-center"
-              style={{
-                background: isAuthenticated ? 'oklch(0.18 0.01 260)' : 'oklch(0.72 0.22 35)',
-                color: isAuthenticated ? 'oklch(0.7 0.02 260)' : 'oklch(0.08 0.005 260)',
-                border: isAuthenticated ? '1px solid oklch(0.25 0.015 260)' : 'none',
-              }}
+              onClick={() => { onNavigate('admin'); setMobileMenuOpen(false); }}
+              className={`w-full text-left px-3 py-2 rounded-sm font-rajdhani font-semibold text-sm tracking-wider uppercase transition-colors flex items-center gap-1 ${
+                currentPage === 'admin'
+                  ? 'text-sunset-pink bg-muted'
+                  : 'text-muted-foreground hover:text-sunset-pink hover:bg-muted'
+              }`}
             >
-              <Gamepad2 size={14} />
-              {isLoggingIn ? 'Connecting...' : isAuthenticated ? 'Logout' : 'Login'}
+              <Shield className="w-3.5 h-3.5" />
+              Admin
             </button>
           </div>
         )}
-      </nav>
-
-      <CartDrawer open={cartOpen} onClose={() => setCartOpen(false)} onCheckout={() => { setCartOpen(false); navigate({ to: '/checkout' }); }} />
-    </>
+      </div>
+    </nav>
   );
 }

@@ -1,214 +1,148 @@
-import { useNavigate, useSearch } from '@tanstack/react-router';
-import { CheckCircle, ShoppingBag, ArrowLeft, Package } from 'lucide-react';
-import { useGetOrderById } from '../hooks/useQueries';
-import { useInternetIdentity } from '../hooks/useInternetIdentity';
+import React from 'react';
+import { CheckCircle, Package, ArrowRight, Loader2, AlertCircle } from 'lucide-react';
+import { useGetOrderById, useGetProductById } from '../hooks/useQueries';
 import { PaymentMethod } from '../backend';
 
-const PAYMENT_LABELS: Record<string, string> = {
+interface OrderConfirmationPageProps {
+  orderId: bigint;
+  onContinueShopping: () => void;
+}
+
+const paymentMethodLabels: Record<string, string> = {
   [PaymentMethod.paypal]: 'PayPal',
   [PaymentMethod.cryptocurrency]: 'Cryptocurrency',
   [PaymentMethod.ukGiftCard]: 'UK Gift Card',
-  [PaymentMethod.payIn3Installments]: 'Pay in 3 Installments',
+  [PaymentMethod.payIn3Installments]: 'Pay in 3',
 };
 
-export default function OrderConfirmationPage() {
-  const navigate = useNavigate();
-  const { identity } = useInternetIdentity();
-  const search = useSearch({ strict: false }) as { orderId?: string };
-  const orderIdStr = search?.orderId ?? '';
-  const orderId = orderIdStr ? BigInt(orderIdStr) : BigInt(0);
+function ProductDetails({ productId }: { productId: bigint }) {
+  const { data: product, isLoading } = useGetProductById(productId);
 
-  const { data: order, isLoading } = useGetOrderById(orderId);
+  if (isLoading) return <Loader2 className="w-4 h-4 animate-spin text-sunset-gold" />;
+  if (!product) return null;
 
-  if (!identity) {
+  return (
+    <div className="p-3 rounded-sm border border-border bg-background">
+      <p className="font-orbitron text-sm font-bold text-foreground">{product.gameName}</p>
+      <p className="font-rajdhani text-xs text-muted-foreground mt-0.5">{product.title}</p>
+      <p className="font-orbitron text-sm font-bold text-sunset-gold mt-1">
+        £{(Number(product.price) / 100).toFixed(2)}
+      </p>
+    </div>
+  );
+}
+
+export default function OrderConfirmationPage({ orderId, onContinueShopping }: OrderConfirmationPageProps) {
+  const { data: order, isLoading, error } = useGetOrderById(orderId);
+
+  if (isLoading) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-16 text-center">
-        <p className="font-heading text-xl mb-4" style={{ color: 'oklch(0.55 0.02 260)' }}>
-          Please login to view your order
-        </p>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-sunset-gold" />
+      </div>
+    );
+  }
+
+  if (error || !order) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-3">
+        <AlertCircle className="w-10 h-10 text-destructive" />
+        <p className="font-rajdhani text-muted-foreground">Failed to load order details.</p>
         <button
-          onClick={() => navigate({ to: '/' })}
-          className="px-6 py-3 rounded font-heading font-bold tracking-wide uppercase text-sm"
-          style={{ background: 'oklch(0.72 0.22 35)', color: 'oklch(0.08 0.005 260)' }}
+          onClick={onContinueShopping}
+          className="px-4 py-2 rounded-sm bg-gradient-to-r from-sunset-orange to-sunset-pink text-white font-rajdhani font-semibold hover:opacity-90 transition-all"
         >
-          Back to Store
+          Return to Store
         </button>
       </div>
     );
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
-      <button
-        onClick={() => navigate({ to: '/' })}
-        className="flex items-center gap-2 mb-6 text-sm transition-colors"
-        style={{ color: 'oklch(0.55 0.02 260)' }}
-      >
-        <ArrowLeft size={14} />
-        Back to Store
-      </button>
-
-      {/* Success header */}
-      <div
-        className="rounded-xl p-8 text-center mb-6"
-        style={{
-          background: 'linear-gradient(135deg, oklch(0.13 0.008 260), oklch(0.15 0.03 145))',
-          border: '1px solid oklch(0.5 0.18 145 / 0.4)',
-          boxShadow: '0 0 40px oklch(0.5 0.18 145 / 0.1)',
-        }}
-      >
-        <div
-          className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4"
-          style={{
-            background: 'oklch(0.5 0.18 145 / 0.2)',
-            border: '2px solid oklch(0.5 0.18 145)',
-            boxShadow: '0 0 30px oklch(0.5 0.18 145 / 0.4)',
-          }}
-        >
-          <CheckCircle size={40} style={{ color: 'oklch(0.5 0.18 145)' }} />
-        </div>
-        <h1
-          className="font-gaming text-3xl font-bold mb-2"
-          style={{
-            color: 'oklch(0.95 0.01 260)',
-            textShadow: '0 0 20px oklch(0.5 0.18 145 / 0.4)',
-          }}
-        >
-          Order Confirmed!
-        </h1>
-        <p style={{ color: 'oklch(0.6 0.02 260)' }}>
-          Thank you for your purchase. Your gaming account is on its way!
-        </p>
-        {orderId > BigInt(0) && (
-          <div
-            className="inline-block mt-3 px-4 py-1.5 rounded-full text-sm font-gaming"
-            style={{
-              background: 'oklch(0.65 0.25 195 / 0.15)',
-              color: 'oklch(0.65 0.25 195)',
-              border: '1px solid oklch(0.65 0.25 195 / 0.3)',
-            }}
-          >
-            Order #{orderId.toString()}
+    <div className="min-h-screen bg-background">
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {/* Success header */}
+        <div className="text-center mb-8">
+          <div className="w-16 h-16 rounded-full bg-success/10 border border-success/30 flex items-center justify-center mx-auto mb-4 sunset-glow-sm">
+            <CheckCircle className="w-8 h-8 text-success" />
           </div>
-        )}
-      </div>
-
-      {/* Order details */}
-      {isLoading ? (
-        <div
-          className="rounded-xl p-6 animate-pulse"
-          style={{ background: 'oklch(0.13 0.008 260)', border: '1px solid oklch(0.22 0.012 260)' }}
-        >
-          <div className="h-4 rounded mb-3" style={{ background: 'oklch(0.18 0.01 260)', width: '60%' }} />
-          <div className="h-4 rounded mb-3" style={{ background: 'oklch(0.18 0.01 260)', width: '40%' }} />
-          <div className="h-4 rounded" style={{ background: 'oklch(0.18 0.01 260)', width: '50%' }} />
+          <h1 className="font-orbitron text-2xl font-black text-foreground mb-2">Order Confirmed!</h1>
+          <p className="font-rajdhani text-muted-foreground">
+            Order #{orderId.toString()} has been placed successfully.
+          </p>
         </div>
-      ) : order ? (
-        <div
-          className="rounded-xl p-6 mb-6"
-          style={{
-            background: 'oklch(0.13 0.008 260)',
-            border: '1px solid oklch(0.22 0.012 260)',
-          }}
-        >
-          <h2
-            className="font-heading text-lg font-bold mb-4 flex items-center gap-2"
-            style={{ color: 'oklch(0.85 0.01 260)' }}
-          >
-            <Package size={18} style={{ color: 'oklch(0.72 0.22 35)' }} />
-            Order Details
-          </h2>
-          <div className="flex flex-col gap-3">
-            <div className="flex items-center justify-between py-2 border-b" style={{ borderColor: 'oklch(0.2 0.01 260)' }}>
-              <span className="text-sm" style={{ color: 'oklch(0.55 0.02 260)' }}>Order ID</span>
-              <span className="font-gaming text-sm" style={{ color: 'oklch(0.65 0.25 195)' }}>
-                #{orderId.toString()}
-              </span>
-            </div>
-            <div className="flex items-center justify-between py-2 border-b" style={{ borderColor: 'oklch(0.2 0.01 260)' }}>
-              <span className="text-sm" style={{ color: 'oklch(0.55 0.02 260)' }}>Product ID</span>
-              <span className="font-gaming text-sm" style={{ color: 'oklch(0.9 0.01 260)' }}>
-                #{order.productId.toString()}
-              </span>
-            </div>
-            <div className="flex items-center justify-between py-2 border-b" style={{ borderColor: 'oklch(0.2 0.01 260)' }}>
-              <span className="text-sm" style={{ color: 'oklch(0.55 0.02 260)' }}>Payment Method</span>
-              <span
-                className="text-sm font-heading font-semibold px-2 py-0.5 rounded"
-                style={{
-                  background: 'oklch(0.72 0.22 35 / 0.15)',
-                  color: 'oklch(0.72 0.22 35)',
-                }}
-              >
-                {PAYMENT_LABELS[order.paymentMethod] ?? order.paymentMethod}
-              </span>
-            </div>
-            <div className="flex items-center justify-between py-2">
-              <span className="text-sm" style={{ color: 'oklch(0.55 0.02 260)' }}>Status</span>
-              <span
-                className="text-sm font-gaming px-2 py-0.5 rounded"
-                style={{
-                  background: 'oklch(0.5 0.18 145 / 0.15)',
-                  color: 'oklch(0.5 0.18 145)',
-                }}
-              >
-                {order.status}
-              </span>
-            </div>
-          </div>
-        </div>
-      ) : null}
 
-      {/* What's next */}
-      <div
-        className="rounded-xl p-6 mb-6"
-        style={{
-          background: 'oklch(0.13 0.008 260)',
-          border: '1px solid oklch(0.22 0.012 260)',
-        }}
-      >
-        <h2
-          className="font-heading text-lg font-bold mb-4"
-          style={{ color: 'oklch(0.85 0.01 260)' }}
-        >
-          What Happens Next?
-        </h2>
-        <div className="flex flex-col gap-3">
-          {[
-            { step: '1', text: 'Your payment is being processed and verified.' },
-            { step: '2', text: 'Account credentials will be delivered to your profile.' },
-            { step: '3', text: 'You can access your account details from your order history.' },
-          ].map(({ step: s, text }) => (
-            <div key={s} className="flex items-start gap-3">
-              <div
-                className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-gaming mt-0.5"
-                style={{
-                  background: 'oklch(0.72 0.22 35 / 0.2)',
-                  color: 'oklch(0.72 0.22 35)',
-                  border: '1px solid oklch(0.72 0.22 35 / 0.4)',
-                }}
-              >
-                {s}
+        {/* Order details card */}
+        <div className="rounded-sm border border-border bg-card overflow-hidden mb-6">
+          <div className="h-1 w-full bg-gradient-to-r from-sunset-orange via-sunset-pink to-sunset-purple" />
+          <div className="p-6 space-y-5">
+            {/* Product */}
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <Package className="w-4 h-4 text-sunset-orange" />
+                <h2 className="font-orbitron text-sm font-bold text-sunset-orange uppercase tracking-wider">
+                  Product
+                </h2>
               </div>
-              <p className="text-sm" style={{ color: 'oklch(0.6 0.02 260)' }}>{text}</p>
+              <ProductDetails productId={order.productId} />
             </div>
-          ))}
-        </div>
-      </div>
 
-      {/* Actions */}
-      <div className="flex flex-col sm:flex-row gap-3">
+            {/* Buyer info */}
+            <div className="pt-4 border-t border-border">
+              <h2 className="font-orbitron text-sm font-bold text-sunset-gold uppercase tracking-wider mb-3">
+                Order Details
+              </h2>
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="font-rajdhani text-sm text-muted-foreground">Username</span>
+                  <span className="font-rajdhani text-sm font-semibold text-foreground">{order.buyerUsername}</span>
+                </div>
+                {order.buyerEmail && (
+                  <div className="flex justify-between">
+                    <span className="font-rajdhani text-sm text-muted-foreground">Email</span>
+                    <span className="font-rajdhani text-sm font-semibold text-foreground">{order.buyerEmail}</span>
+                  </div>
+                )}
+                <div className="flex justify-between">
+                  <span className="font-rajdhani text-sm text-muted-foreground">Payment</span>
+                  <span className="font-rajdhani text-sm font-semibold text-foreground">
+                    {paymentMethodLabels[order.paymentMethod] ?? order.paymentMethod}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-rajdhani text-sm text-muted-foreground">Status</span>
+                  <span className="font-rajdhani text-sm font-semibold text-success capitalize">{order.status}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Next steps */}
+        <div className="rounded-sm border border-border bg-card p-5 mb-6">
+          <h2 className="font-orbitron text-sm font-bold text-sunset-gold uppercase tracking-wider mb-3">
+            Next Steps
+          </h2>
+          <ul className="space-y-2">
+            {[
+              'Your account credentials will be delivered to your email shortly.',
+              'Check your spam folder if you don\'t receive an email within 10 minutes.',
+              'Contact support if you have any issues with your order.',
+            ].map((step, i) => (
+              <li key={i} className="flex items-start gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-sunset-gold mt-1.5 flex-shrink-0" />
+                <span className="font-rajdhani text-sm text-muted-foreground">{step}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
         <button
-          onClick={() => navigate({ to: '/' })}
-          className="flex-1 flex items-center justify-center gap-2 py-3 rounded font-heading font-bold tracking-wide uppercase text-sm transition-all duration-200"
-          style={{
-            background: 'oklch(0.72 0.22 35)',
-            color: 'oklch(0.08 0.005 260)',
-            boxShadow: '0 0 20px oklch(0.72 0.22 35 / 0.4)',
-          }}
+          onClick={onContinueShopping}
+          className="w-full flex items-center justify-center gap-2 py-3 rounded-sm bg-gradient-to-r from-sunset-orange to-sunset-pink text-white font-rajdhani font-bold tracking-wider uppercase hover:opacity-90 transition-all sunset-glow"
         >
-          <ShoppingBag size={14} />
           Continue Shopping
+          <ArrowRight className="w-4 h-4" />
         </button>
       </div>
     </div>

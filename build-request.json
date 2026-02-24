@@ -1,60 +1,105 @@
 {
   "kind": "build_request",
-  "title": "Remove storefront logo and apply red → purple → orange gradient to 'Game Vault' text",
+  "title": "Replace dark neon theme with sunset aesthetic across all pages",
   "projectName": "Game Vault",
   "priority": "normal",
   "requirements": [
     {
-      "id": "REQ-7",
-      "text": "Remove the logo image/icon from the Navigation component so that only the 'Game Vault' text brand name is displayed in the navbar — no image, SVG, or icon logo should appear alongside or in place of the text.",
+      "id": "REQ-37",
+      "text": "Replace the existing dark neon gaming theme in `frontend/src/index.css` with a full sunset aesthetic. Define new CSS custom properties using the NYC sunset palette: deep dusk purple/navy-black backgrounds (e.g. `#1a0a2e`, `#0d0519`, `#1c0f3f`), warm dark mid-tones (e.g. `#2d1b4e`, `#3a1a2a`), and sunset accent colors — golden yellow (`#f5a623`), burnt orange (`#e85d04`), dusky pink/rose (`#d63384`), soft purple (`#9b59b6`). Replace all neon-cyan, electric-orange, and hot-pink CSS variables with these sunset tones. Update glow utility classes (e.g. `neon-glow`, `neon-border`) to emit warm sunset glows (orange/pink/golden box-shadows and text-shadows) instead of cyan/green neon glows. Retain the Orbitron and Rajdhani Google Font imports. Do NOT alter the `--game-vault-gradient` or any inline style producing the red → purple → orange 'Game Vault' text gradient.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-recent"
+          "msg-recent-user-build"
         ],
         "quotes": [
-          "Remove the logo on the store front"
+          "Yes replace",
+          "Yes",
+          "Left as it is",
+          "Replace the dark neon theme entirely with a sunset aesthetic: deep dusk purples/navy-black backgrounds, golden yellow/burnt orange/dusky pink/soft purple accents, warm sunset glow effects — aligned with the NYC sunset 3D loading screen."
         ]
       },
       "acceptanceCriteria": [
-        "No logo image or icon is rendered in the Navigation bar",
-        "The 'Game Vault' text brand name remains visible in the navbar",
-        "Layout remains intact and does not collapse or misalign after logo removal"
+        "All CSS custom property values for background, card, border, and accent colors reflect the sunset palette (deep purples, navy-blacks, golden yellows, burnt oranges, dusky pinks).",
+        "Neon glow utility classes produce warm orange/pink/golden shadows, not cyan or green.",
+        "Google Fonts (Orbitron, Rajdhani) are still imported.",
+        "The 'Game Vault' red → purple → orange gradient CSS is unchanged."
       ]
     },
     {
-      "id": "REQ-8",
-      "text": "Apply a 3-tone CSS linear gradient flowing red → purple → orange to the 'Game Vault' site name text in every location it appears: the Navigation bar brand text, the Footer brand name, the LoadingScreen3D intro/title text, and any other component that renders the site name as visible text. Use a background-clip text technique or equivalent CSS to render the gradient directly on the characters.",
+      "id": "REQ-38",
+      "text": "Update `frontend/tailwind.config.js` to replace all neon-themed color tokens (neon-cyan, electric-orange, hot-pink, etc.) with sunset palette tokens: `sunset-gold` (`#f5a623`), `sunset-orange` (`#e85d04`), `sunset-pink` (`#d63384`), `sunset-purple` (`#9b59b6`), `dusk-bg` (`#0d0519`), `dusk-mid` (`#1a0a2e`). Update any existing `pulse-glow` or custom keyframe animation colors to use sunset warm tones. Ensure CSS variable-based color references still resolve correctly against the updated `index.css` tokens.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-recent"
+          "msg-recent-user-build"
         ],
         "quotes": [
-          "add a 3 tone from red to purple to orange of the name of the website"
+          "Yes replace",
+          "Color palette aligned with the 3D loading screen — warm golden-oranges, deep purples, dusky pinks, and soft golden yellows"
         ]
       },
       "acceptanceCriteria": [
-        "The 'Game Vault' text in the Navigation bar displays a red → purple → orange gradient across its characters",
-        "The 'Game Vault' text in the Footer displays the same red → purple → orange gradient",
-        "The 'Game Vault' text in the LoadingScreen3D displays the same red → purple → orange gradient",
-        "All three tone stops (red, purple, orange) are visually distinguishable in the gradient",
-        "The gradient is applied consistently — same direction and color stops — across all instances",
-        "Plain white or single-color fallback is not used anywhere the site name appears"
+        "Tailwind config exports sunset palette color tokens.",
+        "No references to neon-cyan, electric-orange, or hot-pink color tokens remain in the config.",
+        "pulse-glow and any glow keyframes use warm sunset shadow colors."
+      ]
+    },
+    {
+      "id": "REQ-39",
+      "text": "Apply the sunset theme consistently across all frontend page and layout components: `StorefrontPage.tsx`, `ProductDetailPage.tsx`, `CheckoutPage.tsx`, `OrderConfirmationPage.tsx`, `AdminPanelPage.tsx`, `Navigation.tsx`, `Footer.tsx`, `ProductCard.tsx`, `CartDrawer.tsx`, `CategoryCard.tsx`, all checkout sub-components (`PayPalPayment.tsx`, `CryptoPayment.tsx`, `GiftCardPayment.tsx`, `PayIn3Payment.tsx`, `PaymentMethodSelector.tsx`), and all admin sub-components (`CategoryManager.tsx`, `ProductManager.tsx`, `OrderManager.tsx`, `AdminWhitelistManager.tsx`, `CategoryForm.tsx`, `ProductForm.tsx`). Replace all hardcoded neon color classes (e.g. `text-cyan-400`, `border-cyan-500`, `bg-gray-900`, `shadow-cyan`, neon-specific utility classes) with their sunset palette equivalents. Buttons, cards, borders, hover states, badges, and focus rings must all use sunset accent colors. The 'Game Vault' gradient text must remain unchanged wherever it appears.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-recent-user-build"
+        ],
+        "quotes": [
+          "Applied consistently across: storefront, product pages, checkout, order confirmation, admin panel, navbar, footer",
+          "Accents: golden yellow, burnt orange, dusky pink/rose, soft purple (replacing neon cyan/electric accents)",
+          "Glow/shadow effects: warm sunset glows replacing neon glows"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Storefront, product detail, checkout, order confirmation, and admin panel pages all display deep dusk purple/navy-black backgrounds.",
+        "All interactive elements (buttons, links, badges, form focus rings) use sunset accent colors (golden yellow, burnt orange, dusky pink, soft purple).",
+        "No neon-cyan, electric-green, or hot-pink accents appear anywhere in the UI.",
+        "Card backgrounds and borders use dark warm sunset tones.",
+        "The 'Game Vault' text gradient (red → purple → orange) is visually unchanged in navbar, footer, and loading screen."
+      ]
+    },
+    {
+      "id": "REQ-40",
+      "text": "Update the `LoadingScreen3D.tsx` component's non-3D overlay UI elements (title text container background, progress bar colors, any HTML overlay text styling) to use sunset palette colors. The Three.js scene itself (sky gradient, building colors, road, vehicle colors, ambient/directional light colors) must also use warm sunset tones — golden-orange sky (#ff7043 → #ff8c00 → #4a0e8f gradient from horizon to top), deep purple upper sky, warm orange/yellow street lighting on vehicles and buildings. Ensure the 'Game Vault' gradient text in the loading screen overlay remains unchanged.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-recent-user-build"
+        ],
+        "quotes": [
+          "Color palette aligned with the 3D loading screen — warm golden-oranges, deep purples, dusky pinks, and soft golden yellows drawn from the NYC sunset scene"
+        ]
+      },
+      "acceptanceCriteria": [
+        "The Three.js sky/background uses a warm sunset gradient (orange-gold at horizon, deep purple at top).",
+        "Building materials use dark silhouette tones with warm lit windows.",
+        "Vehicle and light colors are warm orange/yellow rather than cyan/neon.",
+        "HTML overlay elements in the loading screen use sunset palette backgrounds and text colors.",
+        "The 'Game Vault' gradient text in the loading screen overlay is unchanged."
       ]
     }
   ],
   "constraints": [
-    "Do not modify any files under frontend/src/hooks/ (immutable paths)",
-    "Do not modify frontend/src/components/ui/ (immutable paths)",
-    "Do not modify frontend/src/main.tsx (immutable path)",
-    "Use CSS background-clip text or equivalent — do not replace text with images for the gradient effect"
+    "Do not modify files under frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, or frontend/src/components/ui.",
+    "Do not alter the 'Game Vault' red → purple → orange CSS gradient text in any component.",
+    "Do not change any backend Motoko logic or data models.",
+    "Do not remove or alter any existing routing, authentication, or admin access control logic."
   ],
   "nonGoals": [
-    "Changing any other colors, fonts, or visual theme elements beyond the logo removal and gradient text",
-    "Modifying backend code",
-    "Adding new pages or features",
-    "Changing the gradient on any element other than the 'Game Vault' site name text"
+    "Changing the 'Game Vault' brand text gradient (red → purple → orange) — it stays as-is.",
+    "Modifying backend data models, CRUD functions, or actor logic.",
+    "Adding new pages, routes, or features.",
+    "Changing typography (Orbitron, Rajdhani fonts remain).",
+    "Altering the 3D scene geometry, vehicle models, or animation timing in LoadingScreen3D."
   ],
   "imageRequirements": {
     "required": [],

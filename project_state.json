@@ -1,13 +1,20 @@
 {
   "schemaVersion": "1.0.0",
-  "projectStateVersion": 7,
-  "summary": "A Shopify-style gaming accounts e-commerce store called Game Vault with a 3D Three.js loading screen (sports cars, motorcycles, realistic cars driving into a New York sunset). Store sells gaming accounts starting with Car Parking Multiplayer. Features full admin panel, user authentication via Internet Identity, and checkout flows for PayPal, Crypto, UK Gift Cards, and Pay in 3 Installments. The storefront logo has been removed and the 'Game Vault' site name displays a red → purple → orange 3-tone gradient across navbar, footer, loading screen, and all instances.",
+  "projectStateVersion": 21,
+  "summary": "A Shopify-style gaming accounts e-commerce store called Game Vault with a 3D Three.js loading screen (sports cars, motorcycles, realistic cars driving into a New York sunset). Store sells gaming accounts starting with Car Parking Multiplayer. Features full admin panel, user authentication via Internet Identity, and checkout flows for PayPal, Crypto, UK Gift Cards, and Pay in 3 Installments. The storefront logo has been removed and the 'Game Vault' site name displays a red → purple → orange 3-tone gradient across navbar, footer, loading screen, and all instances. Users must create a unique username (no spaces) on first login before accessing the store; username is used for purchases (order confirmations show username, email, contact info, and product purchased) and for admin panel access control. Admin Panel link is visible to all users in the navbar but only whitelisted usernames can enter. Store owner manages the admin whitelist in the backend. The username 'Frosty' is hardcoded as the initial seed admin in the backend whitelist. The overall website theme has been changed to a sunset aesthetic — replacing the dark neon theme entirely with warm golden-oranges, deep purples, dusky pinks, and soft golden yellows aligned with the 3D loading screen's NYC sunset scene. The 'Game Vault' gradient text (red → purple → orange) remains unchanged.",
   "architectural_notes": [
     "Full-stack app on Internet Computer (ICP) with Internet Identity for auth",
     "3D loading screen built with Three.js rendered before store entry",
-    "Payment methods (PayPal, Crypto, UK Gift Cards, Pay in 3) built as UI/checkout flows; real API keys must be connected by owner"
+    "Payment methods (PayPal, Crypto, UK Gift Cards, Pay in 3) built as UI/checkout flows; real API keys must be connected by owner",
+    "Username system (no spaces) required on first Internet Identity login; stored against identity and used for purchases and admin panel access control",
+    "Username 'Frosty' is hardcoded as the initial seed admin in the backend whitelist"
   ],
-  "known_issues": [],
+  "known_issues": [
+    "Admin panel create product and create category flows throw errors; backend addCategory/addProduct calls and frontend admin panel components need fixing",
+    "Previous deployment attempt failed; user requested rebuild and successful deployment",
+    "Admin panel denies access with 'no admin permissions' even for whitelisted users (Frosty); isAdminUsername check or username-based gate logic is broken in frontend-backend wiring",
+    "Theme and 3D loading screen not loading/rendering correctly on the storefront (reported in Version 8)"
+  ],
   "isFixRequest": false,
   "existing_features": [
     {
@@ -73,6 +80,198 @@
         "REQ-8"
       ],
       "version": 1
+    },
+    {
+      "id": "feature-on-first-login-via-internet-identity-if-the-authenticated-user-has-not-yet-created-a-username-immediately-display-a-full-screen-modal-overlay-prompting-them-to-create-a-unique-username-no-spaces-the-user-cannot-dismiss-this-modal-or-access-any-part-of-the-store-until-they-have-successfully-submitted-a-valid-username-replace-the-existing-profilesetupmodal-display-name-prompt-with-this-username-specific-prompt",
+      "title": "On first login via Internet Identity, if the authenticated user has not yet created a username, immediately display a full-screen modal/overlay prompting them to create a unique username (no spaces). The user cannot dismiss this modal or access any part of the store until they have successfully submitted a valid username. Replace the existing ProfileSetupModal display name prompt with this username-specific prompt.",
+      "reqIds": [
+        "REQ-10"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-an-admin-panel-navigation-link-to-the-storefront-navbar-that-is-visible-to-all-users-regardless-of-authentication-or-admin-status-when-clicked-the-link-routes-to-the-admin-panel-page-non-whitelisted-users-are-shown-a-passcode-login-screen-rather-than-the-admin-panel-content-the-passcode-login-screen-must-require-the-user-to-enter-their-username-if-the-username-is-on-the-admin-whitelist-they-are-granted-access-to-the-admin-panel-otherwise-an-access-denied-message-is-shown",
+      "title": "Add an 'Admin Panel' navigation link to the storefront navbar that is visible to all users regardless of authentication or admin status. When clicked, the link routes to the admin panel page. Non-whitelisted users are shown a passcode/login screen rather than the admin panel content. The passcode/login screen must require the user to enter their username; if the username is on the admin whitelist, they are granted access to the admin panel; otherwise, an access-denied message is shown.",
+      "reqIds": [
+        "REQ-11"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-a-whitelist-management-section-to-the-admin-panel-ui-that-allows-the-store-owner-already-authenticated-admin-to-view-all-whitelisted-usernames-add-a-new-username-to-the-admin-whitelist-and-remove-an-existing-username-from-the-whitelist",
+      "title": "Add a whitelist management section to the admin panel UI that allows the store owner (already-authenticated admin) to view all whitelisted usernames, add a new username to the admin whitelist, and remove an existing username from the whitelist.",
+      "reqIds": [
+        "REQ-12"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-the-order-placement-flow-so-that-when-a-user-completes-a-purchase-the-order-record-in-the-backend-stores-the-buyer-s-username-email-address-contact-information-phone-contact-field-collected-at-checkout-and-the-product-s-purchased-update-the-checkout-pages-to-collect-email-and-contact-info-if-not-already-present-update-the-order-confirmation-page-and-the-admin-panel-order-view-to-display-username-email-contact-info-and-product-s-purchased",
+      "title": "Update the order placement flow so that when a user completes a purchase, the order record in the backend stores the buyer's username, email address, contact information (phone/contact field collected at checkout), and the product(s) purchased. Update the checkout pages to collect email and contact info if not already present. Update the order confirmation page and the admin panel order view to display: username, email, contact info, and product(s) purchased.",
+      "reqIds": [
+        "REQ-13"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-fix-the-frontend-categoryform-component-frontend-src-components-admin-categoryform-tsx-and-its-associated-react-query-mutations-in-frontend-src-hooks-usequeries-ts-so-that-the-add-and-edit-category-flows-call-the-backend-actor-correctly-handle-both-success-and-error-responses-display-appropriate-toast-notifications-and-close-the-dialog-on-success",
+      "title": "Fix the frontend `CategoryForm` component (`frontend/src/components/admin/CategoryForm.tsx`) and its associated React Query mutations in `frontend/src/hooks/useQueries.ts` so that the add and edit category flows call the backend actor correctly, handle both success and error responses, display appropriate toast notifications, and close the dialog on success.",
+      "reqIds": [
+        "REQ-17"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-fix-the-frontend-productform-component-frontend-src-components-admin-productform-tsx-and-its-associated-react-query-mutations-in-frontend-src-hooks-usequeries-ts-so-that-the-add-and-edit-product-flows-call-the-backend-actor-correctly-pass-all-required-fields-with-correct-types-handle-success-and-error-responses-display-appropriate-toast-notifications-and-close-the-dialog-on-success",
+      "title": "Fix the frontend `ProductForm` component (`frontend/src/components/admin/ProductForm.tsx`) and its associated React Query mutations in `frontend/src/hooks/useQueries.ts` so that the add and edit product flows call the backend actor correctly, pass all required fields with correct types, handle success and error responses, display appropriate toast notifications, and close the dialog on success.",
+      "reqIds": [
+        "REQ-18"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-fix-the-delete-flows-in-categorymanager-and-productmanager-so-that-delete-confirmation-dialogs-correctly-invoke-the-backend-delete-functions-invalidate-the-relevant-react-query-caches-on-success-and-display-toast-feedback-ensure-no-stale-data-remains-after-deletion",
+      "title": "Fix the delete flows in `CategoryManager` and `ProductManager` so that delete confirmation dialogs correctly invoke the backend delete functions, invalidate the relevant React Query caches on success, and display toast feedback. Ensure no stale data remains after deletion.",
+      "reqIds": [
+        "REQ-19"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-ensure-the-react-query-mutations-for-addcategory-updatecategory-deletecategory-addproduct-updateproduct-and-deleteproduct-in-frontend-src-hooks-usequeries-ts-correctly-await-the-actor-calls-unwrap-the-ok-err-motoko-result-variants-and-throw-errors-when-the-backend-returns-an-err-so-that-the-mutation-s-onerror-handlers-are-triggered",
+      "title": "Ensure the React Query mutations for `addCategory`, `updateCategory`, `deleteCategory`, `addProduct`, `updateProduct`, and `deleteProduct` in `frontend/src/hooks/useQueries.ts` correctly await the actor calls, unwrap the `#ok`/`#err` Motoko result variants, and throw errors when the backend returns an `#err` so that the mutation's `onError` handlers are triggered.",
+      "reqIds": [
+        "REQ-20"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-fix-all-react-query-mutation-functions-in-frontend-src-hooks-usequeries-ts-specifically-addcategory-updatecategory-deletecategory-addproduct-updateproduct-deleteproduct-placeorder-createusername-addadminusername-and-removeadminusername-so-that-they-correctly-await-actor-calls-properly-unwrap-motoko-ok-err-result-variants-throw-javascript-errors-when-the-backend-returns-err-so-onerror-handlers-fire-and-invalidate-the-correct-query-caches-on-success",
+      "title": "Fix all React Query mutation functions in `frontend/src/hooks/useQueries.ts` — specifically `addCategory`, `updateCategory`, `deleteCategory`, `addProduct`, `updateProduct`, `deleteProduct`, `placeOrder`, `createUsername`, `addAdminUsername`, and `removeAdminUsername` — so that they correctly await actor calls, properly unwrap Motoko `#ok`/`#err` result variants, throw JavaScript errors when the backend returns `#err` (so `onError` handlers fire), and invalidate the correct query caches on success.",
+      "reqIds": [
+        "REQ-22"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-fix-frontend-src-components-admin-categoryform-tsx-so-that-the-add-and-edit-category-flows-correctly-invoke-the-addcategory-and-updatecategory-mutations-from-usequeries-ts-display-toast-notifications-on-success-and-error-and-close-the-dialog-on-success",
+      "title": "Fix `frontend/src/components/admin/CategoryForm.tsx` so that the add and edit category flows correctly invoke the `addCategory` and `updateCategory` mutations from `useQueries.ts`, display toast notifications on success and error, and close the dialog on success.",
+      "reqIds": [
+        "REQ-23"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-fix-frontend-src-components-admin-productform-tsx-so-that-the-add-and-edit-product-flows-correctly-invoke-addproduct-and-updateproduct-mutations-pass-all-required-fields-game-name-category-title-description-account-details-price-as-float-availability-as-bool-with-correct-types-show-toast-notifications-on-success-error-and-close-the-dialog-on-success",
+      "title": "Fix `frontend/src/components/admin/ProductForm.tsx` so that the add and edit product flows correctly invoke `addProduct` and `updateProduct` mutations, pass all required fields (game name, category, title, description, account details, price as Float, availability as Bool) with correct types, show toast notifications on success/error, and close the dialog on success.",
+      "reqIds": [
+        "REQ-24"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-fix-the-delete-flows-in-frontend-src-components-admin-categorymanager-tsx-and-frontend-src-components-admin-productmanager-tsx-so-that-delete-confirmation-dialogs-correctly-call-the-deletecategory-and-deleteproduct-mutations-invalidate-the-relevant-caches-on-success-and-display-appropriate-toast-feedback-no-stale-data-should-remain-in-the-ui-after-deletion",
+      "title": "Fix the delete flows in `frontend/src/components/admin/CategoryManager.tsx` and `frontend/src/components/admin/ProductManager.tsx` so that delete confirmation dialogs correctly call the `deleteCategory` and `deleteProduct` mutations, invalidate the relevant caches on success, and display appropriate toast feedback. No stale data should remain in the UI after deletion.",
+      "reqIds": [
+        "REQ-25"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-ensure-the-entire-frontend-typescript-codebase-compiles-without-errors-resolve-any-remaining-type-mismatches-between-the-generated-icp-actor-interface-and-the-frontend-hook-component-usage-particularly-around-motoko-variant-types-ok-err-optional-fields-text-float-and-bigint-number-conversions-for-prices-or-ids",
+      "title": "Ensure the entire frontend TypeScript codebase compiles without errors. Resolve any remaining type mismatches between the generated ICP actor interface and the frontend hook/component usage, particularly around Motoko variant types (`#ok`, `#err`), optional fields (`?Text`, `?Float`), and BigInt/number conversions for prices or IDs.",
+      "reqIds": [
+        "REQ-26"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-verify-that-frontend-src-components-admin-adminwhitelistmanager-tsx-correctly-calls-addadminusername-and-removeadminusername-mutations-displays-the-current-whitelist-including-the-seeded-frosty-entry-and-shows-toast-feedback-on-add-remove-actions",
+      "title": "Verify that `frontend/src/components/admin/AdminWhitelistManager.tsx` correctly calls `addAdminUsername` and `removeAdminUsername` mutations, displays the current whitelist (including the seeded 'Frosty' entry), and shows toast feedback on add/remove actions.",
+      "reqIds": [
+        "REQ-27"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-ensure-frontend-src-app-tsx-routing-is-complete-and-correct-routes-for-storefront-product-id-product-detail-checkout-checkout-order-confirmation-order-confirmation-and-admin-admin-panel-must-all-resolve-correctly-the-3d-loading-screen-gate-must-display-before-the-storefront-and-transition-smoothly-after-4-6-seconds",
+      "title": "Ensure `frontend/src/App.tsx` routing is complete and correct: routes for `/` (storefront), `/product/:id` (product detail), `/checkout` (checkout), `/order-confirmation` (order confirmation), and `/admin` (admin panel) must all resolve correctly. The 3D loading screen gate must display before the storefront and transition smoothly after 4–6 seconds.",
+      "reqIds": [
+        "REQ-28"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-fix-adminaccesscontrol-tsx-and-adminpanelpage-tsx-so-the-admin-gate-correctly-calls-isadminusername-with-the-authenticated-user-s-stored-username-fetched-via-getusername-the-username-query-not-their-principal-or-any-other-identifier-the-admin-check-must-only-fire-after-the-username-has-been-successfully-loaded-show-a-loading-state-while-the-username-is-being-fetched",
+      "title": "Fix `AdminAccessControl.tsx` and `AdminPanelPage.tsx` so the admin gate correctly calls `isAdminUsername` with the authenticated user's stored username (fetched via `getUsername` / the username query), not their principal or any other identifier. The admin check must only fire after the username has been successfully loaded; show a loading state while the username is being fetched.",
+      "reqIds": [
+        "REQ-30"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-fix-the-addcategory-and-updatecategory-mutation-functions-in-frontend-src-hooks-usequeries-ts-so-they-correctly-await-the-actor-call-unwrap-the-ok-err-result-variant-throw-a-javascript-error-when-the-backend-returns-err-so-onerror-fires-and-invalidate-the-categories-query-cache-on-success-fix-categoryform-tsx-to-use-these-mutations-correctly-show-toast-notifications-on-success-and-error-and-close-the-dialog-on-success",
+      "title": "Fix the `addCategory` and `updateCategory` mutation functions in `frontend/src/hooks/useQueries.ts` so they correctly await the actor call, unwrap the `#ok`/`#err` Result variant, throw a JavaScript `Error` when the backend returns `#err` (so `onError` fires), and invalidate the `categories` query cache on success. Fix `CategoryForm.tsx` to use these mutations correctly, show toast notifications on success and error, and close the dialog on success.",
+      "reqIds": [
+        "REQ-31"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-fix-the-addproduct-and-updateproduct-mutation-functions-in-frontend-src-hooks-usequeries-ts-so-they-correctly-await-the-actor-call-pass-all-required-fields-game-name-category-title-description-account-details-price-as-float-availability-as-bool-with-correct-types-unwrap-the-ok-err-result-variant-throw-a-javascript-error-on-err-and-invalidate-the-products-query-cache-on-success-fix-productform-tsx-to-use-these-mutations-correctly-show-toast-notifications-on-success-and-error-and-close-the-dialog-on-success",
+      "title": "Fix the `addProduct` and `updateProduct` mutation functions in `frontend/src/hooks/useQueries.ts` so they correctly await the actor call, pass all required fields (game name, category, title, description, account details, price as `Float`, availability as `Bool`) with correct types, unwrap the `#ok`/`#err` Result variant, throw a JavaScript `Error` on `#err`, and invalidate the `products` query cache on success. Fix `ProductForm.tsx` to use these mutations correctly, show toast notifications on success and error, and close the dialog on success.",
+      "reqIds": [
+        "REQ-32"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-fix-the-3d-three-js-react-three-fiber-loading-screen-in-frontend-src-components-loadingscreen3d-tsx-so-it-renders-correctly-on-page-load-ensure-the-canvas-mounts-without-errors-the-scene-nyc-sunset-skyline-vehicles-driving-toward-the-horizon-animates-as-intended-the-oncomplete-callback-fires-after-4-6-seconds-and-the-transition-to-the-main-storefront-is-smooth-diagnose-and-resolve-any-issues-preventing-the-scene-from-appearing-e-g-missing-canvas-size-renderer-errors-import-failures-or-react-lifecycle-issues",
+      "title": "Fix the 3D Three.js / React Three Fiber loading screen in `frontend/src/components/LoadingScreen3D.tsx` so it renders correctly on page load. Ensure the canvas mounts without errors, the scene (NYC sunset skyline, vehicles driving toward the horizon) animates as intended, the `onComplete` callback fires after 4–6 seconds, and the transition to the main storefront is smooth. Diagnose and resolve any issues preventing the scene from appearing (e.g., missing canvas size, renderer errors, import failures, or React lifecycle issues).",
+      "reqIds": [
+        "REQ-34"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-ensure-the-dark-neon-gaming-theme-defined-in-frontend-src-index-css-and-frontend-tailwind-config-js-is-applied-correctly-across-all-pages-storefront-product-detail-checkout-order-confirmation-admin-panel-diagnose-and-fix-any-issues-preventing-the-dark-backgrounds-neon-accent-colors-custom-fonts-orbitron-rajdhani-and-glowing-ui-effects-from-rendering-verify-that-frontend-src-app-tsx-or-the-root-layout-correctly-applies-the-theme-class-or-css-variables-so-the-theme-is-active-on-initial-load",
+      "title": "Ensure the dark neon gaming theme defined in `frontend/src/index.css` and `frontend/tailwind.config.js` is applied correctly across all pages (storefront, product detail, checkout, order confirmation, admin panel). Diagnose and fix any issues preventing the dark backgrounds, neon accent colors, custom fonts (Orbitron, Rajdhani), and glowing UI effects from rendering. Verify that `frontend/src/App.tsx` or the root layout correctly applies the theme class or CSS variables so the theme is active on initial load.",
+      "reqIds": [
+        "REQ-35"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-remove-the-categories-filter-section-from-the-storefront-page-frontend-src-pages-storefrontpage-tsx-the-product-grid-should-display-all-available-products-without-any-category-filter-ui-tabs-sidebar-chips-or-dropdown-do-not-remove-category-management-from-the-admin-panel-categories-still-exist-in-the-backend-for-product-organisation",
+      "title": "Remove the Categories filter/section from the storefront page (`frontend/src/pages/StorefrontPage.tsx`). The product grid should display all available products without any category filter UI (tabs, sidebar, chips, or dropdown). Do not remove category management from the admin panel — categories still exist in the backend for product organisation.",
+      "reqIds": [
+        "REQ-36"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-replace-the-existing-dark-neon-gaming-theme-in-frontend-src-index-css-with-a-full-sunset-aesthetic-define-new-css-custom-properties-using-the-nyc-sunset-palette-deep-dusk-purple-navy-black-backgrounds-e-g-1a0a2e-0d0519-1c0f3f-warm-dark-mid-tones-e-g-2d1b4e-3a1a2a-and-sunset-accent-colors-golden-yellow-f5a623-burnt-orange-e85d04-dusky-pink-rose-d63384-soft-purple-9b59b6-replace-all-neon-cyan-electric-orange-and-hot-pink-css-variables-with-these-sunset-tones-update-glow-utility-classes-e-g-neon-glow-neon-border-to-emit-warm-sunset-glows-orange-pink-golden-box-shadows-and-text-shadows-instead-of-cyan-green-neon-glows-retain-the-orbitron-and-rajdhani-google-font-imports-do-not-alter-the-game-vault-gradient-or-any-inline-style-producing-the-red-purple-orange-game-vault-text-gradient",
+      "title": "Replace the existing dark neon gaming theme in `frontend/src/index.css` with a full sunset aesthetic. Define new CSS custom properties using the NYC sunset palette: deep dusk purple/navy-black backgrounds (e.g. `#1a0a2e`, `#0d0519`, `#1c0f3f`), warm dark mid-tones (e.g. `#2d1b4e`, `#3a1a2a`), and sunset accent colors — golden yellow (`#f5a623`), burnt orange (`#e85d04`), dusky pink/rose (`#d63384`), soft purple (`#9b59b6`). Replace all neon-cyan, electric-orange, and hot-pink CSS variables with these sunset tones. Update glow utility classes (e.g. `neon-glow`, `neon-border`) to emit warm sunset glows (orange/pink/golden box-shadows and text-shadows) instead of cyan/green neon glows. Retain the Orbitron and Rajdhani Google Font imports. Do NOT alter the `--game-vault-gradient` or any inline style producing the red → purple → orange 'Game Vault' text gradient.",
+      "reqIds": [
+        "REQ-37"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-frontend-tailwind-config-js-to-replace-all-neon-themed-color-tokens-neon-cyan-electric-orange-hot-pink-etc-with-sunset-palette-tokens-sunset-gold-f5a623-sunset-orange-e85d04-sunset-pink-d63384-sunset-purple-9b59b6-dusk-bg-0d0519-dusk-mid-1a0a2e-update-any-existing-pulse-glow-or-custom-keyframe-animation-colors-to-use-sunset-warm-tones-ensure-css-variable-based-color-references-still-resolve-correctly-against-the-updated-index-css-tokens",
+      "title": "Update `frontend/tailwind.config.js` to replace all neon-themed color tokens (neon-cyan, electric-orange, hot-pink, etc.) with sunset palette tokens: `sunset-gold` (`#f5a623`), `sunset-orange` (`#e85d04`), `sunset-pink` (`#d63384`), `sunset-purple` (`#9b59b6`), `dusk-bg` (`#0d0519`), `dusk-mid` (`#1a0a2e`). Update any existing `pulse-glow` or custom keyframe animation colors to use sunset warm tones. Ensure CSS variable-based color references still resolve correctly against the updated `index.css` tokens.",
+      "reqIds": [
+        "REQ-38"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-apply-the-sunset-theme-consistently-across-all-frontend-page-and-layout-components-storefrontpage-tsx-productdetailpage-tsx-checkoutpage-tsx-orderconfirmationpage-tsx-adminpanelpage-tsx-navigation-tsx-footer-tsx-productcard-tsx-cartdrawer-tsx-categorycard-tsx-all-checkout-sub-components-paypalpayment-tsx-cryptopayment-tsx-giftcardpayment-tsx-payin3payment-tsx-paymentmethodselector-tsx-and-all-admin-sub-components-categorymanager-tsx-productmanager-tsx-ordermanager-tsx-adminwhitelistmanager-tsx-categoryform-tsx-productform-tsx-replace-all-hardcoded-neon-color-classes-e-g-text-cyan-400-border-cyan-500-bg-gray-900-shadow-cyan-neon-specific-utility-classes-with-their-sunset-palette-equivalents-buttons-cards-borders-hover-states-badges-and-focus-rings-must-all-use-sunset-accent-colors-the-game-vault-gradient-text-must-remain-unchanged-wherever-it-appears",
+      "title": "Apply the sunset theme consistently across all frontend page and layout components: `StorefrontPage.tsx`, `ProductDetailPage.tsx`, `CheckoutPage.tsx`, `OrderConfirmationPage.tsx`, `AdminPanelPage.tsx`, `Navigation.tsx`, `Footer.tsx`, `ProductCard.tsx`, `CartDrawer.tsx`, `CategoryCard.tsx`, all checkout sub-components (`PayPalPayment.tsx`, `CryptoPayment.tsx`, `GiftCardPayment.tsx`, `PayIn3Payment.tsx`, `PaymentMethodSelector.tsx`), and all admin sub-components (`CategoryManager.tsx`, `ProductManager.tsx`, `OrderManager.tsx`, `AdminWhitelistManager.tsx`, `CategoryForm.tsx`, `ProductForm.tsx`). Replace all hardcoded neon color classes (e.g. `text-cyan-400`, `border-cyan-500`, `bg-gray-900`, `shadow-cyan`, neon-specific utility classes) with their sunset palette equivalents. Buttons, cards, borders, hover states, badges, and focus rings must all use sunset accent colors. The 'Game Vault' gradient text must remain unchanged wherever it appears.",
+      "reqIds": [
+        "REQ-39"
+      ],
+      "version": 1
     }
   ],
   "new_feature_requests": [
@@ -128,6 +327,112 @@
       "id": "AR-9",
       "summary": "Remove storefront logo and apply red → purple → orange 3-tone gradient to 'Game Vault' text in navbar, footer, loading screen, and all instances",
       "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-10",
+      "summary": "Username system on first login (no spaces), enforced for all users, replaces previous ID concept; used for purchases and admin panel access",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-11",
+      "summary": "Order confirmations and admin panel order views show username, email, contact info, and product(s) purchased",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-12",
+      "summary": "Admin Panel navbar link visible to all users; only whitelisted usernames can pass the passcode/login screen; store owner manages whitelist in backend",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-13",
+      "summary": "Add a 'username' field to the backend user profile data model (replacing any previous ID field). The username must be unique across all users, contain no spaces, and be stored alongside the user's Internet Identity principal. Expose backend functions to: create a username (enforced unique, no spaces), get a username by principal, check if a principal has a username, and manage an admin whitelist (add username, remove username, check if username is admin).",
+      "reqIds": [
+        "REQ-9"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-14",
+      "summary": "Hardcode 'Frosty' as a seed entry in the backend admin whitelist so they have immediate admin access",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-15",
+      "summary": "In the backend (backend/main.mo), hardcode the username 'Frosty' as an initial seed entry in the admin whitelist so that it is present from the first deployment without requiring any manual addition through the whitelist management UI.",
+      "reqIds": [
+        "REQ-14"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-16",
+      "summary": "Audit and fix the backend Motoko `addCategory` function in `backend/main.mo` so that it correctly accepts category name and description, persists the new category to stable storage, and returns a success result without errors. Ensure `updateCategory` and `deleteCategory` functions are similarly correct and stable.",
+      "reqIds": [
+        "REQ-15"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-17",
+      "summary": "Audit and fix the backend Motoko `addProduct` function in `backend/main.mo` so that it correctly accepts all product fields (game name, category, title, description, account details, price, availability), persists the new product, and returns a success result without errors. Ensure `updateProduct` and `deleteProduct` are similarly correct and stable.",
+      "reqIds": [
+        "REQ-16"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-18",
+      "summary": "Audit and fix the backend Motoko actor in `backend/main.mo` to ensure all stable variable declarations, CRUD functions for categories, products, orders, user profiles, and admin whitelist compile without errors and persist state correctly across upgrades. The `addCategory`, `updateCategory`, `deleteCategory`, `addProduct`, `updateProduct`, `deleteProduct`, `placeOrder`, `createUsername`, `getUsername`, `hasUsername`, `addAdminUsername`, `removeAdminUsername`, and `isAdminUsername` functions must all compile cleanly and return `#ok`/`#err` Result variants consistently.",
+      "reqIds": [
+        "REQ-21"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-19",
+      "summary": "Audit and fix the backend `isAdminUsername` function in `backend/main.mo` to ensure it correctly looks up the provided username string in the `adminUsernames` stable map and returns `true` when the username is present. Verify the function signature, map key comparison, and that the seeded 'Frosty' entry survives upgrades via `migration.mo`.",
+      "reqIds": [
+        "REQ-29"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-23",
+      "summary": "Audit and fix `backend/main.mo` to ensure the `addCategory`, `updateCategory`, `deleteCategory`, `addProduct`, `updateProduct`, and `deleteProduct` functions compile cleanly, correctly persist data to stable storage, and consistently return `#ok`/`#err` Result variants. Verify the actor compiles without errors after changes.",
+      "reqIds": [
+        "REQ-33"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-24",
+      "summary": "Fix theme and 3D Three.js loading screen not rendering/loading correctly on the storefront",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-25",
+      "summary": "Remove the Categories section from the storefront/product listing UI (keep backend category management in admin panel)",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-26",
+      "summary": "Replace the dark neon gaming theme entirely with a sunset aesthetic: deep dusk purples/navy-black backgrounds, golden yellow/burnt orange/dusky pink/soft purple accents, warm sunset glow effects — aligned with the NYC sunset 3D loading screen. Apply across all pages: storefront, product pages, checkout, order confirmation, admin panel, navbar, footer. 'Game Vault' gradient text stays unchanged.",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-30",
+      "summary": "Update the `LoadingScreen3D.tsx` component's non-3D overlay UI elements (title text container background, progress bar colors, any HTML overlay text styling) to use sunset palette colors. The Three.js scene itself (sky gradient, building colors, road, vehicle colors, ambient/directional light colors) must also use warm sunset tones — golden-orange sky (#ff7043 → #ff8c00 → #4a0e8f gradient from horizon to top), deep purple upper sky, warm orange/yellow street lighting on vehicles and buildings. Ensure the 'Game Vault' gradient text in the loading screen overlay remains unchanged.",
+      "reqIds": [
+        "REQ-40"
+      ],
       "status": "pending"
     }
   ],

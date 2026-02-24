@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,28 +6,81 @@
 
 @layer base {
   :root {
-    --background: oklch(0.08 0.005 260);
-    --foreground: oklch(0.92 0.01 260);
-    --card: oklch(0.12 0.008 260);
-    --card-foreground: oklch(0.92 0.01 260);
-    --popover: oklch(0.12 0.008 260);
-    --popover-foreground: oklch(0.92 0.01 260);
-    --primary: oklch(0.72 0.22 35);
-    --primary-foreground: oklch(0.08 0.005 260);
-    --secondary: oklch(0.18 0.01 260);
-    --secondary-foreground: oklch(0.75 0.02 260);
-    --muted: oklch(0.15 0.008 260);
-    --muted-foreground: oklch(0.5 0.02 260);
-    --accent: oklch(0.65 0.25 195);
-    --accent-foreground: oklch(0.08 0.005 260);
-    --destructive: oklch(0.6 0.22 25);
-    --destructive-foreground: oklch(0.98 0.005 260);
-    --border: oklch(0.22 0.012 260);
-    --input: oklch(0.18 0.01 260);
-    --ring: oklch(0.72 0.22 35);
+    /* Sunset palette - light mode (warm tones) */
+    --background: oklch(0.12 0.04 290);
+    --foreground: oklch(0.95 0.02 60);
+
+    --card: oklch(0.16 0.05 285);
+    --card-foreground: oklch(0.95 0.02 60);
+
+    --popover: oklch(0.14 0.05 285);
+    --popover-foreground: oklch(0.95 0.02 60);
+
+    --primary: oklch(0.72 0.18 55);
+    --primary-foreground: oklch(0.10 0.03 290);
+
+    --secondary: oklch(0.20 0.06 280);
+    --secondary-foreground: oklch(0.90 0.05 60);
+
+    --muted: oklch(0.22 0.05 280);
+    --muted-foreground: oklch(0.65 0.06 60);
+
+    --accent: oklch(0.65 0.20 30);
+    --accent-foreground: oklch(0.98 0.01 60);
+
+    --destructive: oklch(0.55 0.22 15);
+    --destructive-foreground: oklch(0.98 0.01 60);
+
+    --border: oklch(0.28 0.07 280);
+    --input: oklch(0.22 0.06 280);
+    --ring: oklch(0.72 0.18 55);
+
+    --success: oklch(0.65 0.15 145);
+    --warning: oklch(0.75 0.18 75);
+
     --radius: 0.5rem;
-    --success: oklch(0.65 0.2 145);
-    --warning: oklch(0.78 0.18 75);
+
+    /* Sunset accent tokens */
+    --sunset-gold: oklch(0.78 0.18 75);
+    --sunset-orange: oklch(0.65 0.22 40);
+    --sunset-pink: oklch(0.60 0.22 350);
+    --sunset-purple: oklch(0.45 0.18 295);
+    --dusk-bg: oklch(0.10 0.04 290);
+    --dusk-mid: oklch(0.18 0.06 285);
+    --dusk-deep: oklch(0.14 0.05 285);
+  }
+
+  .dark {
+    --background: oklch(0.10 0.04 290);
+    --foreground: oklch(0.95 0.02 60);
+
+    --card: oklch(0.15 0.05 285);
+    --card-foreground: oklch(0.95 0.02 60);
+
+    --popover: oklch(0.13 0.05 285);
+    --popover-foreground: oklch(0.95 0.02 60);
+
+    --primary: oklch(0.72 0.18 55);
+    --primary-foreground: oklch(0.10 0.03 290);
+
+    --secondary: oklch(0.20 0.06 280);
+    --secondary-foreground: oklch(0.90 0.05 60);
+
+    --muted: oklch(0.20 0.05 280);
+    --muted-foreground: oklch(0.62 0.06 60);
+
+    --accent: oklch(0.65 0.20 30);
+    --accent-foreground: oklch(0.98 0.01 60);
+
+    --destructive: oklch(0.55 0.22 15);
+    --destructive-foreground: oklch(0.98 0.01 60);
+
+    --border: oklch(0.26 0.07 280);
+    --input: oklch(0.20 0.06 280);
+    --ring: oklch(0.72 0.18 55);
+
+    --success: oklch(0.65 0.15 145);
+    --warning: oklch(0.75 0.18 75);
   }
 }
 
@@ -37,55 +90,77 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-family: 'Inter', sans-serif;
+    font-family: 'Rajdhani', sans-serif;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Orbitron', monospace;
   }
 }
 
 @layer utilities {
-  .font-gaming {
+  /* Sunset glow effects */
+  .sunset-glow {
+    box-shadow: 0 0 20px oklch(0.72 0.18 55 / 0.4), 0 0 40px oklch(0.65 0.22 40 / 0.2);
+  }
+  .sunset-glow-sm {
+    box-shadow: 0 0 10px oklch(0.72 0.18 55 / 0.35), 0 0 20px oklch(0.65 0.22 40 / 0.15);
+  }
+  .sunset-glow-pink {
+    box-shadow: 0 0 20px oklch(0.60 0.22 350 / 0.4), 0 0 40px oklch(0.60 0.22 350 / 0.2);
+  }
+  .sunset-glow-purple {
+    box-shadow: 0 0 20px oklch(0.45 0.18 295 / 0.5), 0 0 40px oklch(0.45 0.18 295 / 0.25);
+  }
+
+  /* Legacy neon-glow aliases → sunset glows */
+  .neon-glow {
+    box-shadow: 0 0 20px oklch(0.72 0.18 55 / 0.4), 0 0 40px oklch(0.65 0.22 40 / 0.2);
+  }
+  .neon-glow-sm {
+    box-shadow: 0 0 10px oklch(0.72 0.18 55 / 0.35), 0 0 20px oklch(0.65 0.22 40 / 0.15);
+  }
+  .neon-border {
+    border-color: oklch(0.72 0.18 55 / 0.6);
+    box-shadow: 0 0 8px oklch(0.72 0.18 55 / 0.3), inset 0 0 8px oklch(0.72 0.18 55 / 0.05);
+  }
+  .neon-text {
+    text-shadow: 0 0 10px oklch(0.72 0.18 55 / 0.8), 0 0 20px oklch(0.65 0.22 40 / 0.5);
+  }
+  .neon-text-pink {
+    text-shadow: 0 0 10px oklch(0.60 0.22 350 / 0.8), 0 0 20px oklch(0.60 0.22 350 / 0.5);
+  }
+
+  /* Game Vault brand gradient — DO NOT CHANGE */
+  .game-vault-gradient {
+    background: linear-gradient(135deg, #ff0040, #8b00ff, #ff6600);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Sunset card */
+  .sunset-card {
+    background: oklch(0.15 0.05 285);
+    border: 1px solid oklch(0.28 0.07 280);
+  }
+  .sunset-card:hover {
+    border-color: oklch(0.72 0.18 55 / 0.5);
+    box-shadow: 0 0 20px oklch(0.72 0.18 55 / 0.15);
+  }
+
+  /* Font utilities */
+  .font-orbitron {
     font-family: 'Orbitron', monospace;
   }
-  .font-heading {
+  .font-rajdhani {
     font-family: 'Rajdhani', sans-serif;
   }
 
-  /* Red → Purple → Orange gradient text utility */
-  .brand-gradient-text {
-    background: linear-gradient(90deg, #ff2020 0%, #9b30ff 50%, #ff8c00 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    color: transparent;
+  /* Sunset gradient backgrounds */
+  .bg-sunset-gradient {
+    background: linear-gradient(180deg, oklch(0.10 0.04 290) 0%, oklch(0.18 0.08 285) 50%, oklch(0.14 0.06 285) 100%);
   }
-
-  .neon-glow {
-    text-shadow: 0 0 10px oklch(0.72 0.22 35 / 0.8), 0 0 20px oklch(0.72 0.22 35 / 0.4);
-  }
-
-  .neon-border {
-    box-shadow: 0 0 10px oklch(0.72 0.22 35 / 0.3), inset 0 0 10px oklch(0.72 0.22 35 / 0.05);
-  }
-
-  .card-dark {
-    background: oklch(0.12 0.008 260);
-    border: 1px solid oklch(0.22 0.012 260);
-  }
-
-  .scrollbar-thin {
-    scrollbar-width: thin;
-    scrollbar-color: oklch(0.3 0.015 260) transparent;
-  }
-
-  .scrollbar-thin::-webkit-scrollbar {
-    width: 4px;
-  }
-
-  .scrollbar-thin::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  .scrollbar-thin::-webkit-scrollbar-thumb {
-    background-color: oklch(0.3 0.015 260);
-    border-radius: 2px;
+  .bg-dusk-gradient {
+    background: linear-gradient(135deg, oklch(0.12 0.05 290) 0%, oklch(0.20 0.08 280) 100%);
   }
 }

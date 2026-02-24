@@ -1,122 +1,75 @@
-import { useState } from 'react';
-import { SiPaypal } from 'react-icons/si';
-import { ExternalLink, Loader2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { ExternalLink, CheckCircle, Loader2 } from 'lucide-react';
 
 interface PayPalPaymentProps {
-  total: bigint;
-  onConfirm: () => void;
-  onBack: () => void;
+  amount: number;
+  onConfirm: () => Promise<void>;
   isLoading: boolean;
 }
 
-export default function PayPalPayment({ total, onConfirm, onBack, isLoading }: PayPalPaymentProps) {
-  const [simulating, setSimulating] = useState(false);
-  const [simulated, setSimulated] = useState(false);
-  const formatPrice = (price: bigint) => `£${(Number(price) / 100).toFixed(2)}`;
+export default function PayPalPayment({ amount, onConfirm, isLoading }: PayPalPaymentProps) {
+  const [redirected, setRedirected] = useState(false);
 
-  const handleSimulate = () => {
-    setSimulating(true);
-    setTimeout(() => {
-      setSimulating(false);
-      setSimulated(true);
-    }, 2000);
+  const handleRedirect = () => {
+    setRedirected(true);
   };
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="space-y-5">
       {/* PayPal branding */}
-      <div
-        className="rounded-xl p-6 flex flex-col items-center gap-4"
-        style={{
-          background: 'oklch(0.08 0.005 260)',
-          border: '1px solid oklch(0.65 0.18 240 / 0.4)',
-        }}
-      >
-        <SiPaypal size={48} style={{ color: 'oklch(0.65 0.18 240)' }} />
-        <div className="text-center">
-          <p className="font-heading font-bold text-lg" style={{ color: 'oklch(0.9 0.01 260)' }}>
-            Pay with PayPal
-          </p>
-          <p className="text-sm mt-1" style={{ color: 'oklch(0.55 0.02 260)' }}>
-            You will be redirected to PayPal to complete your payment
-          </p>
+      <div className="flex items-center justify-center p-6 rounded-sm border border-border bg-muted/30">
+        <div className="text-center space-y-2">
+          <div className="font-orbitron text-2xl font-bold text-sunset-gold">PayPal</div>
+          <p className="font-rajdhani text-muted-foreground text-sm">Secure payment via PayPal</p>
         </div>
-        <div
-          className="px-6 py-3 rounded-lg text-center"
-          style={{
-            background: 'oklch(0.65 0.18 240 / 0.1)',
-            border: '1px solid oklch(0.65 0.18 240 / 0.3)',
-          }}
-        >
-          <p className="text-xs mb-1" style={{ color: 'oklch(0.55 0.02 260)' }}>Amount to pay</p>
-          <p className="font-gaming text-2xl" style={{ color: 'oklch(0.65 0.18 240)' }}>
-            {formatPrice(total)}
-          </p>
-        </div>
+      </div>
 
-        {!simulated ? (
+      {/* Amount */}
+      <div className="flex items-center justify-between p-4 rounded-sm border border-border bg-card">
+        <span className="font-rajdhani font-semibold text-muted-foreground">Amount to pay</span>
+        <span className="font-orbitron font-bold text-sunset-gold text-lg">
+          £{(amount / 100).toFixed(2)}
+        </span>
+      </div>
+
+      {/* Steps */}
+      {!redirected ? (
+        <div className="space-y-3">
+          <p className="font-rajdhani text-sm text-muted-foreground">
+            Click below to be redirected to PayPal to complete your payment securely.
+          </p>
           <button
-            onClick={handleSimulate}
-            disabled={simulating}
-            className="flex items-center gap-2 px-6 py-3 rounded-lg font-heading font-bold tracking-wide uppercase text-sm transition-all duration-200 disabled:opacity-60"
-            style={{
-              background: 'oklch(0.65 0.18 240)',
-              color: 'white',
-            }}
+            onClick={handleRedirect}
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-sm bg-sunset-gold text-background font-rajdhani font-bold tracking-wider uppercase hover:opacity-90 transition-all sunset-glow-sm"
           >
-            {simulating ? (
+            <ExternalLink className="w-4 h-4" />
+            Continue to PayPal
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 p-3 rounded-sm border border-success/30 bg-success/10">
+            <CheckCircle className="w-4 h-4 text-success flex-shrink-0" />
+            <p className="font-rajdhani text-sm text-success">
+              Payment authorised on PayPal. Click below to confirm your order.
+            </p>
+          </div>
+          <button
+            onClick={onConfirm}
+            disabled={isLoading}
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-sm bg-gradient-to-r from-sunset-orange to-sunset-pink text-white font-rajdhani font-bold tracking-wider uppercase hover:opacity-90 transition-all sunset-glow disabled:opacity-50"
+          >
+            {isLoading ? (
               <>
-                <Loader2 size={14} className="animate-spin" />
-                Redirecting to PayPal...
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Placing Order...
               </>
             ) : (
-              <>
-                <ExternalLink size={14} />
-                Continue to PayPal
-              </>
+              'Confirm Order'
             )}
           </button>
-        ) : (
-          <div
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm"
-            style={{
-              background: 'oklch(0.5 0.18 145 / 0.15)',
-              color: 'oklch(0.5 0.18 145)',
-              border: '1px solid oklch(0.5 0.18 145 / 0.3)',
-            }}
-          >
-            ✓ PayPal payment authorized
-          </div>
-        )}
-      </div>
-
-      <div className="flex gap-3">
-        <button
-          onClick={onBack}
-          disabled={isLoading}
-          className="flex-1 py-3 rounded font-heading font-bold tracking-widest uppercase text-sm transition-all duration-200 disabled:opacity-40"
-          style={{
-            background: 'oklch(0.18 0.01 260)',
-            color: 'oklch(0.7 0.02 260)',
-            border: '1px solid oklch(0.25 0.015 260)',
-          }}
-        >
-          Back
-        </button>
-        <button
-          onClick={onConfirm}
-          disabled={!simulated || isLoading}
-          className="flex-1 py-3 rounded font-heading font-bold tracking-widest uppercase text-sm transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-          style={{
-            background: 'oklch(0.72 0.22 35)',
-            color: 'oklch(0.08 0.005 260)',
-            boxShadow: simulated && !isLoading ? '0 0 20px oklch(0.72 0.22 35 / 0.4)' : 'none',
-          }}
-        >
-          {isLoading ? <Loader2 size={14} className="animate-spin" /> : null}
-          {isLoading ? 'Placing Order...' : 'Place Order'}
-        </button>
-      </div>
+        </div>
+      )}
     </div>
   );
 }

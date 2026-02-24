@@ -1,211 +1,119 @@
-import { useParams, useNavigate } from '@tanstack/react-router';
-import { ArrowLeft, ShoppingCart, Zap, Shield, Clock, Star } from 'lucide-react';
-import { useGetProductById, useGetCategoryById } from '../hooks/useQueries';
-import { useCart } from '../hooks/useCart';
-import { useInternetIdentity } from '../hooks/useInternetIdentity';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Badge } from '@/components/ui/badge';
-import { toast } from 'sonner';
+import React from 'react';
+import { ArrowLeft, ShoppingCart, Tag, Package } from 'lucide-react';
+import type { Product, ProductCategory } from '../backend';
 
-export default function ProductDetailPage() {
-  const { productId } = useParams({ from: '/layout/product/$productId' });
-  const navigate = useNavigate();
-  const { addItem } = useCart();
-  const { identity } = useInternetIdentity();
-  const isAuthenticated = !!identity;
+interface ProductDetailPageProps {
+  product: Product;
+  category?: ProductCategory;
+  onAddToCart: (product: Product) => void;
+  onBack: () => void;
+}
 
-  const { data: product, isLoading } = useGetProductById(BigInt(productId));
-  const { data: category } = useGetCategoryById(product?.categoryId ?? BigInt(0));
-
-  const formatPrice = (price: bigint) => `£${(Number(price) / 100).toFixed(2)}`;
-
-  const handleAddToCart = () => {
-    if (!product) return;
-    addItem(product);
-    toast.success(`${product.title} added to cart!`);
-  };
-
-  const handleBuyNow = () => {
-    if (!product) return;
-    addItem(product);
-    navigate({ to: '/checkout' });
-  };
-
-  if (isLoading) {
-    return (
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <Skeleton className="h-8 w-32 mb-6" style={{ background: 'oklch(0.18 0.01 260)' }} />
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <Skeleton className="h-64 rounded-xl" style={{ background: 'oklch(0.18 0.01 260)' }} />
-          <div className="flex flex-col gap-4">
-            <Skeleton className="h-8 w-3/4" style={{ background: 'oklch(0.18 0.01 260)' }} />
-            <Skeleton className="h-4 w-full" style={{ background: 'oklch(0.18 0.01 260)' }} />
-            <Skeleton className="h-4 w-2/3" style={{ background: 'oklch(0.18 0.01 260)' }} />
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!product) {
-    return (
-      <div className="max-w-4xl mx-auto px-4 py-8 text-center">
-        <p style={{ color: 'oklch(0.55 0.02 260)' }}>Product not found.</p>
-      </div>
-    );
-  }
+export default function ProductDetailPage({ product, category, onAddToCart, onBack }: ProductDetailPageProps) {
+  const price = Number(product.price);
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
-      {/* Back button */}
-      <button
-        onClick={() => navigate({ to: '/' })}
-        className="flex items-center gap-2 mb-6 text-sm transition-colors hover:text-primary"
-        style={{ color: 'oklch(0.55 0.02 260)' }}
-      >
-        <ArrowLeft size={14} />
-        Back to Store
-      </button>
+    <div className="min-h-screen bg-background">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Back button */}
+        <button
+          onClick={onBack}
+          className="flex items-center gap-2 text-muted-foreground hover:text-sunset-gold transition-colors mb-6 font-rajdhani font-semibold"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back to Store
+        </button>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {/* Left: Visual */}
-        <div>
-          <div
-            className="rounded-xl overflow-hidden h-64 flex items-center justify-center relative"
-            style={{
-              background: 'linear-gradient(135deg, oklch(0.13 0.008 260), oklch(0.18 0.04 35))',
-              border: '1px solid oklch(0.25 0.015 260)',
-            }}
-          >
-            <div
-              className="absolute inset-0 opacity-20"
-              style={{
-                background: 'radial-gradient(circle at 50% 50%, oklch(0.72 0.22 35), transparent 70%)',
-              }}
-            />
-            <span className="text-8xl relative z-10">🎮</span>
-            {product.available ? (
-              <div
-                className="absolute top-3 right-3 px-3 py-1 rounded-full text-xs font-gaming flex items-center gap-1"
-                style={{ background: 'oklch(0.5 0.18 145 / 0.9)', color: 'white' }}
-              >
-                <Star size={10} fill="currentColor" />
-                In Stock
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+          {/* Main content */}
+          <div className="lg:col-span-3 space-y-6">
+            {/* Header card */}
+            <div className="rounded-sm border border-border bg-card overflow-hidden">
+              <div className="h-1 w-full bg-gradient-to-r from-sunset-orange via-sunset-pink to-sunset-purple" />
+              <div className="p-6">
+                {category && (
+                  <div className="flex items-center gap-1.5 mb-3">
+                    <Tag className="w-3.5 h-3.5 text-sunset-gold" />
+                    <span className="font-rajdhani text-xs font-semibold text-sunset-gold uppercase tracking-wider">
+                      {category.name}
+                    </span>
+                  </div>
+                )}
+                <h1 className="font-orbitron text-2xl font-black text-foreground mb-2">
+                  {product.gameName}
+                </h1>
+                <p className="font-rajdhani text-muted-foreground">
+                  {product.title}
+                </p>
               </div>
-            ) : (
-              <div
-                className="absolute top-3 right-3 px-3 py-1 rounded-full text-xs font-gaming"
-                style={{ background: 'oklch(0.6 0.22 25 / 0.9)', color: 'white' }}
-              >
-                Sold Out
-              </div>
-            )}
-          </div>
-
-          {/* Trust badges */}
-          <div className="grid grid-cols-3 gap-3 mt-4">
-            {[
-              { icon: Shield, label: 'Verified Account' },
-              { icon: Clock, label: 'Instant Delivery' },
-              { icon: Star, label: 'Premium Quality' },
-            ].map(({ icon: Icon, label }) => (
-              <div
-                key={label}
-                className="flex flex-col items-center gap-1 p-3 rounded-lg text-center"
-                style={{ background: 'oklch(0.13 0.008 260)', border: '1px solid oklch(0.22 0.012 260)' }}
-              >
-                <Icon size={16} style={{ color: 'oklch(0.65 0.25 195)' }} />
-                <span className="text-xs" style={{ color: 'oklch(0.5 0.02 260)' }}>{label}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Right: Details */}
-        <div className="flex flex-col gap-4">
-          {category && (
-            <span className="font-gaming text-xs tracking-wider uppercase" style={{ color: 'oklch(0.65 0.25 195)' }}>
-              {category.name}
-            </span>
-          )}
-          <h1 className="font-heading text-2xl font-bold leading-tight" style={{ color: 'oklch(0.95 0.01 260)' }}>
-            {product.title}
-          </h1>
-          <p className="text-sm leading-relaxed" style={{ color: 'oklch(0.6 0.02 260)' }}>
-            {product.description}
-          </p>
-
-          {/* Account details */}
-          <div
-            className="rounded-lg p-4"
-            style={{
-              background: 'oklch(0.08 0.005 260)',
-              border: '1px solid oklch(0.65 0.25 195 / 0.3)',
-            }}
-          >
-            <p className="font-gaming text-xs mb-2 uppercase tracking-wider" style={{ color: 'oklch(0.65 0.25 195)' }}>
-              Account Details
-            </p>
-            <p className="text-sm font-mono leading-relaxed whitespace-pre-wrap" style={{ color: 'oklch(0.75 0.02 260)' }}>
-              {product.accountDetails}
-            </p>
-          </div>
-
-          {/* Price */}
-          <div className="flex items-baseline gap-3">
-            <span
-              className="font-gaming text-3xl"
-              style={{ color: 'oklch(0.72 0.22 35)', textShadow: '0 0 20px oklch(0.72 0.22 35 / 0.5)' }}
-            >
-              {formatPrice(product.price)}
-            </span>
-            <Badge variant="outline" className="text-xs" style={{ borderColor: 'oklch(0.3 0.015 260)', color: 'oklch(0.55 0.02 260)' }}>
-              {product.gameName}
-            </Badge>
-          </div>
-
-          {/* Auth warning */}
-          {!isAuthenticated && (
-            <div
-              className="p-3 rounded-lg text-sm"
-              style={{
-                background: 'oklch(0.72 0.22 35 / 0.1)',
-                border: '1px solid oklch(0.72 0.22 35 / 0.3)',
-                color: 'oklch(0.72 0.22 35)',
-              }}
-            >
-              Please login to purchase this account
             </div>
-          )}
 
-          {/* Action buttons */}
-          <div className="flex flex-col gap-3">
-            <button
-              onClick={handleBuyNow}
-              disabled={!product.available || !isAuthenticated}
-              className="w-full py-3.5 rounded-lg font-heading font-bold tracking-widest uppercase text-sm transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              style={{
-                background: 'oklch(0.72 0.22 35)',
-                color: 'oklch(0.08 0.005 260)',
-                boxShadow: product.available && isAuthenticated ? '0 0 25px oklch(0.72 0.22 35 / 0.5)' : 'none',
-              }}
-            >
-              <Zap size={16} />
-              Buy Now
-            </button>
-            <button
-              onClick={handleAddToCart}
-              disabled={!product.available || !isAuthenticated}
-              className="w-full py-3.5 rounded-lg font-heading font-bold tracking-widest uppercase text-sm transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              style={{
-                background: 'oklch(0.18 0.01 260)',
-                color: 'oklch(0.72 0.22 35)',
-                border: '1px solid oklch(0.72 0.22 35 / 0.5)',
-              }}
-            >
-              <ShoppingCart size={16} />
-              Add to Cart
-            </button>
+            {/* Description */}
+            <div className="rounded-sm border border-border bg-card p-6">
+              <h2 className="font-orbitron text-sm font-bold text-sunset-gold uppercase tracking-wider mb-3">
+                Description
+              </h2>
+              <p className="font-rajdhani text-muted-foreground leading-relaxed">
+                {product.description}
+              </p>
+            </div>
+
+            {/* What's included */}
+            <div className="rounded-sm border border-border bg-card p-6">
+              <div className="flex items-center gap-2 mb-3">
+                <Package className="w-4 h-4 text-sunset-orange" />
+                <h2 className="font-orbitron text-sm font-bold text-sunset-orange uppercase tracking-wider">
+                  What's Included
+                </h2>
+              </div>
+              <p className="font-rajdhani text-muted-foreground text-sm leading-relaxed">
+                Full account access with credentials delivered instantly after purchase. Includes all items and progress as described.
+              </p>
+            </div>
+          </div>
+
+          {/* Sidebar */}
+          <div className="lg:col-span-2">
+            <div className="sticky top-24 rounded-sm border border-border bg-card overflow-hidden">
+              <div className="h-1 w-full bg-gradient-to-r from-sunset-gold to-sunset-orange" />
+              <div className="p-6 space-y-5">
+                {/* Price */}
+                <div>
+                  <p className="font-rajdhani text-xs text-muted-foreground uppercase tracking-wider mb-1">Price</p>
+                  <p className="font-orbitron text-3xl font-black text-sunset-gold">
+                    £{(price / 100).toFixed(2)}
+                  </p>
+                </div>
+
+                {/* Availability */}
+                <div className="flex items-center gap-2">
+                  <div className={`w-2 h-2 rounded-full ${product.available ? 'bg-success' : 'bg-destructive'}`} />
+                  <span className="font-rajdhani text-sm font-semibold text-muted-foreground">
+                    {product.available ? 'In Stock' : 'Out of Stock'}
+                  </span>
+                </div>
+
+                {/* Add to cart */}
+                <button
+                  onClick={() => onAddToCart(product)}
+                  disabled={!product.available}
+                  className="w-full flex items-center justify-center gap-2 py-3 rounded-sm bg-gradient-to-r from-sunset-orange to-sunset-pink text-white font-rajdhani font-bold tracking-wider uppercase hover:opacity-90 transition-all sunset-glow disabled:opacity-50"
+                >
+                  <ShoppingCart className="w-4 h-4" />
+                  Add to Cart
+                </button>
+
+                {/* Info */}
+                <div className="space-y-2 pt-2 border-t border-border">
+                  {['Instant delivery', 'Secure transaction', '24/7 support'].map((item) => (
+                    <div key={item} className="flex items-center gap-2">
+                      <div className="w-1.5 h-1.5 rounded-full bg-sunset-gold" />
+                      <span className="font-rajdhani text-xs text-muted-foreground">{item}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

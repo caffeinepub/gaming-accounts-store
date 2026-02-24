@@ -1,55 +1,174 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Remove storefront logo and apply red → purple → orange gradient to 'Game Vault' text",
+  "title": "Replace dark neon theme with sunset aesthetic across all pages",
   "requirements": [
     {
-      "id": "REQ-7",
-      "summary": "Remove the logo image/icon from the Navigation component so only the 'Game Vault' text brand name appears in the navbar",
+      "id": "REQ-37",
+      "summary": "Replace dark neon gaming theme in index.css with full sunset aesthetic using NYC sunset palette",
       "acceptanceCriteria": [
-        "No logo image or icon is rendered in the Navigation bar",
-        "The 'Game Vault' text brand name remains visible in the navbar",
-        "Layout remains intact and does not collapse or misalign after logo removal"
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/components/Navigation.tsx",
-          "operation": "modify",
-          "description": "Remove the logo image element (likely referencing frontend/public/assets/generated/gamevault-logo.dim_400x120.png) from the Navigation component. Keep only the 'Game Vault' text brand name in the navbar. Ensure the remaining text element maintains proper spacing and alignment without the logo."
-        }
-      ]
-    },
-    {
-      "id": "REQ-8",
-      "summary": "Apply a 3-tone CSS linear gradient (red → purple → orange) to the 'Game Vault' site name text everywhere it appears using background-clip text technique",
-      "acceptanceCriteria": [
-        "The 'Game Vault' text in the Navigation bar displays a red → purple → orange gradient across its characters",
-        "The 'Game Vault' text in the Footer displays the same red → purple → orange gradient",
-        "The 'Game Vault' text in the LoadingScreen3D displays the same red → purple → orange gradient",
-        "All three tone stops (red, purple, orange) are visually distinguishable in the gradient",
-        "The gradient is applied consistently — same direction and color stops — across all instances",
-        "Plain white or single-color fallback is not used anywhere the site name appears"
+        "All CSS custom property values for background, card, border, and accent colors reflect the sunset palette (deep purples, navy-blacks, golden yellows, burnt oranges, dusky pinks).",
+        "Neon glow utility classes produce warm orange/pink/golden shadows, not cyan or green.",
+        "Google Fonts (Orbitron, Rajdhani) are still imported.",
+        "The 'Game Vault' red → purple → orange gradient CSS is unchanged."
       ],
       "file_operations": [
         {
           "path": "frontend/src/index.css",
           "operation": "modify",
-          "description": "Add a reusable CSS utility class (e.g., .brand-gradient-text) that applies a linear gradient from red to purple to orange using background-clip: text and -webkit-background-clip: text with transparent text color. Use specific color values like linear-gradient(90deg, #ff0000 0%, #800080 50%, #ffa500 100%) to ensure all three tones are visibly distinct. This class will be applied to all 'Game Vault' text instances."
+          "description": "Replace all neon-themed CSS custom properties (cyan, electric-orange, hot-pink backgrounds and accents) with sunset palette tokens: deep dusk purple/navy-black backgrounds (#1a0a2e, #0d0519, #1c0f3f), warm dark mid-tones (#2d1b4e, #3a1a2a), and sunset accents (golden yellow #f5a623, burnt orange #e85d04, dusky pink #d63384, soft purple #9b59b6). Update glow utility classes (.neon-glow, .neon-border, text-shadow utilities) to emit warm sunset glows using orange/pink/golden box-shadows and text-shadows instead of cyan/green neon effects. Preserve the existing Orbitron and Rajdhani Google Font imports. Do NOT modify the --game-vault-gradient CSS variable or any inline gradient producing the red → purple → orange 'Game Vault' text."
+        }
+      ]
+    },
+    {
+      "id": "REQ-38",
+      "summary": "Update Tailwind config to replace neon color tokens with sunset palette tokens",
+      "acceptanceCriteria": [
+        "Tailwind config exports sunset palette color tokens.",
+        "No references to neon-cyan, electric-orange, or hot-pink color tokens remain in the config.",
+        "pulse-glow and any glow keyframes use warm sunset shadow colors."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/tailwind.config.js",
+          "operation": "modify",
+          "description": "Replace all neon-themed color tokens (neon-cyan, electric-orange, hot-pink, etc.) in the theme.extend.colors section with sunset palette tokens: sunset-gold (#f5a623), sunset-orange (#e85d04), sunset-pink (#d63384), sunset-purple (#9b59b6), dusk-bg (#0d0519), dusk-mid (#1a0a2e). Update the pulse-glow keyframe animation and any other custom animation colors to use warm sunset tones (orange/pink/golden shadows). Ensure CSS variable-based color references still resolve correctly against the updated index.css tokens."
+        }
+      ]
+    },
+    {
+      "id": "REQ-39",
+      "summary": "Apply sunset theme consistently across all frontend page and layout components",
+      "acceptanceCriteria": [
+        "Storefront, product detail, checkout, order confirmation, and admin panel pages all display deep dusk purple/navy-black backgrounds.",
+        "All interactive elements (buttons, links, badges, form focus rings) use sunset accent colors (golden yellow, burnt orange, dusky pink, soft purple).",
+        "No neon-cyan, electric-green, or hot-pink accents appear anywhere in the UI.",
+        "Card backgrounds and borders use dark warm sunset tones.",
+        "The 'Game Vault' text gradient (red → purple → orange) is visually unchanged in navbar, footer, and loading screen."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/pages/StorefrontPage.tsx",
+          "operation": "modify",
+          "description": "Replace all hardcoded neon color Tailwind classes (text-cyan-400, border-cyan-500, bg-gray-900, shadow-cyan, etc.) with sunset palette equivalents using the new Tailwind tokens (sunset-gold, sunset-orange, sunset-pink, sunset-purple, dusk-bg, dusk-mid). Update background colors to deep dusk purple/navy-black tones, card borders and accents to warm sunset colors, and hover states to use golden/orange/pink highlights. Preserve any existing 'Game Vault' gradient text."
+        },
+        {
+          "path": "frontend/src/pages/ProductDetailPage.tsx",
+          "operation": "modify",
+          "description": "Replace all hardcoded neon color Tailwind classes with sunset palette equivalents. Update background colors to dusk tones, borders and badges to sunset accent colors (golden yellow, burnt orange, dusky pink, soft purple), and button hover states to warm sunset glows. Preserve any 'Game Vault' gradient text."
+        },
+        {
+          "path": "frontend/src/pages/CheckoutPage.tsx",
+          "operation": "modify",
+          "description": "Replace all hardcoded neon color Tailwind classes with sunset palette equivalents. Update form inputs, borders, focus rings, and buttons to use sunset accent colors. Background sections should use deep dusk purple/navy-black tones. Step indicators and progress elements should use warm sunset colors."
+        },
+        {
+          "path": "frontend/src/pages/OrderConfirmationPage.tsx",
+          "operation": "modify",
+          "description": "Replace all hardcoded neon color Tailwind classes with sunset palette equivalents. Success indicators, badges, and order detail cards should use warm sunset accent colors (golden yellow, burnt orange, dusky pink). Background should use deep dusk tones."
+        },
+        {
+          "path": "frontend/src/pages/AdminPanelPage.tsx",
+          "operation": "modify",
+          "description": "Replace all hardcoded neon color Tailwind classes with sunset palette equivalents. Tab indicators, section headers, and panel backgrounds should use sunset tones. Active states should use warm golden/orange highlights instead of cyan."
         },
         {
           "path": "frontend/src/components/Navigation.tsx",
           "operation": "modify",
-          "description": "Apply the brand-gradient-text CSS class to the 'Game Vault' text element in the Navigation bar to render the red → purple → orange gradient on the brand name characters."
+          "description": "Replace all hardcoded neon color Tailwind classes with sunset palette equivalents. Navigation links, cart badge, and mobile menu toggle should use sunset accent colors. Background should use deep dusk tones. Preserve the 'Game Vault' gradient text logo exactly as-is."
         },
         {
           "path": "frontend/src/components/Footer.tsx",
           "operation": "modify",
-          "description": "Apply the brand-gradient-text CSS class to the 'Game Vault' text element in the Footer component to render the red → purple → orange gradient on the brand name characters."
+          "description": "Replace all hardcoded neon color Tailwind classes with sunset palette equivalents. Footer links, payment method icons, and section dividers should use warm sunset colors. Background should use deep dusk purple/navy-black. Preserve the 'Game Vault' gradient text exactly as-is."
         },
+        {
+          "path": "frontend/src/components/ProductCard.tsx",
+          "operation": "modify",
+          "description": "Replace all hardcoded neon color Tailwind classes with sunset palette equivalents. Card backgrounds, borders, badges, and button states should use sunset tones (deep dusk backgrounds, golden/orange/pink accents). Hover effects should emit warm sunset glows instead of cyan glows."
+        },
+        {
+          "path": "frontend/src/components/CartDrawer.tsx",
+          "operation": "modify",
+          "description": "Replace all hardcoded neon color Tailwind classes with sunset palette equivalents. Drawer background, item borders, remove buttons, and checkout button should use sunset colors (deep dusk backgrounds, warm accent highlights)."
+        },
+        {
+          "path": "frontend/src/components/CategoryCard.tsx",
+          "operation": "modify",
+          "description": "Replace all hardcoded neon color Tailwind classes with sunset palette equivalents. Card backgrounds, borders, and selected state highlighting should use sunset tones (dusk backgrounds, golden/orange/pink for active state)."
+        },
+        {
+          "path": "frontend/src/components/checkout/PayPalPayment.tsx",
+          "operation": "modify",
+          "description": "Replace all hardcoded neon color Tailwind classes with sunset palette equivalents. Payment UI elements, loading states, and confirm button should use sunset accent colors (golden yellow, burnt orange, dusky pink)."
+        },
+        {
+          "path": "frontend/src/components/checkout/CryptoPayment.tsx",
+          "operation": "modify",
+          "description": "Replace all hardcoded neon color Tailwind classes with sunset palette equivalents. Wallet address display, currency indicators, and confirm button should use warm sunset colors instead of neon cyan/green."
+        },
+        {
+          "path": "frontend/src/components/checkout/GiftCardPayment.tsx",
+          "operation": "modify",
+          "description": "Replace all hardcoded neon color Tailwind classes with sunset palette equivalents. Input fields, validation states, and success/error indicators should use sunset accent colors (golden for success, burnt orange/pink for errors)."
+        },
+        {
+          "path": "frontend/src/components/checkout/PayIn3Payment.tsx",
+          "operation": "modify",
+          "description": "Replace all hardcoded neon color Tailwind classes with sunset palette equivalents. Payment schedule display, installment cards, and agreement checkbox should use sunset tones (deep dusk backgrounds, warm accent highlights)."
+        },
+        {
+          "path": "frontend/src/components/checkout/PaymentMethodSelector.tsx",
+          "operation": "modify",
+          "description": "Replace all hardcoded neon color Tailwind classes with sunset palette equivalents. Payment method cards, selection indicators, and hover states should use sunset colors (golden/orange/pink for selected/hover states)."
+        },
+        {
+          "path": "frontend/src/components/admin/CategoryManager.tsx",
+          "operation": "modify",
+          "description": "Replace all hardcoded neon color Tailwind classes with sunset palette equivalents. Table headers, action buttons, and dialog backgrounds should use sunset tones (deep dusk backgrounds, warm accent buttons)."
+        },
+        {
+          "path": "frontend/src/components/admin/ProductManager.tsx",
+          "operation": "modify",
+          "description": "Replace all hardcoded neon color Tailwind classes with sunset palette equivalents. Table elements, edit/delete buttons, and availability badges should use sunset colors (golden/orange/pink accents)."
+        },
+        {
+          "path": "frontend/src/components/admin/OrderManager.tsx",
+          "operation": "modify",
+          "description": "Replace all hardcoded neon color Tailwind classes with sunset palette equivalents. Order table styling, status badges, and buyer info sections should use sunset tones (warm accent colors for status indicators)."
+        },
+        {
+          "path": "frontend/src/components/admin/AdminWhitelistManager.tsx",
+          "operation": "modify",
+          "description": "Replace all hardcoded neon color Tailwind classes with sunset palette equivalents. Username list, add/remove buttons, and confirmation dialogs should use sunset colors (deep dusk backgrounds, golden/orange/pink action buttons)."
+        },
+        {
+          "path": "frontend/src/components/admin/CategoryForm.tsx",
+          "operation": "modify",
+          "description": "Replace all hardcoded neon color Tailwind classes with sunset palette equivalents. Form inputs, labels, focus rings, and submit buttons should use sunset accent colors (golden yellow, burnt orange, dusky pink)."
+        },
+        {
+          "path": "frontend/src/components/admin/ProductForm.tsx",
+          "operation": "modify",
+          "description": "Replace all hardcoded neon color Tailwind classes with sunset palette equivalents. Form fields, validation states, and action buttons should use sunset tones (warm accent colors for focus/active states)."
+        }
+      ]
+    },
+    {
+      "id": "REQ-40",
+      "summary": "Update LoadingScreen3D component with sunset palette colors in both HTML overlay and Three.js scene",
+      "acceptanceCriteria": [
+        "The Three.js sky/background uses a warm sunset gradient (orange-gold at horizon, deep purple at top).",
+        "Building materials use dark silhouette tones with warm lit windows.",
+        "Vehicle and light colors are warm orange/yellow rather than cyan/neon.",
+        "HTML overlay elements in the loading screen use sunset palette backgrounds and text colors.",
+        "The 'Game Vault' gradient text in the loading screen overlay is unchanged."
+      ],
+      "file_operations": [
         {
           "path": "frontend/src/components/LoadingScreen3D.tsx",
           "operation": "modify",
-          "description": "Apply the brand-gradient-text CSS class to the 'Game Vault' intro/title text element in the LoadingScreen3D component to render the red → purple → orange gradient on the brand name characters."
+          "description": "Update the Three.js scene to use warm sunset colors: change the sky gradient to warm golden-orange at the horizon (#ff7043 → #ff8c00) transitioning to deep purple at the top (#4a0e8f), update building materials to dark silhouette tones with warm orange/yellow lit windows, change vehicle colors and street lighting to warm orange/yellow tones instead of cyan/neon. Also update the HTML overlay UI elements (title text container background, progress bar colors, any text styling) to use sunset palette colors (deep dusk backgrounds, golden/orange/pink accents). Preserve the 'Game Vault' gradient text in the loading screen overlay exactly as-is (red → purple → orange)."
         }
       ]
     }

@@ -2,31 +2,9 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-remove-the-logo-image-icon-from-the-navigation-component-so-that-only-the-game-vault-text-brand-name-is-displayed-in-the-navbar-no-image-svg-or-icon-logo-should-appear-alongside-or-in-place-of-the-text",
-      "featureTitle": "Remove the logo image/icon from the Navigation component so that only the 'Game Vault' text brand name is displayed in the navbar — no image, SVG, or icon logo should appear alongside or in place of the text.",
+      "featureId": "feature-replace-the-existing-dark-neon-gaming-theme-in-frontend-src-index-css-with-a-full-sunset-aesthetic-define-new-css-custom-properties-using-the-nyc-sunset-palette-deep-dusk-purple-navy-black-backgrounds-e-g-1a0a2e-0d0519-1c0f3f-warm-dark-mid-tones-e-g-2d1b4e-3a1a2a-and-sunset-accent-colors-golden-yellow-f5a623-burnt-orange-e85d04-dusky-pink-rose-d63384-soft-purple-9b59b6-replace-all-neon-cyan-electric-orange-and-hot-pink-css-variables-with-these-sunset-tones-update-glow-utility-classes-e-g-neon-glow-neon-border-to-emit-warm-sunset-glows-orange-pink-golden-box-shadows-and-text-shadows-instead-of-cyan-green-neon-glows-retain-the-orbitron-and-rajdhani-google-font-imports-do-not-alter-the-game-vault-gradient-or-any-inline-style-producing-the-red-purple-orange-game-vault-text-gradient",
+      "featureTitle": "Replace the existing dark neon gaming theme in `frontend/src/index.css` with a full sunset aesthetic. Define new CSS custom properties using the NYC sunset palette: deep dusk purple/navy-black backgrounds (e.g. `#1a0a2e`, `#0d0519`, `#1c0f3f`), warm dark mid-tones (e.g. `#2d1b4e`, `#3a1a2a`), and sunset accent colors — golden yellow (`#f5a623`), burnt orange (`#e85d04`), dusky pink/rose (`#d63384`), soft purple (`#9b59b6`). Replace all neon-cyan, electric-orange, and hot-pink CSS variables with these sunset tones. Update glow utility classes (e.g. `neon-glow`, `neon-border`) to emit warm sunset glows (orange/pink/golden box-shadows and text-shadows) instead of cyan/green neon glows. Retain the Orbitron and Rajdhani Google Font imports. Do NOT alter the `--game-vault-gradient` or any inline style producing the red → purple → orange 'Game Vault' text gradient.",
       "files": [
-        "frontend/src/components/Navigation.tsx"
-      ],
-      "components": [
-        "authorization@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0"
-      ],
-      "testIds": [
-        "REQ-7"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-apply-a-3-tone-css-linear-gradient-flowing-red-purple-orange-to-the-game-vault-site-name-text-in-every-location-it-appears-the-navigation-bar-brand-text-the-footer-brand-name-the-loadingscreen3d-intro-title-text-and-any-other-component-that-renders-the-site-name-as-visible-text-use-a-background-clip-text-technique-or-equivalent-css-to-render-the-gradient-directly-on-the-characters",
-      "featureTitle": "Apply a 3-tone CSS linear gradient flowing red → purple → orange to the 'Game Vault' site name text in every location it appears: the Navigation bar brand text, the Footer brand name, the LoadingScreen3D intro/title text, and any other component that renders the site name as visible text. Use a background-clip text technique or equivalent CSS to render the gradient directly on the characters.",
-      "files": [
-        "frontend/src/components/Footer.tsx",
-        "frontend/src/components/LoadingScreen3D.tsx",
-        "frontend/src/components/Navigation.tsx",
         "frontend/src/index.css"
       ],
       "components": [
@@ -38,7 +16,63 @@
         "github-export-icp-cli@1.0.0"
       ],
       "testIds": [
-        "REQ-8"
+        "REQ-37"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-update-frontend-tailwind-config-js-to-replace-all-neon-themed-color-tokens-neon-cyan-electric-orange-hot-pink-etc-with-sunset-palette-tokens-sunset-gold-f5a623-sunset-orange-e85d04-sunset-pink-d63384-sunset-purple-9b59b6-dusk-bg-0d0519-dusk-mid-1a0a2e-update-any-existing-pulse-glow-or-custom-keyframe-animation-colors-to-use-sunset-warm-tones-ensure-css-variable-based-color-references-still-resolve-correctly-against-the-updated-index-css-tokens",
+      "featureTitle": "Update `frontend/tailwind.config.js` to replace all neon-themed color tokens (neon-cyan, electric-orange, hot-pink, etc.) with sunset palette tokens: `sunset-gold` (`#f5a623`), `sunset-orange` (`#e85d04`), `sunset-pink` (`#d63384`), `sunset-purple` (`#9b59b6`), `dusk-bg` (`#0d0519`), `dusk-mid` (`#1a0a2e`). Update any existing `pulse-glow` or custom keyframe animation colors to use sunset warm tones. Ensure CSS variable-based color references still resolve correctly against the updated `index.css` tokens.",
+      "files": [
+        "frontend/tailwind.config.js"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-38"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-apply-the-sunset-theme-consistently-across-all-frontend-page-and-layout-components-storefrontpage-tsx-productdetailpage-tsx-checkoutpage-tsx-orderconfirmationpage-tsx-adminpanelpage-tsx-navigation-tsx-footer-tsx-productcard-tsx-cartdrawer-tsx-categorycard-tsx-all-checkout-sub-components-paypalpayment-tsx-cryptopayment-tsx-giftcardpayment-tsx-payin3payment-tsx-paymentmethodselector-tsx-and-all-admin-sub-components-categorymanager-tsx-productmanager-tsx-ordermanager-tsx-adminwhitelistmanager-tsx-categoryform-tsx-productform-tsx-replace-all-hardcoded-neon-color-classes-e-g-text-cyan-400-border-cyan-500-bg-gray-900-shadow-cyan-neon-specific-utility-classes-with-their-sunset-palette-equivalents-buttons-cards-borders-hover-states-badges-and-focus-rings-must-all-use-sunset-accent-colors-the-game-vault-gradient-text-must-remain-unchanged-wherever-it-appears",
+      "featureTitle": "Apply the sunset theme consistently across all frontend page and layout components: `StorefrontPage.tsx`, `ProductDetailPage.tsx`, `CheckoutPage.tsx`, `OrderConfirmationPage.tsx`, `AdminPanelPage.tsx`, `Navigation.tsx`, `Footer.tsx`, `ProductCard.tsx`, `CartDrawer.tsx`, `CategoryCard.tsx`, all checkout sub-components (`PayPalPayment.tsx`, `CryptoPayment.tsx`, `GiftCardPayment.tsx`, `PayIn3Payment.tsx`, `PaymentMethodSelector.tsx`), and all admin sub-components (`CategoryManager.tsx`, `ProductManager.tsx`, `OrderManager.tsx`, `AdminWhitelistManager.tsx`, `CategoryForm.tsx`, `ProductForm.tsx`). Replace all hardcoded neon color classes (e.g. `text-cyan-400`, `border-cyan-500`, `bg-gray-900`, `shadow-cyan`, neon-specific utility classes) with their sunset palette equivalents. Buttons, cards, borders, hover states, badges, and focus rings must all use sunset accent colors. The 'Game Vault' gradient text must remain unchanged wherever it appears.",
+      "files": [
+        "frontend/src/components/CartDrawer.tsx",
+        "frontend/src/components/CategoryCard.tsx",
+        "frontend/src/components/Footer.tsx",
+        "frontend/src/components/Navigation.tsx",
+        "frontend/src/components/ProductCard.tsx",
+        "frontend/src/components/admin/CategoryForm.tsx",
+        "frontend/src/components/admin/CategoryManager.tsx",
+        "frontend/src/components/admin/ProductForm.tsx",
+        "frontend/src/components/admin/ProductManager.tsx",
+        "frontend/src/components/checkout/CryptoPayment.tsx",
+        "frontend/src/components/checkout/GiftCardPayment.tsx",
+        "frontend/src/components/checkout/PayIn3Payment.tsx",
+        "frontend/src/components/checkout/PayPalPayment.tsx",
+        "frontend/src/components/checkout/PaymentMethodSelector.tsx",
+        "frontend/src/pages/AdminPanelPage.tsx",
+        "frontend/src/pages/CheckoutPage.tsx",
+        "frontend/src/pages/OrderConfirmationPage.tsx",
+        "frontend/src/pages/ProductDetailPage.tsx",
+        "frontend/src/pages/StorefrontPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-39"
       ],
       "confidence": "high"
     }

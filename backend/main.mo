@@ -1,37 +1,34 @@
 import Array "mo:core/Array";
-import Iter "mo:core/Iter";
+import Nat "mo:core/Nat";
 import Order "mo:core/Order";
+import Text "mo:core/Text";
 import Map "mo:core/Map";
 import Principal "mo:core/Principal";
 import Runtime "mo:core/Runtime";
+
 import MixinAuthorization "authorization/MixinAuthorization";
 import AccessControl "authorization/access-control";
 
+
 actor {
-  module ProductCategory {
-    public type ProductCategory = {
-      id : Nat;
-      name : Text;
-      description : Text;
-    };
+  // Product Category
+  type ProductCategory = {
+    id : Nat;
+    name : Text;
+    description : Text;
   };
 
-  type ProductCategory = ProductCategory.ProductCategory;
-
-  module ProductModel {
-    public type Product = {
-      id : Nat;
-      gameName : Text;
-      categoryId : Nat;
-      title : Text;
-      description : Text;
-      accountDetails : Text;
-      price : Nat;
-      available : Bool;
-    };
+  // Product
+  type Product = {
+    id : Nat;
+    gameName : Text;
+    categoryId : Nat;
+    title : Text;
+    description : Text;
+    accountDetails : Text;
+    price : Nat;
+    available : Bool;
   };
-
-  type Product = ProductModel.Product;
 
   // Payment methods
   type PaymentMethod = {
@@ -41,24 +38,42 @@ actor {
     #payIn3Installments;
   };
 
-  // Order type
-  type Order = {
+  // Order type (includes buyerUsername, email, and contact)
+  public type Order = {
     productId : Nat;
     buyer : Principal;
+    buyerUsername : Text;
+    buyerEmail : Text;
+    buyerContact : Text;
     paymentMethod : PaymentMethod;
     status : Text;
   };
 
-  // User profile type
+  // User profile type (includes username and contact info)
   public type UserProfile = {
-    name : Text;
+    username : Text;
+    email : Text;
+    contact : Text;
   };
 
-  // Internal state
-  let categories = Map.empty<Nat, ProductCategory>();
+  public type ProductError = {
+    #NotFound;
+    #Unauthorized;
+    #GenericError : Text;
+  };
+
+  public type Result = {
+    #ok;
+    #err : Text;
+  };
+
+  // Internal State
   let products = Map.empty<Nat, Product>();
+  let categories = Map.empty<Nat, ProductCategory>();
   let orders = Map.empty<Nat, Order>();
   let userProfiles = Map.empty<Principal, UserProfile>();
+  let adminUsernames = Map.empty<Text, ()>();
+  let usernameIndex = Map.empty<Text, Principal>();
 
   var nextCategoryId = 1;
   var nextProductId = 1;
@@ -73,8 +88,7 @@ actor {
     };
   };
 
-  // ── User Profile Functions ──────────────────────────────────────────────────
-
+  // User Profile (required by frontend)
   public query ({ caller }) func getCallerUserProfile() : async ?UserProfile {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can get their profile");
@@ -86,6 +100,28 @@ actor {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can save profiles");
     };
+    if (profile.username.contains(#char ' ')) {
+      Runtime.trap("Username cannot contain spaces");
+    };
+    if (profile.username != "") {
+      switch (usernameIndex.get(profile.username)) {
+        case (?existingPrincipal) {
+          if (existingPrincipal != caller) {
+            Runtime.trap("Username already taken");
+          };
+        };
+        case (null) {};
+      };
+      switch (userProfiles.get(caller)) {
+        case (?oldProfile) {
+          if (oldProfile.username != "" and oldProfile.username != profile.username) {
+            usernameIndex.remove(oldProfile.username);
+          };
+        };
+        case (null) {};
+      };
+      usernameIndex.add(profile.username, caller);
+    };
     userProfiles.add(caller, profile);
   };
 
@@ -96,55 +132,133 @@ actor {
     userProfiles.get(user);
   };
 
-  // ── Category Management (Admin only) ───────────────────────────────────────
-
-  public shared ({ caller }) func addCategory(name : Text, description : Text) : async Nat {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
-      Runtime.trap("Unauthorized: Only store owners can add categories");
+  // Username Management
+  public query func isUsernameAvailable(username : Text) : async Bool {
+    if (username.contains(#char ' ')) {
+      return false;
     };
-
-    let category = {
-      id = nextCategoryId;
-      name;
-      description;
-    };
-
-    categories.add(nextCategoryId, category);
-    nextCategoryId += 1;
-    category.id;
+    not usernameIndex.containsKey(username);
   };
 
-  public shared ({ caller }) func editCategory(id : Nat, name : Text, description : Text) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
-      Runtime.trap("Unauthorized: Only store owners can edit categories");
+  public shared ({ caller }) func createUsername(username : Text) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can set usernames");
     };
-
-    switch (categories.get(id)) {
-      case (null) { Runtime.trap("Category does not exist.") };
-      case (?_) {
-        let updatedCategory = {
-          id;
-          name;
-          description;
+    if (username.contains(#char ' ')) {
+      Runtime.trap("Username cannot contain spaces");
+    };
+    switch (usernameIndex.get(username)) {
+      case (?existingPrincipal) {
+        if (existingPrincipal != caller) {
+          Runtime.trap("Username already taken");
         };
-        categories.add(id, updatedCategory);
+      };
+      case (null) {};
+    };
+    switch (userProfiles.get(caller)) {
+      case (?oldProfile) {
+        if (oldProfile.username != "" and oldProfile.username != username) {
+          usernameIndex.remove(oldProfile.username);
+        };
+      };
+      case (null) {};
+    };
+    usernameIndex.add(username, caller);
+    switch (userProfiles.get(caller)) {
+      case (null) {
+        let profile : UserProfile = {
+          username;
+          email = "";
+          contact = "";
+        };
+        userProfiles.add(caller, profile);
+      };
+      case (?existing) {
+        userProfiles.add(
+          caller,
+          { existing with username },
+        );
       };
     };
   };
 
-  public shared ({ caller }) func deleteCategory(id : Nat) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
-      Runtime.trap("Unauthorized: Only store owners can delete categories");
+  public query func hasUsername(user : Principal) : async Bool {
+    switch (userProfiles.get(user)) {
+      case (null) { false };
+      case (?profile) { profile.username != "" };
     };
-
-    if (not categories.containsKey(id)) {
-      Runtime.trap("Category does not exist.");
-    };
-    categories.remove(id);
   };
 
-  // ── Product Management (Admin only) ────────────────────────────────────────
+  public query func getUsernameByPrincipal(user : Principal) : async ?Text {
+    switch (userProfiles.get(user)) {
+      case (null) { null };
+      case (?profile) {
+        if (profile.username == "") { null } else { ?profile.username };
+      };
+    };
+  };
 
+  // Admin Whitelist Management
+  public shared ({ caller }) func addAdminUser(username : Text) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only admins can modify whitelist");
+    };
+    adminUsernames.add(username, ());
+  };
+
+  public shared ({ caller }) func removeAdminUser(username : Text) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only admins can modify whitelist");
+    };
+    adminUsernames.remove(username);
+  };
+
+  public query func isAdminUsername(username : Text) : async Bool {
+    adminUsernames.containsKey(username);
+  };
+
+  // Product Category Management (Admin only)
+  public shared ({ caller }) func addCategory(name : Text, description : Text) : async Result {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      return #err("Unauthorized: Only admins can add categories");
+    };
+
+    let id = nextCategoryId;
+    let category : ProductCategory = {
+      id;
+      name;
+      description;
+    };
+
+    categories.add(id, category);
+    nextCategoryId += 1;
+    #ok;
+  };
+
+  public shared ({ caller }) func updateCategory(id : Nat, name : Text, description : Text) : async Result {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      return #err("Unauthorized: Only admins can update categories");
+    };
+
+    let category : ProductCategory = {
+      id;
+      name;
+      description;
+    };
+    categories.add(id, category);
+    #ok;
+  };
+
+  public shared ({ caller }) func deleteCategory(id : Nat) : async Result {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      return #err("Unauthorized: Only admins can delete categories");
+    };
+
+    categories.remove(id);
+    #ok;
+  };
+
+  // Product Management (Admin only)
   module Product {
     public func compare(product1 : Product, product2 : Product) : Order.Order {
       switch (Text.compare(product1.gameName, product2.gameName)) {
@@ -158,13 +272,14 @@ actor {
     };
   };
 
-  public shared ({ caller }) func addProduct(gameName : Text, categoryId : Nat, title : Text, description : Text, accountDetails : Text, price : Nat, available : Bool) : async Nat {
+  public shared ({ caller }) func addProduct(gameName : Text, categoryId : Nat, title : Text, description : Text, accountDetails : Text, price : Nat, available : Bool) : async Result {
     if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
-      Runtime.trap("Unauthorized: Only store owners can add products");
+      return #err("Unauthorized: Only admins can add products");
     };
 
-    let product = {
-      id = nextProductId;
+    let id = nextProductId;
+    let product : Product = {
+      id;
       gameName;
       categoryId;
       title;
@@ -174,54 +289,56 @@ actor {
       available;
     };
 
-    products.add(nextProductId, product);
+    products.add(id, product);
     nextProductId += 1;
-    product.id;
+    #ok;
   };
 
-  public shared ({ caller }) func editProduct(id : Nat, gameName : Text, categoryId : Nat, title : Text, description : Text, accountDetails : Text, price : Nat, available : Bool) : async () {
+  public shared ({ caller }) func updateProduct(id : Nat, gameName : Text, categoryId : Nat, title : Text, description : Text, accountDetails : Text, price : Nat, available : Bool) : async Result {
     if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
-      Runtime.trap("Unauthorized: Only store owners can edit products");
+      return #err("Unauthorized: Only admins can update products");
     };
 
-    switch (products.get(id)) {
-      case (null) { Runtime.trap("Product does not exist.") };
-      case (?_) {
-        let updatedProduct = {
-          id;
-          gameName;
-          categoryId;
-          title;
-          description;
-          accountDetails;
-          price;
-          available;
-        };
-        products.add(id, updatedProduct);
-      };
+    let product : Product = {
+      id;
+      gameName;
+      categoryId;
+      title;
+      description;
+      accountDetails;
+      price;
+      available;
     };
+    products.add(id, product);
+    #ok;
   };
 
-  public shared ({ caller }) func deleteProduct(id : Nat) : async () {
+  public shared ({ caller }) func deleteProduct(id : Nat) : async Result {
     if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
-      Runtime.trap("Unauthorized: Only store owners can delete products");
+      return #err("Unauthorized: Only admins can delete products");
     };
 
-    if (not products.containsKey(id)) {
-      Runtime.trap("Product does not exist.");
-    };
     products.remove(id);
+    #ok;
   };
 
-  // ── Order Management ───────────────────────────────────────────────────────
-
+  // Order Management
   public shared ({ caller }) func addOrder(productId : Nat, paymentMethod : PaymentMethod, status : Text) : async Nat {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only store users can purchase");
     };
-    let order = {
-      productId = productId;
+
+    let buyerProfile = switch (userProfiles.get(caller)) {
+      case (null) { Runtime.trap("User profile not found.") };
+      case (?profile) { profile };
+    };
+
+    let order : Order = {
+      productId;
       buyer = caller;
+      buyerUsername = buyerProfile.username;
+      buyerEmail = buyerProfile.email;
+      buyerContact = buyerProfile.contact;
       paymentMethod;
       status;
     };
@@ -231,21 +348,19 @@ actor {
     nextOrderId - 1;
   };
 
-  // Only the order's buyer or an admin may view a specific order
   public query ({ caller }) func getOrderById(id : Nat) : async Order {
     switch (orders.get(id)) {
       case (null) { Runtime.trap("Order does not exist.") };
       case (?order) {
         if (caller != order.buyer and not AccessControl.isAdmin(accessControlState, caller)) {
-          Runtime.trap("Unauthorized: Can only view your own orders");
+          Runtime.trap("Unauthorized: Can only view your orders");
         };
         order;
       };
     };
   };
 
-  // ── Public Catalogue Queries (no auth required) ────────────────────────────
-
+  // Public Catalogue Queries (no auth required)
   public query func getCategoryById(id : Nat) : async ProductCategory {
     switch (categories.get(id)) {
       case (null) { Runtime.trap("Category does not exist.") };
@@ -272,11 +387,25 @@ actor {
     products.values().toArray().filter(func(p) { p.available }).sort(Product.compareByPrice);
   };
 
-  // A user can only query their own orders; admins can query any user's orders
+  // User Order Queries
   public query ({ caller }) func getUserOrders(user : Principal) : async [Order] {
     if (caller != user and not AccessControl.isAdmin(accessControlState, caller)) {
-      Runtime.trap("Unauthorized: Can only view your own orders");
+      Runtime.trap("Unauthorized: Can only view your orders");
     };
-    orders.values().toArray().filter(func(o) { o.buyer == user });
+    orders.values().toArray().filter(func(order) { order.buyer == user });
+  };
+
+  public query ({ caller }) func getOrdersByUsername(username : Text) : async [Order] {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only admins can get orders by username");
+    };
+    orders.values().toArray().filter(func(order) { order.buyerUsername == username });
+  };
+
+  public query ({ caller }) func getAllOrders() : async [Order] {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only admins can view all orders");
+    };
+    orders.values().toArray();
   };
 };
