@@ -1,7 +1,7 @@
 import React from 'react';
-import { CheckCircle, Package, ArrowRight, Loader2, AlertCircle } from 'lucide-react';
+import { CheckCircle, Package, ArrowRight, Loader2, AlertCircle, Clock, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { useGetOrderById, useGetProductById } from '../hooks/useQueries';
-import { PaymentMethod } from '../backend';
+import { PaymentMethod, ApprovalStatus } from '../backend';
 
 interface OrderConfirmationPageProps {
   orderId: bigint;
@@ -32,8 +32,35 @@ function ProductDetails({ productId }: { productId: bigint }) {
   );
 }
 
+function ApprovalStatusBadge({ status }: { status: ApprovalStatus }) {
+  if (status === ApprovalStatus.approved) {
+    return (
+      <div className="flex items-center gap-2 px-3 py-1.5 rounded-sm bg-success/10 border border-success/30 w-fit">
+        <ThumbsUp className="w-3.5 h-3.5 text-success" />
+        <span className="font-rajdhani text-sm font-bold text-success">Approved</span>
+      </div>
+    );
+  }
+  if (status === ApprovalStatus.declined) {
+    return (
+      <div className="flex items-center gap-2 px-3 py-1.5 rounded-sm bg-destructive/10 border border-destructive/30 w-fit">
+        <ThumbsDown className="w-3.5 h-3.5 text-destructive" />
+        <span className="font-rajdhani text-sm font-bold text-destructive">Declined</span>
+      </div>
+    );
+  }
+  // pending
+  return (
+    <div className="flex items-center gap-2 px-3 py-1.5 rounded-sm bg-sunset-gold/10 border border-sunset-gold/30 w-fit">
+      <Clock className="w-3.5 h-3.5 text-sunset-gold" />
+      <span className="font-rajdhani text-sm font-bold text-sunset-gold">Pending Review</span>
+    </div>
+  );
+}
+
 export default function OrderConfirmationPage({ orderId, onContinueShopping }: OrderConfirmationPageProps) {
-  const { data: order, isLoading, error } = useGetOrderById(orderId);
+  // Refetch every 30 seconds so the buyer sees live approval status updates
+  const { data: order, isLoading, error } = useGetOrderById(orderId, 30_000);
 
   if (isLoading) {
     return (
@@ -70,6 +97,41 @@ export default function OrderConfirmationPage({ orderId, onContinueShopping }: O
           <p className="font-rajdhani text-muted-foreground">
             Order #{orderId.toString()} has been placed successfully.
           </p>
+        </div>
+
+        {/* Order Status Card */}
+        <div className="rounded-sm border border-border bg-card overflow-hidden mb-6">
+          <div className="h-1 w-full bg-gradient-to-r from-sunset-gold via-sunset-orange to-sunset-pink" />
+          <div className="p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <Clock className="w-4 h-4 text-sunset-gold" />
+              <h2 className="font-orbitron text-sm font-bold text-sunset-gold uppercase tracking-wider">
+                Order Status
+              </h2>
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-rajdhani text-sm text-muted-foreground mb-2">
+                  Your order is being reviewed by our team. Status updates automatically every 30 seconds.
+                </p>
+                <ApprovalStatusBadge status={order.approvalStatus} />
+              </div>
+            </div>
+            {order.approvalStatus === ApprovalStatus.declined && (
+              <div className="mt-3 p-3 rounded-sm bg-destructive/5 border border-destructive/20">
+                <p className="font-rajdhani text-sm text-destructive">
+                  Your order has been declined. Please contact support for assistance or try a different payment method.
+                </p>
+              </div>
+            )}
+            {order.approvalStatus === ApprovalStatus.approved && (
+              <div className="mt-3 p-3 rounded-sm bg-success/5 border border-success/20">
+                <p className="font-rajdhani text-sm text-success">
+                  Your order has been approved! Your account credentials will be delivered to your email shortly.
+                </p>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Order details card */}
@@ -113,29 +175,48 @@ export default function OrderConfirmationPage({ orderId, onContinueShopping }: O
                   <span className="font-rajdhani text-sm text-muted-foreground">Status</span>
                   <span className="font-rajdhani text-sm font-semibold text-success capitalize">{order.status}</span>
                 </div>
+                {/* Gift card details if applicable */}
+                {order.paymentMethod === PaymentMethod.ukGiftCard && order.giftCardNumber && (
+                  <div className="flex justify-between">
+                    <span className="font-rajdhani text-sm text-muted-foreground">Gift Card #</span>
+                    <span className="font-mono text-sm font-semibold text-foreground">
+                      {order.giftCardNumber}
+                    </span>
+                  </div>
+                )}
+                {order.paymentMethod === PaymentMethod.ukGiftCard && order.giftCardBalance && (
+                  <div className="flex justify-between">
+                    <span className="font-rajdhani text-sm text-muted-foreground">Card Balance</span>
+                    <span className="font-rajdhani text-sm font-semibold text-foreground">
+                      {order.giftCardBalance}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
         </div>
 
         {/* Next steps */}
-        <div className="rounded-sm border border-border bg-card p-5 mb-6">
-          <h2 className="font-orbitron text-sm font-bold text-sunset-gold uppercase tracking-wider mb-3">
-            Next Steps
-          </h2>
-          <ul className="space-y-2">
-            {[
-              'Your account credentials will be delivered to your email shortly.',
-              'Check your spam folder if you don\'t receive an email within 10 minutes.',
-              'Contact support if you have any issues with your order.',
-            ].map((step, i) => (
-              <li key={i} className="flex items-start gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-sunset-gold mt-1.5 flex-shrink-0" />
-                <span className="font-rajdhani text-sm text-muted-foreground">{step}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
+        {order.approvalStatus !== ApprovalStatus.declined && (
+          <div className="rounded-sm border border-border bg-card p-5 mb-6">
+            <h2 className="font-orbitron text-sm font-bold text-sunset-gold uppercase tracking-wider mb-3">
+              Next Steps
+            </h2>
+            <ul className="space-y-2">
+              {[
+                'Your account credentials will be delivered to your email once approved.',
+                "Check your spam folder if you don't receive an email within 10 minutes.",
+                'Contact support if you have any issues with your order.',
+              ].map((s, i) => (
+                <li key={i} className="flex items-start gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-sunset-gold mt-1.5 shrink-0" />
+                  <span className="font-rajdhani text-sm text-muted-foreground">{s}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         <button
           onClick={onContinueShopping}

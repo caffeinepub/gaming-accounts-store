@@ -1,174 +1,123 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Replace dark neon theme with sunset aesthetic across all pages",
+  "title": "Step 2: Payments Tab, Order Approval System & UK Gift Card Checkout Updates",
   "requirements": [
     {
-      "id": "REQ-37",
-      "summary": "Replace dark neon gaming theme in index.css with full sunset aesthetic using NYC sunset palette",
+      "id": "REQ-76",
+      "summary": "Add React Query hooks for order approval and buyer order queries",
       "acceptanceCriteria": [
-        "All CSS custom property values for background, card, border, and accent colors reflect the sunset palette (deep purples, navy-blacks, golden yellows, burnt oranges, dusky pinks).",
-        "Neon glow utility classes produce warm orange/pink/golden shadows, not cyan or green.",
-        "Google Fonts (Orbitron, Rajdhani) are still imported.",
-        "The 'Game Vault' red → purple → orange gradient CSS is unchanged."
+        "`useApproveOrder` mutation calls `approveOrder` on the actor, throws on `#err`, invalidates orders cache on success",
+        "`useDeclineOrder` mutation calls `declineOrder` on the actor, throws on `#err`, invalidates orders cache on success",
+        "`useOrdersByBuyer` query calls `getOrdersByBuyer` with the authenticated principal and is only enabled when authenticated",
+        "All hooks are exported from `useQueries.ts`"
       ],
       "file_operations": [
         {
-          "path": "frontend/src/index.css",
+          "path": "frontend/src/hooks/useQueries.ts",
           "operation": "modify",
-          "description": "Replace all neon-themed CSS custom properties (cyan, electric-orange, hot-pink backgrounds and accents) with sunset palette tokens: deep dusk purple/navy-black backgrounds (#1a0a2e, #0d0519, #1c0f3f), warm dark mid-tones (#2d1b4e, #3a1a2a), and sunset accents (golden yellow #f5a623, burnt orange #e85d04, dusky pink #d63384, soft purple #9b59b6). Update glow utility classes (.neon-glow, .neon-border, text-shadow utilities) to emit warm sunset glows using orange/pink/golden box-shadows and text-shadows instead of cyan/green neon effects. Preserve the existing Orbitron and Rajdhani Google Font imports. Do NOT modify the --game-vault-gradient CSS variable or any inline gradient producing the red → purple → orange 'Game Vault' text."
+          "description": "Add three new React Query hooks: `useApproveOrder()` mutation that calls `actor.approveOrder(orderId)`, unwraps the Result variant, throws an Error on `#err`, and invalidates the 'orders' query key on success; `useDeclineOrder()` mutation that calls `actor.declineOrder(orderId)`, unwraps the Result variant, throws an Error on `#err`, and invalidates the 'orders' query key on success; `useOrdersByBuyer(principal: Principal)` query that calls `actor.getOrdersByBuyer(principal)` and is only enabled when the principal is provided and the user is authenticated. Export all three hooks."
         }
       ]
     },
     {
-      "id": "REQ-38",
-      "summary": "Update Tailwind config to replace neon color tokens with sunset palette tokens",
+      "id": "REQ-77",
+      "summary": "Capture UK Gift Card number and balance fields during checkout",
       "acceptanceCriteria": [
-        "Tailwind config exports sunset palette color tokens.",
-        "No references to neon-cyan, electric-orange, or hot-pink color tokens remain in the config.",
-        "pulse-glow and any glow keyframes use warm sunset shadow colors."
+        "GiftCardPayment step renders a 'Gift Card Number' input field",
+        "GiftCardPayment step renders a 'Gift Card Balance' input field",
+        "Both fields are required — form cannot be submitted with empty values",
+        "Captured values are passed up to the checkout flow and included in the `placeOrder` call",
+        "The existing gift card code validation logic is preserved"
       ],
       "file_operations": [
         {
-          "path": "frontend/tailwind.config.js",
+          "path": "frontend/src/components/checkout/GiftCardPayment.tsx",
           "operation": "modify",
-          "description": "Replace all neon-themed color tokens (neon-cyan, electric-orange, hot-pink, etc.) in the theme.extend.colors section with sunset palette tokens: sunset-gold (#f5a623), sunset-orange (#e85d04), sunset-pink (#d63384), sunset-purple (#9b59b6), dusk-bg (#0d0519), dusk-mid (#1a0a2e). Update the pulse-glow keyframe animation and any other custom animation colors to use warm sunset tones (orange/pink/golden shadows). Ensure CSS variable-based color references still resolve correctly against the updated index.css tokens."
+          "description": "Add two new controlled input fields to the gift card payment form: 'Gift Card Number' (text input) and 'Gift Card Balance' (text input or select dropdown). Add local state to track these values. Validate that both fields are filled before enabling the confirm button. Pass these captured values up to the parent component via the onConfirm callback or a new prop callback (e.g., onGiftCardDataChange). Preserve the existing gift card code validation logic that checks the code against 'GVGIFT2025'."
         }
       ]
     },
     {
-      "id": "REQ-39",
-      "summary": "Apply sunset theme consistently across all frontend page and layout components",
+      "id": "REQ-78",
+      "summary": "Update order placement to include UK Gift Card fields",
       "acceptanceCriteria": [
-        "Storefront, product detail, checkout, order confirmation, and admin panel pages all display deep dusk purple/navy-black backgrounds.",
-        "All interactive elements (buttons, links, badges, form focus rings) use sunset accent colors (golden yellow, burnt orange, dusky pink, soft purple).",
-        "No neon-cyan, electric-green, or hot-pink accents appear anywhere in the UI.",
-        "Card backgrounds and borders use dark warm sunset tones.",
-        "The 'Game Vault' text gradient (red → purple → orange) is visually unchanged in navbar, footer, and loading screen."
+        "`placeOrder` mutation payload includes `giftCardNumber` and `giftCardBalance` fields",
+        "Gift card checkout correctly passes the captured number and balance",
+        "Non-gift-card checkouts pass empty strings for these fields",
+        "Order is persisted with correct gift card data in the backend"
       ],
       "file_operations": [
         {
-          "path": "frontend/src/pages/StorefrontPage.tsx",
+          "path": "frontend/src/hooks/useQueries.ts",
           "operation": "modify",
-          "description": "Replace all hardcoded neon color Tailwind classes (text-cyan-400, border-cyan-500, bg-gray-900, shadow-cyan, etc.) with sunset palette equivalents using the new Tailwind tokens (sunset-gold, sunset-orange, sunset-pink, sunset-purple, dusk-bg, dusk-mid). Update background colors to deep dusk purple/navy-black tones, card borders and accents to warm sunset colors, and hover states to use golden/orange/pink highlights. Preserve any existing 'Game Vault' gradient text."
-        },
-        {
-          "path": "frontend/src/pages/ProductDetailPage.tsx",
-          "operation": "modify",
-          "description": "Replace all hardcoded neon color Tailwind classes with sunset palette equivalents. Update background colors to dusk tones, borders and badges to sunset accent colors (golden yellow, burnt orange, dusky pink, soft purple), and button hover states to warm sunset glows. Preserve any 'Game Vault' gradient text."
+          "description": "Update the `usePlaceOrder` mutation to accept two new optional parameters: `giftCardNumber` and `giftCardBalance`. Modify the `actor.addOrder()` call to pass these values as the 5th and 6th arguments (after `approvalStatus`). Default both parameters to empty strings if not provided."
         },
         {
           "path": "frontend/src/pages/CheckoutPage.tsx",
           "operation": "modify",
-          "description": "Replace all hardcoded neon color Tailwind classes with sunset palette equivalents. Update form inputs, borders, focus rings, and buttons to use sunset accent colors. Background sections should use deep dusk purple/navy-black tones. Step indicators and progress elements should use warm sunset colors."
-        },
-        {
-          "path": "frontend/src/pages/OrderConfirmationPage.tsx",
-          "operation": "modify",
-          "description": "Replace all hardcoded neon color Tailwind classes with sunset palette equivalents. Success indicators, badges, and order detail cards should use warm sunset accent colors (golden yellow, burnt orange, dusky pink). Background should use deep dusk tones."
-        },
-        {
-          "path": "frontend/src/pages/AdminPanelPage.tsx",
-          "operation": "modify",
-          "description": "Replace all hardcoded neon color Tailwind classes with sunset palette equivalents. Tab indicators, section headers, and panel backgrounds should use sunset tones. Active states should use warm golden/orange highlights instead of cyan."
-        },
-        {
-          "path": "frontend/src/components/Navigation.tsx",
-          "operation": "modify",
-          "description": "Replace all hardcoded neon color Tailwind classes with sunset palette equivalents. Navigation links, cart badge, and mobile menu toggle should use sunset accent colors. Background should use deep dusk tones. Preserve the 'Game Vault' gradient text logo exactly as-is."
-        },
-        {
-          "path": "frontend/src/components/Footer.tsx",
-          "operation": "modify",
-          "description": "Replace all hardcoded neon color Tailwind classes with sunset palette equivalents. Footer links, payment method icons, and section dividers should use warm sunset colors. Background should use deep dusk purple/navy-black. Preserve the 'Game Vault' gradient text exactly as-is."
-        },
-        {
-          "path": "frontend/src/components/ProductCard.tsx",
-          "operation": "modify",
-          "description": "Replace all hardcoded neon color Tailwind classes with sunset palette equivalents. Card backgrounds, borders, badges, and button states should use sunset tones (deep dusk backgrounds, golden/orange/pink accents). Hover effects should emit warm sunset glows instead of cyan glows."
-        },
-        {
-          "path": "frontend/src/components/CartDrawer.tsx",
-          "operation": "modify",
-          "description": "Replace all hardcoded neon color Tailwind classes with sunset palette equivalents. Drawer background, item borders, remove buttons, and checkout button should use sunset colors (deep dusk backgrounds, warm accent highlights)."
-        },
-        {
-          "path": "frontend/src/components/CategoryCard.tsx",
-          "operation": "modify",
-          "description": "Replace all hardcoded neon color Tailwind classes with sunset palette equivalents. Card backgrounds, borders, and selected state highlighting should use sunset tones (dusk backgrounds, golden/orange/pink for active state)."
-        },
-        {
-          "path": "frontend/src/components/checkout/PayPalPayment.tsx",
-          "operation": "modify",
-          "description": "Replace all hardcoded neon color Tailwind classes with sunset palette equivalents. Payment UI elements, loading states, and confirm button should use sunset accent colors (golden yellow, burnt orange, dusky pink)."
-        },
-        {
-          "path": "frontend/src/components/checkout/CryptoPayment.tsx",
-          "operation": "modify",
-          "description": "Replace all hardcoded neon color Tailwind classes with sunset palette equivalents. Wallet address display, currency indicators, and confirm button should use warm sunset colors instead of neon cyan/green."
-        },
-        {
-          "path": "frontend/src/components/checkout/GiftCardPayment.tsx",
-          "operation": "modify",
-          "description": "Replace all hardcoded neon color Tailwind classes with sunset palette equivalents. Input fields, validation states, and success/error indicators should use sunset accent colors (golden for success, burnt orange/pink for errors)."
-        },
-        {
-          "path": "frontend/src/components/checkout/PayIn3Payment.tsx",
-          "operation": "modify",
-          "description": "Replace all hardcoded neon color Tailwind classes with sunset palette equivalents. Payment schedule display, installment cards, and agreement checkbox should use sunset tones (deep dusk backgrounds, warm accent highlights)."
-        },
-        {
-          "path": "frontend/src/components/checkout/PaymentMethodSelector.tsx",
-          "operation": "modify",
-          "description": "Replace all hardcoded neon color Tailwind classes with sunset palette equivalents. Payment method cards, selection indicators, and hover states should use sunset colors (golden/orange/pink for selected/hover states)."
-        },
-        {
-          "path": "frontend/src/components/admin/CategoryManager.tsx",
-          "operation": "modify",
-          "description": "Replace all hardcoded neon color Tailwind classes with sunset palette equivalents. Table headers, action buttons, and dialog backgrounds should use sunset tones (deep dusk backgrounds, warm accent buttons)."
-        },
-        {
-          "path": "frontend/src/components/admin/ProductManager.tsx",
-          "operation": "modify",
-          "description": "Replace all hardcoded neon color Tailwind classes with sunset palette equivalents. Table elements, edit/delete buttons, and availability badges should use sunset colors (golden/orange/pink accents)."
-        },
-        {
-          "path": "frontend/src/components/admin/OrderManager.tsx",
-          "operation": "modify",
-          "description": "Replace all hardcoded neon color Tailwind classes with sunset palette equivalents. Order table styling, status badges, and buyer info sections should use sunset tones (warm accent colors for status indicators)."
-        },
-        {
-          "path": "frontend/src/components/admin/AdminWhitelistManager.tsx",
-          "operation": "modify",
-          "description": "Replace all hardcoded neon color Tailwind classes with sunset palette equivalents. Username list, add/remove buttons, and confirmation dialogs should use sunset colors (deep dusk backgrounds, golden/orange/pink action buttons)."
-        },
-        {
-          "path": "frontend/src/components/admin/CategoryForm.tsx",
-          "operation": "modify",
-          "description": "Replace all hardcoded neon color Tailwind classes with sunset palette equivalents. Form inputs, labels, focus rings, and submit buttons should use sunset accent colors (golden yellow, burnt orange, dusky pink)."
-        },
-        {
-          "path": "frontend/src/components/admin/ProductForm.tsx",
-          "operation": "modify",
-          "description": "Replace all hardcoded neon color Tailwind classes with sunset palette equivalents. Form fields, validation states, and action buttons should use sunset tones (warm accent colors for focus/active states)."
+          "description": "Add local state to track `giftCardNumber` and `giftCardBalance` captured from the GiftCardPayment component. Update the GiftCardPayment component usage to pass a callback that updates this state when the user enters gift card details. Modify the final order placement call to pass `giftCardNumber` and `giftCardBalance` to the `usePlaceOrder` mutation when the payment method is 'ukGiftCard', and pass empty strings for all other payment methods."
         }
       ]
     },
     {
-      "id": "REQ-40",
-      "summary": "Update LoadingScreen3D component with sunset palette colors in both HTML overlay and Three.js scene",
+      "id": "REQ-79",
+      "summary": "Create PaymentsManager admin component for order approval workflow",
       "acceptanceCriteria": [
-        "The Three.js sky/background uses a warm sunset gradient (orange-gold at horizon, deep purple at top).",
-        "Building materials use dark silhouette tones with warm lit windows.",
-        "Vehicle and light colors are warm orange/yellow rather than cyan/neon.",
-        "HTML overlay elements in the loading screen use sunset palette backgrounds and text colors.",
-        "The 'Game Vault' gradient text in the loading screen overlay is unchanged."
+        "All orders are listed with buyer username, email, contact info, product name, and payment method",
+        "Approval status is displayed as a colour-coded badge per order",
+        "Gift card orders display the gift card number and balance columns/fields",
+        "Approve and Decline buttons are present per order and call the correct mutations",
+        "Success and error toast notifications appear after approve/decline actions",
+        "Approved and declined orders immediately reflect updated status in the UI after mutation (cache invalidation)",
+        "Sunset theme applied consistently"
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/LoadingScreen3D.tsx",
+          "path": "frontend/src/components/admin/PaymentsManager.tsx",
+          "operation": "create",
+          "description": "Create a new React component that fetches all orders using the existing `useGetAllOrders()` query hook. Display each order in a responsive table or card list with columns/fields for: buyer username, buyer email, buyer contact, product name (fetched using `useGetProductById(order.productId)`), payment method badge (using the existing payment method badge logic from OrderManager), approval status badge (amber for `#pending`, green for `#approved`, red for `#declined`), and — for orders where `paymentMethod` is 'ukGiftCard' — the `giftCardNumber` and `giftCardBalance` fields. For each order, render 'Approve' and 'Decline' buttons that call `useApproveOrder` and `useDeclineOrder` mutations respectively, passing the order ID. Show a toast notification (success or error) after each mutation completes. Apply the sunset theme consistently: use dusk-bg/dusk-mid backgrounds, sunset-gold/sunset-orange/sunset-pink accent colours for badges and buttons, and Orbitron/Rajdhani fonts. Handle loading and error states gracefully."
+        }
+      ]
+    },
+    {
+      "id": "REQ-80",
+      "summary": "Add Payments tab to admin panel",
+      "acceptanceCriteria": [
+        "A 'Payments' tab trigger is visible in the admin panel tab bar",
+        "Clicking the Payments tab renders the `PaymentsManager` component",
+        "All other existing tabs (Products, Orders, Admins, Subscriptions, Settings) continue to function correctly",
+        "The default active tab remains unchanged (Products or whichever was first)"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/pages/AdminPanelPage.tsx",
           "operation": "modify",
-          "description": "Update the Three.js scene to use warm sunset colors: change the sky gradient to warm golden-orange at the horizon (#ff7043 → #ff8c00) transitioning to deep purple at the top (#4a0e8f), update building materials to dark silhouette tones with warm orange/yellow lit windows, change vehicle colors and street lighting to warm orange/yellow tones instead of cyan/neon. Also update the HTML overlay UI elements (title text container background, progress bar colors, any text styling) to use sunset palette colors (deep dusk backgrounds, golden/orange/pink accents). Preserve the 'Game Vault' gradient text in the loading screen overlay exactly as-is (red → purple → orange)."
+          "description": "Import the new `PaymentsManager` component. Add a new tab trigger labelled 'Payments' to the existing tab list (alongside Products, Orders, Admins, Subscriptions, Settings). Add a corresponding tab content panel that renders `<PaymentsManager />` when the Payments tab is active. Ensure the new tab does not change the default active tab or disrupt the existing tab order."
+        }
+      ]
+    },
+    {
+      "id": "REQ-81",
+      "summary": "Display live order approval status on order confirmation page",
+      "acceptanceCriteria": [
+        "OrderConfirmationPage displays an 'Order Status' section showing the current approvalStatus",
+        "Pending status renders in amber/gold colour",
+        "Approved status renders in green colour",
+        "Declined status renders in red colour",
+        "The status is fetched live from the backend (not just from local state)",
+        "A React Query refetch interval ensures the status updates without a full page reload"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/hooks/useQueries.ts",
+          "operation": "modify",
+          "description": "Update the `useGetOrderById(orderId)` query hook to accept an optional `refetchInterval` configuration parameter. When provided, pass this interval to the React Query `refetchInterval` option so the query automatically refetches at the specified interval (e.g., 30000 milliseconds)."
+        },
+        {
+          "path": "frontend/src/pages/OrderConfirmationPage.tsx",
+          "operation": "modify",
+          "description": "Update the `useGetOrderById` call to pass a `refetchInterval` of 30000 (30 seconds). Add a new 'Order Status' section to the page UI that displays the `approvalStatus` field from the fetched order. Render the status as a colour-coded badge: amber/sunset-gold background for 'pending', green background for 'approved', red background for 'declined'. Use a clear label like 'Order Status:' followed by the status text (e.g., 'Pending', 'Approved', 'Declined'). Ensure the status updates reactively when the query refetches."
         }
       ]
     }

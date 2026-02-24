@@ -1,54 +1,54 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-24T14:48:42.193Z",
-  "summary": "The diff implements a comprehensive sunset theme replacement across frontend files. REQ-37 (index.css), REQ-38 (tailwind.config.js), REQ-39 (all page/component files), and REQ-40 (LoadingScreen3D.tsx) are addressed. However, tailwind.config.js and LoadingScreen3D.tsx were listed as omitted files due to limits, so their content cannot be verified directly. Several REQ-39 components are visible and correctly updated.",
+  "generatedAt": "2026-02-24T19:42:48.715Z",
+  "summary": "The diff implements the vast majority of requirements. Backend changes (REQ-73, REQ-74, REQ-75, REQ-82), frontend hooks (REQ-76), GiftCardPayment updates (REQ-77), CheckoutPage updates (REQ-78), PaymentsManager component (REQ-79), AdminPanelPage Payments tab (REQ-80), OrderConfirmationPage approval status (REQ-81), and migration.mo (REQ-82) are all present. However, the backend/main.mo and useQueries.ts diffs are truncated, making full verification of approveOrder, declineOrder, getOrdersByBuyer, and the new hooks impossible. The PaymentsManager uses index+1 as orderId proxy which is an undocumented workaround.",
   "missing_requirements": [
     {
-      "id": "REQ-38",
-      "requirement": "Update frontend/tailwind.config.js to replace neon-themed color tokens with sunset palette tokens and update pulse-glow keyframe animation colors.",
-      "reason": "frontend/tailwind.config.js appears in the list of modified files but was omitted from the diff due to size limits. Its content cannot be verified.",
-      "evidence": []
+      "id": "REQ-74",
+      "requirement": "approveOrder and declineOrder must verify the caller's username is in the admin whitelist and return #err('Not authorised') if not admin and #err('Order not found') if orderId doesn't exist.",
+      "reason": "The backend/main.mo diff is truncated and does not show the approveOrder or declineOrder function bodies. The visible access control uses AccessControl.hasPermission with an #admin role rather than checking the adminUsernames username whitelist directly as specified. The exact error message strings cannot be verified.",
+      "evidence": [
+        "backend/main.mo"
+      ]
     },
     {
-      "id": "REQ-40",
-      "requirement": "Update LoadingScreen3D.tsx overlay UI and Three.js scene (sky gradient, building colors, vehicle/light colors) to use sunset palette.",
-      "reason": "frontend/src/components/LoadingScreen3D.tsx appears in the list of modified files but was omitted from the diff due to size limits. Its content cannot be verified.",
-      "evidence": []
+      "id": "REQ-75",
+      "requirement": "getOrdersByBuyer(principal: Principal) : async [Order] must be exposed as a query (not update) call.",
+      "reason": "The backend/main.mo diff is truncated and the getOrdersByBuyer function is not visible in the shown content, so its existence and query declaration cannot be confirmed.",
+      "evidence": [
+        "backend/main.mo"
+      ]
     },
     {
-      "id": "REQ-39",
-      "requirement": "Apply sunset theme to admin sub-components AdminWhitelistManager.tsx and OrderManager.tsx.",
-      "reason": "AdminWhitelistManager.tsx and OrderManager.tsx are not shown in the diff summary. They are listed as required components in REQ-39 but their modification cannot be confirmed from the available diff.",
-      "evidence": []
+      "id": "REQ-76",
+      "requirement": "useOrdersByBuyer query must call getOrdersByBuyer with the authenticated principal and be enabled only when authenticated. useApproveOrder and useDeclineOrder must invalidate the orders cache on success.",
+      "reason": "The useQueries.ts diff is truncated and does not show these three hooks, so their presence and correct implementation cannot be verified.",
+      "evidence": [
+        "frontend/src/hooks/useQueries.ts"
+      ]
     }
   ],
-  "hallucinated_features": [],
-  "confidence": 0.62,
+  "hallucinated_features": [
+    {
+      "description": "PaymentsManager uses array index+1 as a proxy for the real orderId when calling approveOrder and declineOrder mutations, with an explicit code comment acknowledging the real orderId is unavailable from getAllOrders.",
+      "reason": "The build request does not specify or permit this workaround. The spec implies orders have stable numeric IDs. Using index+1 is an undocumented assumption not requested in the spec and could produce incorrect behaviour when orders are non-contiguous.",
+      "evidence": [
+        "frontend/src/components/admin/PaymentsManager.tsx"
+      ]
+    }
+  ],
+  "confidence": 0.72,
   "changed_files": [
+    "backend/main.mo",
+    "backend/migration.mo",
     "frontend-file-summaries.txt",
-    "frontend/src/App.tsx",
-    "frontend/src/components/CartDrawer.tsx",
-    "frontend/src/components/CategoryCard.tsx",
-    "frontend/src/components/Footer.tsx",
-    "frontend/src/components/Navigation.tsx",
-    "frontend/src/components/ProductCard.tsx",
-    "frontend/src/components/admin/CategoryForm.tsx",
-    "frontend/src/components/admin/CategoryManager.tsx",
-    "frontend/src/components/admin/ProductForm.tsx",
-    "frontend/src/components/admin/ProductManager.tsx",
-    "frontend/src/components/checkout/CryptoPayment.tsx",
+    "frontend/src/components/admin/PaymentsManager.tsx",
     "frontend/src/components/checkout/GiftCardPayment.tsx",
-    "frontend/src/components/checkout/PayIn3Payment.tsx",
-    "frontend/src/components/checkout/PayPalPayment.tsx",
-    "frontend/src/components/checkout/PaymentMethodSelector.tsx",
-    "frontend/src/index.css",
+    "frontend/src/hooks/useQueries.ts",
     "frontend/src/pages/AdminPanelPage.tsx",
     "frontend/src/pages/CheckoutPage.tsx",
     "frontend/src/pages/OrderConfirmationPage.tsx",
-    "frontend/src/pages/ProductDetailPage.tsx",
-    "frontend/src/pages/StorefrontPage.tsx",
-    "frontend/tailwind.config.js",
     "project_state.json"
   ]
 }

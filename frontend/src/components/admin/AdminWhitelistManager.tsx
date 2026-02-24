@@ -13,7 +13,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { useAddAdminUsername, useRemoveAdminUsername } from '../../hooks/useQueries';
+import { useAddAdminUser, useRemoveAdminUser } from '../../hooks/useQueries';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
@@ -28,8 +28,8 @@ export default function AdminWhitelistManager() {
   const cachedList = queryClient.getQueryData<string[]>(['adminUsernames']);
   const adminList: string[] = cachedList ?? INITIAL_ADMINS;
 
-  const addAdmin = useAddAdminUsername();
-  const removeAdmin = useRemoveAdminUsername();
+  const addAdmin = useAddAdminUser();
+  const removeAdmin = useRemoveAdminUser();
 
   const handleAdd = () => {
     const trimmed = newUsername.trim();

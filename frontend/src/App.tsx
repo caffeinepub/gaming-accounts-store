@@ -12,10 +12,12 @@ import ProductDetailPage from './pages/ProductDetailPage';
 import CheckoutPage from './pages/CheckoutPage';
 import OrderConfirmationPage from './pages/OrderConfirmationPage';
 import AdminPanelPage from './pages/AdminPanelPage';
+import SubscriptionsPage from './pages/SubscriptionsPage';
+import SubscriptionCheckoutPage from './pages/SubscriptionCheckoutPage';
 import ProfileSetupModal from './components/ProfileSetupModal';
 import { useInternetIdentity } from './hooks/useInternetIdentity';
 import { useGetCallerUserProfile, useGetProductById, useGetAllCategories } from './hooks/useQueries';
-import type { Product, ProductCategory } from './backend';
+import type { Product, ProductCategory, SubscriptionTier } from './backend';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -26,11 +28,24 @@ const queryClient = new QueryClient({
   },
 });
 
-type Route = '/' | '/product' | '/checkout' | '/order-confirmation' | '/admin';
+type Route =
+  | '/'
+  | '/product'
+  | '/checkout'
+  | '/order-confirmation'
+  | '/admin'
+  | '/subscriptions'
+  | '/subscription-checkout';
 
 interface CartItem {
   product: Product;
   quantity: number;
+}
+
+interface SubscriptionCheckoutState {
+  tier: SubscriptionTier;
+  billingCycle: 'monthly' | 'yearly';
+  price: number;
 }
 
 // Wrapper to load product + category for ProductDetailPage
@@ -74,6 +89,8 @@ function AppContent() {
   const [routeParams, setRouteParams] = useState<Record<string, string>>({});
   const [cart, setCart] = useState<CartItem[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
+  const [subscriptionCheckoutState, setSubscriptionCheckoutState] =
+    useState<SubscriptionCheckoutState | null>(null);
 
   const { identity } = useInternetIdentity();
   const isAuthenticated = !!identity;
@@ -133,9 +150,41 @@ function AppContent() {
     return <LoadingScreen3D onComplete={() => setShowLoading(false)} />;
   }
 
+  const handleSubscribe = (tier: SubscriptionTier, billingCycle: 'monthly' | 'yearly', price: number) => {
+    setSubscriptionCheckoutState({ tier, billingCycle, price });
+    navigate('/subscription-checkout');
+  };
+
   const renderPage = () => {
     if (currentRoute === '/admin') {
       return <AdminPanelPage />;
+    }
+
+    if (currentRoute === '/subscriptions') {
+      return (
+        <SubscriptionsPage
+          onSubscribe={handleSubscribe}
+        />
+      );
+    }
+
+    if (currentRoute === '/subscription-checkout') {
+      if (!subscriptionCheckoutState) {
+        navigate('/subscriptions');
+        return null;
+      }
+      return (
+        <SubscriptionCheckoutPage
+          tier={subscriptionCheckoutState.tier}
+          billingCycle={subscriptionCheckoutState.billingCycle}
+          price={subscriptionCheckoutState.price}
+          onBack={() => navigate('/subscriptions')}
+          onComplete={() => {
+            setSubscriptionCheckoutState(null);
+            navigate('/');
+          }}
+        />
+      );
     }
 
     if (currentRoute === '/checkout') {
@@ -185,6 +234,13 @@ function AppContent() {
     );
   };
 
+  // Determine current page label for nav highlighting
+  const currentPageLabel = (() => {
+    if (currentRoute === '/') return 'storefront';
+    if (currentRoute === '/subscriptions' || currentRoute === '/subscription-checkout') return 'subscriptions';
+    return currentRoute.replace('/', '');
+  })();
+
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
       <Navigation
@@ -193,8 +249,9 @@ function AppContent() {
         onNavigate={(page) => {
           if (page === 'storefront') navigate('/');
           else if (page === 'admin') navigate('/admin');
+          else if (page === 'subscriptions') navigate('/subscriptions');
         }}
-        currentPage={currentRoute === '/' ? 'storefront' : currentRoute.replace('/', '')}
+        currentPage={currentPageLabel}
       />
 
       <main className="flex-1">

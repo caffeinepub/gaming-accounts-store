@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ShoppingCart, Menu, X, Shield, Store } from 'lucide-react';
+import { ShoppingCart, Menu, X, Shield, Store, Crown } from 'lucide-react';
 import { useInternetIdentity } from '../hooks/useInternetIdentity';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -64,6 +64,17 @@ export default function Navigation({ cartItemCount, onCartClick, onNavigate, cur
               Store
             </button>
             <button
+              onClick={() => onNavigate('subscriptions')}
+              className={`font-rajdhani font-semibold text-sm tracking-wider uppercase transition-colors flex items-center gap-1 ${
+                currentPage === 'subscriptions'
+                  ? 'text-sunset-orange neon-text'
+                  : 'text-muted-foreground hover:text-sunset-orange'
+              }`}
+            >
+              <Crown className="w-3.5 h-3.5" />
+              Subscriptions
+            </button>
+            <button
               onClick={() => onNavigate('admin')}
               className={`font-rajdhani font-semibold text-sm tracking-wider uppercase transition-colors flex items-center gap-1 ${
                 currentPage === 'admin'
@@ -126,6 +137,17 @@ export default function Navigation({ cartItemCount, onCartClick, onNavigate, cur
               }`}
             >
               Store
+            </button>
+            <button
+              onClick={() => { onNavigate('subscriptions'); setMobileMenuOpen(false); }}
+              className={`w-full text-left px-3 py-2 rounded-sm font-rajdhani font-semibold text-sm tracking-wider uppercase transition-colors flex items-center gap-1 ${
+                currentPage === 'subscriptions'
+                  ? 'text-sunset-orange bg-muted'
+                  : 'text-muted-foreground hover:text-sunset-orange hover:bg-muted'
+              }`}
+            >
+              <Crown className="w-3.5 h-3.5" />
+              Subscriptions
             </button>
             <button
               onClick={() => { onNavigate('admin'); setMobileMenuOpen(false); }}

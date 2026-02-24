@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Loader2 } from 'lucide-react';
-import { useAddProduct, useUpdateProduct, useGetAllCategories } from '../../hooks/useQueries';
+import { useAddProduct, useUpdateProduct } from '../../hooks/useQueries';
 import type { Product } from '../../backend';
 
 interface ProductFormProps {
@@ -9,12 +9,10 @@ interface ProductFormProps {
 }
 
 export default function ProductForm({ product, onSuccess }: ProductFormProps) {
-  const { data: categories } = useGetAllCategories();
   const addProduct = useAddProduct();
   const updateProduct = useUpdateProduct();
 
   const [gameName, setGameName] = useState(product?.gameName ?? '');
-  const [categoryId, setCategoryId] = useState(product?.categoryId?.toString() ?? '');
   const [title, setTitle] = useState(product?.title ?? '');
   const [description, setDescription] = useState(product?.description ?? '');
   const [accountDetails, setAccountDetails] = useState(product?.accountDetails ?? '');
@@ -27,13 +25,11 @@ export default function ProductForm({ product, onSuccess }: ProductFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const priceInPence = Math.round(parseFloat(price) * 100);
-    const catId = BigInt(categoryId || '0');
 
     if (isEditing) {
       await updateProduct.mutateAsync({
         id: product.id,
         gameName,
-        categoryId: catId,
         title,
         description,
         accountDetails,
@@ -43,7 +39,6 @@ export default function ProductForm({ product, onSuccess }: ProductFormProps) {
     } else {
       await addProduct.mutateAsync({
         gameName,
-        categoryId: catId,
         title,
         description,
         accountDetails,
@@ -59,41 +54,65 @@ export default function ProductForm({ product, onSuccess }: ProductFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <label className={labelClass}>Game Name *</label>
-          <input type="text" value={gameName} onChange={(e) => setGameName(e.target.value)} placeholder="e.g. Fortnite" required className={inputClass} />
-        </div>
-        <div>
-          <label className={labelClass}>Category</label>
-          <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className={inputClass}>
-            <option value="">Select category</option>
-            {categories?.map((cat) => (
-              <option key={cat.id.toString()} value={cat.id.toString()}>{cat.name}</option>
-            ))}
-          </select>
-        </div>
+      <div>
+        <label className={labelClass}>Game Name *</label>
+        <input
+          type="text"
+          value={gameName}
+          onChange={(e) => setGameName(e.target.value)}
+          placeholder="e.g. Fortnite"
+          required
+          className={inputClass}
+        />
       </div>
 
       <div>
         <label className={labelClass}>Title *</label>
-        <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Level 100 Account" required className={inputClass} />
+        <input
+          type="text"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="e.g. Level 100 Account"
+          required
+          className={inputClass}
+        />
       </div>
 
       <div>
         <label className={labelClass}>Description</label>
-        <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Describe the account..." rows={3} className={`${inputClass} resize-none`} />
+        <textarea
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="Describe the account..."
+          rows={3}
+          className={`${inputClass} resize-none`}
+        />
       </div>
 
       <div>
         <label className={labelClass}>Account Details</label>
-        <textarea value={accountDetails} onChange={(e) => setAccountDetails(e.target.value)} placeholder="Login credentials, notes..." rows={3} className={`${inputClass} resize-none`} />
+        <textarea
+          value={accountDetails}
+          onChange={(e) => setAccountDetails(e.target.value)}
+          placeholder="Login credentials, notes..."
+          rows={3}
+          className={`${inputClass} resize-none`}
+        />
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className={labelClass}>Price (£) *</label>
-          <input type="number" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="0.00" step="0.01" min="0" required className={inputClass} />
+          <input
+            type="number"
+            value={price}
+            onChange={(e) => setPrice(e.target.value)}
+            placeholder="0.00"
+            step="0.01"
+            min="0"
+            required
+            className={inputClass}
+          />
         </div>
         <div className="flex items-end pb-1">
           <label className="flex items-center gap-2 cursor-pointer">

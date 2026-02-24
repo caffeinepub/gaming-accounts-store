@@ -1,124 +1,132 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-24T14:48:42.197Z",
+  "generatedAt": "2026-02-24T19:42:48.722Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 4,
-    "implemented": 3,
+    "total": 10,
+    "implemented": 6,
     "items": [
       {
-        "id": "REQ-37",
-        "summary": "Replace the existing dark neon gaming theme in `frontend/src/index.css` with a full sunset aesthetic. Define new CSS custom properties using the NYC sunset palette: deep dusk purple/navy-black backgrounds (e.g. `#1a0a2e`, `#0d0519`, `#1c0f3f`), warm dark mid-tones (e.g. `#2d1b4e`, `#3a1a2a`), and sunset accent colors — golden yellow (`#f5a623`), burnt orange (`#e85d04`), dusky pink/rose (`#d63384`), soft purple (`#9b59b6`). Replace all neon-cyan, electric-orange, and hot-pink CSS variables with these sunset tones. Update glow utility classes (e.g. `neon-glow`, `neon-border`) to emit warm sunset glows (orange/pink/golden box-shadows and text-shadows) instead of cyan/green neon glows. Retain the Orbitron and Rajdhani Google Font imports. Do NOT alter the `--game-vault-gradient` or any inline style producing the red → purple → orange 'Game Vault' text gradient.",
+        "id": "REQ-73",
+        "summary": "Add an `approvalStatus` field to the Order data type in `backend/main.mo` using a variant type with three states: `#pending`, `#approved`, `#declined`. All newly placed orders must default to `#pending`. Add `giftCardNumber: Text` and `giftCardBalance: Text` fields to the Order data type to store UK Gift Card details captured at checkout (both default to empty string for non-gift-card orders).",
+        "status": "unknown",
+        "plannedFiles": [],
+        "matchedFiles": []
+      },
+      {
+        "id": "REQ-74",
+        "summary": "Expose two admin-gated functions in `backend/main.mo`: `approveOrder(orderId: Nat) : async Result.Result<(), Text>` and `declineOrder(orderId: Nat) : async Result.Result<(), Text>`. Both functions must verify the caller's username is in the admin whitelist before mutating the order's `approvalStatus`. Return `#err` with a descriptive message if the order is not found or the caller is not an admin.",
+        "status": "unknown",
+        "plannedFiles": [],
+        "matchedFiles": []
+      },
+      {
+        "id": "REQ-75",
+        "summary": "Expose a public query function in `backend/main.mo`: `getOrdersByBuyer(principal: Principal) : async [Order]` that returns all orders placed by the given principal, including their current `approvalStatus`. This allows the buyer-facing UI to query and display their order statuses.",
+        "status": "unknown",
+        "plannedFiles": [],
+        "matchedFiles": []
+      },
+      {
+        "id": "REQ-76",
+        "summary": "Add React Query hooks to `frontend/src/hooks/useQueries.ts` for the new order approval backend functions: `useApproveOrder()` mutation calling `approveOrder`, `useDeclineOrder()` mutation calling `declineOrder`, and `useOrdersByBuyer()` query calling `getOrdersByBuyer` with the authenticated user's principal. All mutations must await the actor call, unwrap the `#ok`/`#err` Result variant, throw a JavaScript `Error` on `#err`, and invalidate the `orders` query cache on success. The `useOrdersByBuyer` query must be enabled only when the user is authenticated.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/index.css"
+          "frontend/src/hooks/useQueries.ts"
         ],
         "matchedFiles": [
-          "frontend/src/index.css"
+          "frontend/src/hooks/useQueries.ts"
         ]
       },
       {
-        "id": "REQ-38",
-        "summary": "Update `frontend/tailwind.config.js` to replace all neon-themed color tokens (neon-cyan, electric-orange, hot-pink, etc.) with sunset palette tokens: `sunset-gold` (`#f5a623`), `sunset-orange` (`#e85d04`), `sunset-pink` (`#d63384`), `sunset-purple` (`#9b59b6`), `dusk-bg` (`#0d0519`), `dusk-mid` (`#1a0a2e`). Update any existing `pulse-glow` or custom keyframe animation colors to use sunset warm tones. Ensure CSS variable-based color references still resolve correctly against the updated `index.css` tokens.",
+        "id": "REQ-77",
+        "summary": "Update `frontend/src/components/checkout/GiftCardPayment.tsx` to capture two additional fields during the gift card checkout step: a 'Gift Card Number' text input and a 'Gift Card Balance' text input (or select). These values must be passed through to the order placement call so they are stored on the order record in the backend. Both fields are required before the user can confirm the order.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/tailwind.config.js"
+          "frontend/src/components/checkout/GiftCardPayment.tsx"
         ],
         "matchedFiles": [
-          "frontend/tailwind.config.js"
+          "frontend/src/components/checkout/GiftCardPayment.tsx"
         ]
       },
       {
-        "id": "REQ-39",
-        "summary": "Apply the sunset theme consistently across all frontend page and layout components: `StorefrontPage.tsx`, `ProductDetailPage.tsx`, `CheckoutPage.tsx`, `OrderConfirmationPage.tsx`, `AdminPanelPage.tsx`, `Navigation.tsx`, `Footer.tsx`, `ProductCard.tsx`, `CartDrawer.tsx`, `CategoryCard.tsx`, all checkout sub-components (`PayPalPayment.tsx`, `CryptoPayment.tsx`, `GiftCardPayment.tsx`, `PayIn3Payment.tsx`, `PaymentMethodSelector.tsx`), and all admin sub-components (`CategoryManager.tsx`, `ProductManager.tsx`, `OrderManager.tsx`, `AdminWhitelistManager.tsx`, `CategoryForm.tsx`, `ProductForm.tsx`). Replace all hardcoded neon color classes (e.g. `text-cyan-400`, `border-cyan-500`, `bg-gray-900`, `shadow-cyan`, neon-specific utility classes) with their sunset palette equivalents. Buttons, cards, borders, hover states, badges, and focus rings must all use sunset accent colors. The 'Game Vault' gradient text must remain unchanged wherever it appears.",
+        "id": "REQ-78",
+        "summary": "Update the `placeOrder` mutation in `frontend/src/hooks/useQueries.ts` and the order placement logic in `frontend/src/pages/CheckoutPage.tsx` to pass `giftCardNumber` and `giftCardBalance` fields when the selected payment method is 'Gift Card'. For all other payment methods, these fields must be sent as empty strings to match the updated backend Order type.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/pages/StorefrontPage.tsx",
-          "frontend/src/pages/ProductDetailPage.tsx",
-          "frontend/src/pages/CheckoutPage.tsx",
-          "frontend/src/pages/OrderConfirmationPage.tsx",
-          "frontend/src/pages/AdminPanelPage.tsx",
-          "frontend/src/components/Navigation.tsx",
-          "frontend/src/components/Footer.tsx",
-          "frontend/src/components/ProductCard.tsx",
-          "frontend/src/components/CartDrawer.tsx",
-          "frontend/src/components/CategoryCard.tsx",
-          "frontend/src/components/checkout/PayPalPayment.tsx",
-          "frontend/src/components/checkout/CryptoPayment.tsx",
-          "frontend/src/components/checkout/GiftCardPayment.tsx",
-          "frontend/src/components/checkout/PayIn3Payment.tsx",
-          "frontend/src/components/checkout/PaymentMethodSelector.tsx",
-          "frontend/src/components/admin/CategoryManager.tsx",
-          "frontend/src/components/admin/ProductManager.tsx",
-          "frontend/src/components/admin/OrderManager.tsx",
-          "frontend/src/components/admin/AdminWhitelistManager.tsx",
-          "frontend/src/components/admin/CategoryForm.tsx",
-          "frontend/src/components/admin/ProductForm.tsx"
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/pages/CheckoutPage.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/pages/StorefrontPage.tsx",
-          "frontend/src/pages/ProductDetailPage.tsx",
-          "frontend/src/pages/CheckoutPage.tsx",
-          "frontend/src/pages/OrderConfirmationPage.tsx",
-          "frontend/src/pages/AdminPanelPage.tsx",
-          "frontend/src/components/Navigation.tsx",
-          "frontend/src/components/Footer.tsx",
-          "frontend/src/components/ProductCard.tsx",
-          "frontend/src/components/CartDrawer.tsx",
-          "frontend/src/components/CategoryCard.tsx",
-          "frontend/src/components/checkout/PayPalPayment.tsx",
-          "frontend/src/components/checkout/CryptoPayment.tsx",
-          "frontend/src/components/checkout/GiftCardPayment.tsx",
-          "frontend/src/components/checkout/PayIn3Payment.tsx",
-          "frontend/src/components/checkout/PaymentMethodSelector.tsx",
-          "frontend/src/components/admin/CategoryManager.tsx",
-          "frontend/src/components/admin/ProductManager.tsx",
-          "frontend/src/components/admin/CategoryForm.tsx",
-          "frontend/src/components/admin/ProductForm.tsx"
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/pages/CheckoutPage.tsx"
         ]
       },
       {
-        "id": "REQ-40",
-        "summary": "Update the `LoadingScreen3D.tsx` component's non-3D overlay UI elements (title text container background, progress bar colors, any HTML overlay text styling) to use sunset palette colors. The Three.js scene itself (sky gradient, building colors, road, vehicle colors, ambient/directional light colors) must also use warm sunset tones — golden-orange sky (#ff7043 → #ff8c00 → #4a0e8f gradient from horizon to top), deep purple upper sky, warm orange/yellow street lighting on vehicles and buildings. Ensure the 'Game Vault' gradient text in the loading screen overlay remains unchanged.",
-        "status": "missing",
+        "id": "REQ-79",
+        "summary": "Create a new admin component `frontend/src/components/admin/PaymentsManager.tsx`. This component must: (1) fetch all orders via the existing orders query; (2) display each order in a table or card list showing: buyer username, email, contact info, product(s) purchased, payment method badge, approval status badge (`#pending` = amber, `#approved` = green, `#declined` = red), and — for gift card orders — the gift card number and balance; (3) provide 'Approve' and 'Decline' buttons per order that call the `useApproveOrder` and `useDeclineOrder` mutations respectively; (4) show a success or error toast on each action; (5) apply the sunset theme consistently (dusk-bg/dusk-mid backgrounds, sunset-gold/sunset-orange/sunset-pink accent colours, Orbitron/Rajdhani fonts).",
+        "status": "implemented",
         "plannedFiles": [
-          "frontend/src/components/LoadingScreen3D.tsx"
+          "frontend/src/components/admin/PaymentsManager.tsx"
         ],
+        "matchedFiles": [
+          "frontend/src/components/admin/PaymentsManager.tsx"
+        ]
+      },
+      {
+        "id": "REQ-80",
+        "summary": "Add a new 'Payments' tab to the admin panel in `frontend/src/pages/AdminPanelPage.tsx`, alongside the existing Products, Orders, Admins, Subscriptions, and Settings tabs. The tab content must render the `PaymentsManager` component. The tab must be labelled 'Payments' and must not disrupt the existing tab order or default active tab.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/pages/AdminPanelPage.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/pages/AdminPanelPage.tsx"
+        ]
+      },
+      {
+        "id": "REQ-81",
+        "summary": "Add an in-app order status notification to `frontend/src/pages/OrderConfirmationPage.tsx` that displays the current `approvalStatus` of the order (Pending / Approved / Declined) fetched live from the backend. The status must update reactively — if an admin approves or declines the order after the page is loaded, the buyer should see the updated status on refresh or via polling (React Query refetch interval of 30 seconds is acceptable). Display the status with a clear label and colour-coded indicator: amber for pending, green for approved, red for declined.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/pages/OrderConfirmationPage.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/pages/OrderConfirmationPage.tsx"
+        ]
+      },
+      {
+        "id": "REQ-82",
+        "summary": "Update `backend/migration.mo` to handle migration of existing Order records to include the new `approvalStatus` (defaulting to `#pending`), `giftCardNumber` (defaulting to `\"\"`), and `giftCardBalance` (defaulting to `\"\"`) fields. Ensure the migration preserves all existing order data and does not lose any previously stored orders.",
+        "status": "unknown",
+        "plannedFiles": [],
         "matchedFiles": []
       }
     ]
   },
   "changedFiles": [
+    "backend/main.mo",
+    "backend/migration.mo",
     "build-request.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/App.tsx",
-    "frontend/src/components/CartDrawer.tsx",
-    "frontend/src/components/CategoryCard.tsx",
-    "frontend/src/components/Footer.tsx",
-    "frontend/src/components/Navigation.tsx",
-    "frontend/src/components/ProductCard.tsx",
-    "frontend/src/components/admin/CategoryForm.tsx",
-    "frontend/src/components/admin/CategoryManager.tsx",
-    "frontend/src/components/admin/ProductForm.tsx",
-    "frontend/src/components/admin/ProductManager.tsx",
-    "frontend/src/components/checkout/CryptoPayment.tsx",
+    "frontend/src/backend.d.ts",
+    "frontend/src/backend.ts",
+    "frontend/src/components/admin/PaymentsManager.tsx",
     "frontend/src/components/checkout/GiftCardPayment.tsx",
-    "frontend/src/components/checkout/PayIn3Payment.tsx",
-    "frontend/src/components/checkout/PayPalPayment.tsx",
-    "frontend/src/components/checkout/PaymentMethodSelector.tsx",
-    "frontend/src/index.css",
+    "frontend/src/declarations/backend.did.d.ts",
+    "frontend/src/declarations/backend.did.js",
+    "frontend/src/hooks/useQueries.ts",
     "frontend/src/pages/AdminPanelPage.tsx",
     "frontend/src/pages/CheckoutPage.tsx",
     "frontend/src/pages/OrderConfirmationPage.tsx",
-    "frontend/src/pages/ProductDetailPage.tsx",
-    "frontend/src/pages/StorefrontPage.tsx",
-    "frontend/tailwind.config.js",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

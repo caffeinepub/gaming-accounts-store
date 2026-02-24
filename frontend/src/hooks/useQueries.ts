@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useActor } from './useActor';
-import { PaymentMethod, type UserProfile, type Product, type ProductCategory, type Order, type Result } from '../backend';
+import { Principal } from '@dfinity/principal';
+import { PaymentMethod, ApprovalStatus, type UserProfile, type Product, type ProductCategory, type Order, type Result, type SubscriptionTier, type StoreSettings } from '../backend';
 
 // ── User Profile ──────────────────────────────────────────────────────────────
 
@@ -15,6 +16,7 @@ export function useGetCallerUserProfile() {
     },
     enabled: !!actor && !actorFetching,
     retry: false,
+    staleTime: 60_000,
   });
 
   return {
@@ -35,6 +37,7 @@ export function useSaveCallerUserProfile() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['currentUserProfile'] });
+      queryClient.invalidateQueries({ queryKey: ['usernameByPrincipal'] });
     },
   });
 }
@@ -53,6 +56,7 @@ export function useCreateUsername() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['currentUserProfile'] });
       queryClient.invalidateQueries({ queryKey: ['hasUsername'] });
+      queryClient.invalidateQueries({ queryKey: ['usernameByPrincipal'] });
     },
   });
 }
@@ -68,6 +72,39 @@ export function useIsUsernameAvailable(username: string) {
     },
     enabled: !!actor && !actorFetching && username.length > 0,
   });
+}
+
+/**
+ * Fetches the username for a given principal using the public (no-auth) query.
+ * This is the safest way to get a username for the admin gate because it
+ * cannot trap due to missing role assignments.
+ */
+export function useGetUsernameByPrincipal(principalStr: string | undefined) {
+  const { actor, isFetching: actorFetching } = useActor();
+
+  const isEnabled = !!actor && !actorFetching && !!principalStr && principalStr.length > 0;
+
+  const query = useQuery<string | null>({
+    queryKey: ['usernameByPrincipal', principalStr],
+    queryFn: async () => {
+      if (!actor || !principalStr) return null;
+      try {
+        const principal = Principal.fromText(principalStr);
+        return actor.getUsernameByPrincipal(principal);
+      } catch {
+        return null;
+      }
+    },
+    enabled: isEnabled,
+    staleTime: 60_000,
+    retry: 1,
+  });
+
+  return {
+    ...query,
+    isLoading: actorFetching || (isEnabled && query.isLoading),
+    isFetched: isEnabled ? query.isFetched : false,
+  };
 }
 
 // ── Categories ────────────────────────────────────────────────────────────────
@@ -89,54 +126,6 @@ function unwrapResult(result: Result): void {
   if (result.__kind__ === 'err') {
     throw new Error(result.err);
   }
-}
-
-export function useAddCategory() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
-  return useMutation<void, Error, { name: string; description: string }>({
-    mutationFn: async ({ name, description }) => {
-      if (!actor) throw new Error('Actor not available');
-      const result = await actor.addCategory(name, description);
-      unwrapResult(result);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['categories'] });
-    },
-  });
-}
-
-export function useUpdateCategory() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
-  return useMutation<void, Error, { id: bigint; name: string; description: string }>({
-    mutationFn: async ({ id, name, description }) => {
-      if (!actor) throw new Error('Actor not available');
-      const result = await actor.updateCategory(id, name, description);
-      unwrapResult(result);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['categories'] });
-    },
-  });
-}
-
-export function useDeleteCategory() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
-  return useMutation<void, Error, bigint>({
-    mutationFn: async (id: bigint) => {
-      if (!actor) throw new Error('Actor not available');
-      const result = await actor.deleteCategory(id);
-      unwrapResult(result);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['categories'] });
-    },
-  });
 }
 
 // ── Products ──────────────────────────────────────────────────────────────────
@@ -161,7 +150,6 @@ export function useGetAllProductsAdmin() {
     queryKey: ['products'],
     queryFn: async () => {
       if (!actor) return [];
-      // Use getAvailableProducts for now; admin sees all via separate logic
       return actor.getAvailableProducts();
     },
     enabled: !!actor && !actorFetching,
@@ -183,7 +171,6 @@ export function useGetProductById(id: bigint | undefined) {
 
 interface AddProductVars {
   gameName: string;
-  categoryId: bigint;
   title: string;
   description: string;
   accountDetails: string;
@@ -196,9 +183,9 @@ export function useAddProduct() {
   const queryClient = useQueryClient();
 
   return useMutation<void, Error, AddProductVars>({
-    mutationFn: async ({ gameName, categoryId, title, description, accountDetails, price, available }) => {
+    mutationFn: async ({ gameName, title, description, accountDetails, price, available }) => {
       if (!actor) throw new Error('Actor not available');
-      const result = await actor.addProduct(gameName, categoryId, title, description, accountDetails, price, available);
+      const result = await actor.addProduct(gameName, 0n, title, description, accountDetails, price, available);
       unwrapResult(result);
     },
     onSuccess: () => {
@@ -211,7 +198,6 @@ export function useAddProduct() {
 interface UpdateProductVars {
   id: bigint;
   gameName: string;
-  categoryId: bigint;
   title: string;
   description: string;
   accountDetails: string;
@@ -224,9 +210,9 @@ export function useUpdateProduct() {
   const queryClient = useQueryClient();
 
   return useMutation<void, Error, UpdateProductVars>({
-    mutationFn: async ({ id, gameName, categoryId, title, description, accountDetails, price, available }) => {
+    mutationFn: async ({ id, gameName, title, description, accountDetails, price, available }) => {
       if (!actor) throw new Error('Actor not available');
-      const result = await actor.updateProduct(id, gameName, categoryId, title, description, accountDetails, price, available);
+      const result = await actor.updateProduct(id, gameName, 0n, title, description, accountDetails, price, available);
       unwrapResult(result);
     },
     onSuccess: () => {
@@ -259,6 +245,8 @@ interface PlaceOrderVars {
   productId: bigint;
   paymentMethod: PaymentMethod;
   status: string;
+  giftCardNumber?: string;
+  giftCardBalance?: string;
 }
 
 export function usePlaceOrder() {
@@ -266,9 +254,16 @@ export function usePlaceOrder() {
   const queryClient = useQueryClient();
 
   return useMutation<bigint, Error, PlaceOrderVars>({
-    mutationFn: async ({ productId, paymentMethod, status }) => {
+    mutationFn: async ({ productId, paymentMethod, status, giftCardNumber = '', giftCardBalance = '' }) => {
       if (!actor) throw new Error('Actor not available');
-      const orderId = await actor.addOrder(productId, paymentMethod, status);
+      const orderId = await actor.addOrder(
+        productId,
+        paymentMethod,
+        status,
+        ApprovalStatus.pending,
+        giftCardNumber,
+        giftCardBalance,
+      );
       return orderId;
     },
     onSuccess: () => {
@@ -290,7 +285,7 @@ export function useGetAllOrders() {
   });
 }
 
-export function useGetOrderById(id: bigint | undefined) {
+export function useGetOrderById(id: bigint | undefined, refetchInterval?: number) {
   const { actor, isFetching: actorFetching } = useActor();
 
   return useQuery<Order>({
@@ -300,6 +295,58 @@ export function useGetOrderById(id: bigint | undefined) {
       return actor.getOrderById(id);
     },
     enabled: !!actor && !actorFetching && id !== undefined,
+    refetchInterval: refetchInterval,
+  });
+}
+
+export function useApproveOrder() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, bigint>({
+    mutationFn: async (orderId: bigint) => {
+      if (!actor) throw new Error('Actor not available');
+      const result = await actor.approveOrder(orderId);
+      if (result.__kind__ === 'err') {
+        throw new Error(result.err);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      queryClient.invalidateQueries({ queryKey: ['order'] });
+    },
+  });
+}
+
+export function useDeclineOrder() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, bigint>({
+    mutationFn: async (orderId: bigint) => {
+      if (!actor) throw new Error('Actor not available');
+      const result = await actor.declineOrder(orderId);
+      if (result.__kind__ === 'err') {
+        throw new Error(result.err);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      queryClient.invalidateQueries({ queryKey: ['order'] });
+    },
+  });
+}
+
+export function useOrdersByBuyer(principal: Principal | undefined) {
+  const { actor, isFetching: actorFetching } = useActor();
+
+  return useQuery<Order[]>({
+    queryKey: ['ordersByBuyer', principal?.toString()],
+    queryFn: async () => {
+      if (!actor || !principal) return [];
+      return actor.getOrdersByBuyer(principal);
+    },
+    enabled: !!actor && !actorFetching && !!principal,
   });
 }
 
@@ -308,20 +355,40 @@ export function useGetOrderById(id: bigint | undefined) {
 export function useIsAdminUsername(username: string) {
   const { actor, isFetching: actorFetching } = useActor();
 
-  return useQuery<boolean>({
+  const isEnabled = !!actor && !actorFetching && username.trim().length > 0;
+
+  const query = useQuery<boolean>({
     queryKey: ['isAdminUsername', username],
     queryFn: async () => {
-      if (!actor || !username) return false;
-      return actor.isAdminUsername(username);
+      if (!actor || !username.trim()) return false;
+      return actor.isAdminUsername(username.trim());
     },
-    // Only run when actor is ready AND username is non-empty
-    enabled: !!actor && !actorFetching && username.length > 0,
-    // Don't cache stale admin status for too long
-    staleTime: 30_000,
+    enabled: isEnabled,
+    staleTime: 60_000,
+    retry: 1,
+  });
+
+  return {
+    ...query,
+    isFetched: isEnabled ? query.isFetched : false,
+    isLoading: actorFetching || (isEnabled && query.isLoading),
+  };
+}
+
+export function useGetAdminWhitelist() {
+  const { actor, isFetching: actorFetching } = useActor();
+
+  return useQuery<string[]>({
+    queryKey: ['adminWhitelist'],
+    queryFn: async () => {
+      if (!actor) return [];
+      return [];
+    },
+    enabled: !!actor && !actorFetching,
   });
 }
 
-export function useAddAdminUsername() {
+export function useAddAdminUser() {
   const { actor } = useActor();
   const queryClient = useQueryClient();
 
@@ -330,14 +397,14 @@ export function useAddAdminUsername() {
       if (!actor) throw new Error('Actor not available');
       await actor.addAdminUser(username);
     },
-    onSuccess: (_data, username) => {
-      queryClient.invalidateQueries({ queryKey: ['isAdminUsername', username] });
-      queryClient.invalidateQueries({ queryKey: ['adminUsernames'] });
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['adminWhitelist'] });
+      queryClient.invalidateQueries({ queryKey: ['isAdminUsername'] });
     },
   });
 }
 
-export function useRemoveAdminUsername() {
+export function useRemoveAdminUser() {
   const { actor } = useActor();
   const queryClient = useQueryClient();
 
@@ -346,22 +413,147 @@ export function useRemoveAdminUsername() {
       if (!actor) throw new Error('Actor not available');
       await actor.removeAdminUser(username);
     },
-    onSuccess: (_data, username) => {
-      queryClient.invalidateQueries({ queryKey: ['isAdminUsername', username] });
-      queryClient.invalidateQueries({ queryKey: ['adminUsernames'] });
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['adminWhitelist'] });
+      queryClient.invalidateQueries({ queryKey: ['isAdminUsername'] });
     },
   });
 }
 
-export function useIsCallerAdmin() {
+// ── Subscription Tiers ────────────────────────────────────────────────────────
+
+export function useSubscriptionTiers() {
   const { actor, isFetching: actorFetching } = useActor();
 
-  return useQuery<boolean>({
-    queryKey: ['isCallerAdmin'],
+  return useQuery<SubscriptionTier[]>({
+    queryKey: ['subscriptionTiers'],
     queryFn: async () => {
-      if (!actor) return false;
-      return actor.isCallerAdmin();
+      if (!actor) return [];
+      return actor.getSubscriptionTiers();
     },
     enabled: !!actor && !actorFetching,
+  });
+}
+
+interface UpdateTierPricesVars {
+  id: bigint;
+  monthlyPrice: number;
+  yearlyPrice: number;
+}
+
+export function useUpdateSubscriptionTierPrices() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, UpdateTierPricesVars>({
+    mutationFn: async ({ id, monthlyPrice, yearlyPrice }) => {
+      if (!actor) throw new Error('Actor not available');
+      const result = await actor.updateSubscriptionTierPrices(id, monthlyPrice, yearlyPrice);
+      unwrapResult(result);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['subscriptionTiers'] });
+    },
+  });
+}
+
+interface SetFreeTrialVars {
+  id: bigint;
+  enabled: boolean;
+}
+
+export function useSetSubscriptionTierFreeTrial() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, SetFreeTrialVars>({
+    mutationFn: async ({ id, enabled }) => {
+      if (!actor) throw new Error('Actor not available');
+      const result = await actor.setSubscriptionTierFreeTrial(id, enabled);
+      unwrapResult(result);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['subscriptionTiers'] });
+    },
+  });
+}
+
+export function useInitializeDefaultTiers() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, void>({
+    mutationFn: async () => {
+      if (!actor) throw new Error('Actor not available');
+      await actor.initializeDefaultTiers();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['subscriptionTiers'] });
+    },
+  });
+}
+
+// ── Store Settings ────────────────────────────────────────────────────────────
+
+export function useStoreSettings() {
+  const { actor, isFetching: actorFetching } = useActor();
+
+  return useQuery<StoreSettings>({
+    queryKey: ['storeSettings'],
+    queryFn: async () => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.getStoreSettings();
+    },
+    enabled: !!actor && !actorFetching,
+    staleTime: 60_000,
+    retry: 1,
+  });
+}
+
+export function useUpdatePaypalWalletAddress() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, string>({
+    mutationFn: async (address: string) => {
+      if (!actor) throw new Error('Actor not available');
+      const result = await actor.updatePaypalWalletAddress(address);
+      unwrapResult(result);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['storeSettings'] });
+    },
+  });
+}
+
+export function useUpdateBitcoinWalletAddress() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, string>({
+    mutationFn: async (address: string) => {
+      if (!actor) throw new Error('Actor not available');
+      const result = await actor.updateBitcoinWalletAddress(address);
+      unwrapResult(result);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['storeSettings'] });
+    },
+  });
+}
+
+export function useUpdateEthereumWalletAddress() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, string>({
+    mutationFn: async (address: string) => {
+      if (!actor) throw new Error('Actor not available');
+      const result = await actor.updateEthereumWalletAddress(address);
+      unwrapResult(result);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['storeSettings'] });
+    },
   });
 }

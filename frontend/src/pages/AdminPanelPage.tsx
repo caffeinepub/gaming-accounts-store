@@ -1,22 +1,26 @@
 import React, { useState } from 'react';
-import { Shield, Package, Tag, ShoppingBag, Users } from 'lucide-react';
+import { Shield, Package, ShoppingBag, Users, Crown, Settings, CreditCard } from 'lucide-react';
 import AdminAccessControl from '../components/AdminAccessControl';
-import CategoryManager from '../components/admin/CategoryManager';
 import ProductManager from '../components/admin/ProductManager';
 import OrderManager from '../components/admin/OrderManager';
 import AdminWhitelistManager from '../components/admin/AdminWhitelistManager';
+import SubscriptionManager from '../components/admin/SubscriptionManager';
+import StoreSettingsManager from '../components/admin/StoreSettingsManager';
+import PaymentsManager from '../components/admin/PaymentsManager';
 
-type AdminTab = 'categories' | 'products' | 'orders' | 'whitelist';
+type AdminTab = 'products' | 'orders' | 'payments' | 'whitelist' | 'subscriptions' | 'settings';
 
 const TABS: { id: AdminTab; label: string; icon: React.ReactNode }[] = [
-  { id: 'categories', label: 'Categories', icon: <Tag className="w-4 h-4" /> },
   { id: 'products', label: 'Products', icon: <Package className="w-4 h-4" /> },
   { id: 'orders', label: 'Orders', icon: <ShoppingBag className="w-4 h-4" /> },
+  { id: 'payments', label: 'Payments', icon: <CreditCard className="w-4 h-4" /> },
   { id: 'whitelist', label: 'Admins', icon: <Users className="w-4 h-4" /> },
+  { id: 'subscriptions', label: 'Subscriptions', icon: <Crown className="w-4 h-4" /> },
+  { id: 'settings', label: 'Settings', icon: <Settings className="w-4 h-4" /> },
 ];
 
 function AdminContent() {
-  const [activeTab, setActiveTab] = useState<AdminTab>('categories');
+  const [activeTab, setActiveTab] = useState<AdminTab>('products');
 
   return (
     <div className="min-h-screen bg-background">
@@ -33,12 +37,12 @@ function AdminContent() {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 mb-6 border-b border-border">
+        <div className="flex gap-1 mb-6 border-b border-border overflow-x-auto">
           {TABS.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-4 py-2.5 font-rajdhani font-semibold text-sm tracking-wider uppercase transition-all border-b-2 -mb-px ${
+              className={`flex items-center gap-2 px-4 py-2.5 font-rajdhani font-semibold text-sm tracking-wider uppercase transition-all border-b-2 -mb-px whitespace-nowrap ${
                 activeTab === tab.id
                   ? 'border-sunset-gold text-sunset-gold'
                   : 'border-transparent text-muted-foreground hover:text-sunset-gold/70 hover:border-sunset-gold/30'
@@ -52,10 +56,12 @@ function AdminContent() {
 
         {/* Tab content */}
         <div>
-          {activeTab === 'categories' && <CategoryManager />}
           {activeTab === 'products' && <ProductManager />}
           {activeTab === 'orders' && <OrderManager />}
+          {activeTab === 'payments' && <PaymentsManager />}
           {activeTab === 'whitelist' && <AdminWhitelistManager />}
+          {activeTab === 'subscriptions' && <SubscriptionManager />}
+          {activeTab === 'settings' && <StoreSettingsManager />}
         </div>
       </div>
     </div>

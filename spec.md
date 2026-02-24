@@ -1,12 +1,18 @@
 # Specification
 
 ## Summary
-**Goal:** Replace the existing dark neon gaming theme with a cohesive sunset aesthetic across the entire Game Vault frontend.
+**Goal:** Add an order approval system with admin Payments tab, UK Gift Card checkout fields, and buyer-facing order status notifications.
 
 **Planned changes:**
-- Update `index.css` CSS custom properties to use the NYC sunset palette: deep dusk purple/navy-black backgrounds (`#1a0a2e`, `#0d0519`, `#1c0f3f`), warm dark mid-tones, and sunset accents (golden yellow `#f5a623`, burnt orange `#e85d04`, dusky pink `#d63384`, soft purple `#9b59b6`); update glow utility classes to emit warm orange/pink/golden shadows instead of cyan/neon glows; retain Orbitron and Rajdhani font imports and the Game Vault gradient text
-- Update `tailwind.config.js` to replace neon color tokens (neon-cyan, electric-orange, hot-pink) with sunset palette tokens (`sunset-gold`, `sunset-orange`, `sunset-pink`, `sunset-purple`, `dusk-bg`, `dusk-mid`); update `pulse-glow` and keyframe animation colors to warm sunset tones
-- Apply sunset theme across all page and layout components (`StorefrontPage.tsx`, `ProductDetailPage.tsx`, `CheckoutPage.tsx`, `OrderConfirmationPage.tsx`, `AdminPanelPage.tsx`, `Navigation.tsx`, `Footer.tsx`, `ProductCard.tsx`, `CartDrawer.tsx`, `CategoryCard.tsx`, all checkout sub-components, all admin sub-components): replace neon color classes with sunset equivalents for backgrounds, buttons, cards, borders, hover states, badges, and focus rings
-- Update `LoadingScreen3D.tsx` HTML overlay elements to use sunset palette colors; update the Three.js scene sky gradient (orange-gold at horizon to deep purple at top), building materials, and vehicle/light colors to warm sunset tones; leave the Game Vault gradient text and 3D scene geometry/animations unchanged
+- Add `approvalStatus` (`#pending`/`#approved`/`#declined`), `giftCardNumber`, and `giftCardBalance` fields to the Order type in the backend, defaulting to `#pending` and empty strings respectively
+- Add backend migration to upgrade existing orders with the new fields
+- Expose admin-gated `approveOrder` and `declineOrder` backend functions that verify caller is a whitelisted admin
+- Expose a `getOrdersByBuyer` query function returning all orders for a given principal including approval status
+- Add `useApproveOrder`, `useDeclineOrder`, and `useOrdersByBuyer` React Query hooks in `useQueries.ts`; all mutations invalidate the orders cache on success
+- Update `GiftCardPayment.tsx` to capture required 'Gift Card Number' and 'Gift Card Balance' input fields during checkout
+- Update `placeOrder` mutation and `CheckoutPage.tsx` to pass `giftCardNumber` and `giftCardBalance` (empty strings for non-gift-card methods)
+- Create `PaymentsManager.tsx` admin component listing all orders with buyer details, payment method badge, colour-coded approval status badge, gift card fields for relevant orders, and Approve/Decline buttons with toast feedback — styled with the sunset theme
+- Add a 'Payments' tab to `AdminPanelPage.tsx` that renders `PaymentsManager`, without disrupting existing tabs
+- Update `OrderConfirmationPage.tsx` to display the live `approvalStatus` with colour-coded indicator (amber/green/red), polling every 30 seconds
 
-**User-visible outcome:** All pages and UI elements display a unified sunset aesthetic with deep dusk purple/navy-black backgrounds and warm golden-orange/dusky pink/soft purple accents, replacing all neon-cyan and electric accents throughout the app.
+**User-visible outcome:** Admins can view all orders in a new Payments tab, approve or decline them, and see gift card details for relevant orders. Buyers see a live, colour-coded order approval status on their order confirmation page. Gift card checkout now captures and stores the card number and balance.

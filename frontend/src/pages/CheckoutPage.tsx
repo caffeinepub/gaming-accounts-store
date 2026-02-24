@@ -34,6 +34,8 @@ export default function CheckoutPage({ cartItems, onOrderComplete, onBack }: Che
   const [email, setEmail] = useState('');
   const [contact, setContact] = useState('');
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null);
+  const [giftCardNumber, setGiftCardNumber] = useState('');
+  const [giftCardBalance, setGiftCardBalance] = useState('');
 
   const placeOrder = usePlaceOrder();
 
@@ -47,7 +49,24 @@ export default function CheckoutPage({ cartItems, onOrderComplete, onBack }: Che
       productId: product.id,
       paymentMethod: selectedMethod,
       status: 'confirmed',
+      giftCardNumber: '',
+      giftCardBalance: '',
     });
+    onOrderComplete(orderId);
+  };
+
+  const handleGiftCardPlaceOrder = async (cardNumber: string, cardBalance: string) => {
+    if (!selectedMethod || cartItems.length === 0) return;
+    const product = cartItems[0].product;
+    const orderId = await placeOrder.mutateAsync({
+      productId: product.id,
+      paymentMethod: selectedMethod,
+      status: 'confirmed',
+      giftCardNumber: cardNumber,
+      giftCardBalance: cardBalance,
+    });
+    setGiftCardNumber(cardNumber);
+    setGiftCardBalance(cardBalance);
     onOrderComplete(orderId);
   };
 
@@ -204,7 +223,11 @@ export default function CheckoutPage({ cartItems, onOrderComplete, onBack }: Che
                   <CryptoPayment amount={total} onConfirm={handlePlaceOrder} isLoading={placeOrder.isPending} />
                 )}
                 {selectedMethod === PaymentMethod.ukGiftCard && (
-                  <GiftCardPayment amount={total} onConfirm={handlePlaceOrder} isLoading={placeOrder.isPending} />
+                  <GiftCardPayment
+                    amount={total}
+                    onConfirm={handleGiftCardPlaceOrder}
+                    isLoading={placeOrder.isPending}
+                  />
                 )}
                 {selectedMethod === PaymentMethod.payIn3Installments && (
                   <PayIn3Payment amount={total} onConfirm={handlePlaceOrder} isLoading={placeOrder.isPending} />

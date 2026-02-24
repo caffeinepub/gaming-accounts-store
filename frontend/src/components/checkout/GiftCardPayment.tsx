@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
-import { Gift, CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import { Gift, CheckCircle, XCircle, Loader2, CreditCard } from 'lucide-react';
 
 interface GiftCardPaymentProps {
   amount: number;
-  onConfirm: () => Promise<void>;
+  onConfirm: (giftCardNumber: string, giftCardBalance: string) => Promise<void>;
   isLoading: boolean;
 }
 
 export default function GiftCardPayment({ amount, onConfirm, isLoading }: GiftCardPaymentProps) {
   const [code, setCode] = useState('');
+  const [giftCardNumber, setGiftCardNumber] = useState('');
+  const [giftCardBalance, setGiftCardBalance] = useState('');
   const [validating, setValidating] = useState(false);
   const [validationState, setValidationState] = useState<'idle' | 'valid' | 'invalid'>('idle');
 
@@ -16,8 +18,20 @@ export default function GiftCardPayment({ amount, onConfirm, isLoading }: GiftCa
     if (!code.trim()) return;
     setValidating(true);
     await new Promise((r) => setTimeout(r, 1200));
-    setValidationState(code.length >= 8 ? 'valid' : 'invalid');
+    // Mock validation: code must be 'GVGIFT2025' or at least 8 chars
+    setValidationState(code === 'GVGIFT2025' || code.length >= 8 ? 'valid' : 'invalid');
     setValidating(false);
+  };
+
+  const canConfirm =
+    validationState === 'valid' &&
+    giftCardNumber.trim().length > 0 &&
+    giftCardBalance.trim().length > 0 &&
+    !isLoading;
+
+  const handleConfirm = async () => {
+    if (!canConfirm) return;
+    await onConfirm(giftCardNumber.trim(), giftCardBalance.trim());
   };
 
   return (
@@ -27,7 +41,7 @@ export default function GiftCardPayment({ amount, onConfirm, isLoading }: GiftCa
         <Gift className="w-6 h-6 text-sunset-pink" />
         <div>
           <p className="font-orbitron text-sm font-bold text-foreground">UK Gift Card</p>
-          <p className="font-rajdhani text-xs text-muted-foreground">Enter your gift card code below</p>
+          <p className="font-rajdhani text-xs text-muted-foreground">Enter your gift card details below</p>
         </div>
       </div>
 
@@ -76,10 +90,53 @@ export default function GiftCardPayment({ amount, onConfirm, isLoading }: GiftCa
         )}
       </div>
 
+      {/* Gift Card Number */}
+      <div className="space-y-2">
+        <label className="font-rajdhani text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+          <CreditCard className="w-3.5 h-3.5" />
+          Gift Card Number <span className="text-destructive">*</span>
+        </label>
+        <input
+          type="text"
+          value={giftCardNumber}
+          onChange={(e) => setGiftCardNumber(e.target.value)}
+          placeholder="e.g. 6035 2200 0000 0000"
+          className="w-full px-3 py-2 rounded-sm border border-border bg-input text-foreground font-mono text-sm placeholder:text-muted-foreground focus:outline-none focus:border-sunset-gold focus:ring-1 focus:ring-sunset-gold/30 transition-colors"
+        />
+        <p className="font-rajdhani text-xs text-muted-foreground">
+          The 16-digit number printed on your gift card
+        </p>
+      </div>
+
+      {/* Gift Card Balance */}
+      <div className="space-y-2">
+        <label className="font-rajdhani text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+          Gift Card Balance <span className="text-destructive">*</span>
+        </label>
+        <input
+          type="text"
+          value={giftCardBalance}
+          onChange={(e) => setGiftCardBalance(e.target.value)}
+          placeholder="e.g. £25.00"
+          className="w-full px-3 py-2 rounded-sm border border-border bg-input text-foreground font-mono text-sm placeholder:text-muted-foreground focus:outline-none focus:border-sunset-gold focus:ring-1 focus:ring-sunset-gold/30 transition-colors"
+        />
+        <p className="font-rajdhani text-xs text-muted-foreground">
+          The remaining balance on your gift card
+        </p>
+      </div>
+
+      {/* Required fields notice */}
+      {validationState === 'valid' && (!giftCardNumber.trim() || !giftCardBalance.trim()) && (
+        <p className="font-rajdhani text-xs text-sunset-orange">
+          Please fill in the Gift Card Number and Balance to continue.
+        </p>
+      )}
+
+      {/* Confirm button */}
       <button
-        onClick={onConfirm}
-        disabled={validationState !== 'valid' || isLoading}
-        className="w-full flex items-center justify-center gap-2 py-3 rounded-sm bg-gradient-to-r from-sunset-orange to-sunset-pink text-white font-rajdhani font-bold tracking-wider uppercase hover:opacity-90 transition-all sunset-glow disabled:opacity-50"
+        onClick={handleConfirm}
+        disabled={!canConfirm}
+        className="w-full flex items-center justify-center gap-2 py-3 rounded-sm bg-gradient-to-r from-sunset-orange to-sunset-pink text-white font-rajdhani font-bold tracking-wider uppercase hover:opacity-90 transition-all sunset-glow disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {isLoading ? (
           <>
@@ -87,9 +144,16 @@ export default function GiftCardPayment({ amount, onConfirm, isLoading }: GiftCa
             Placing Order...
           </>
         ) : (
-          'Confirm Order'
+          <>
+            <Gift className="w-4 h-4" />
+            Confirm Gift Card Payment
+          </>
         )}
       </button>
+
+      <p className="font-rajdhani text-xs text-center text-muted-foreground">
+        Your gift card details will be verified by our team before order fulfilment.
+      </p>
     </div>
   );
 }
