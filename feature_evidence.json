@@ -2,29 +2,8 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-rewrite-frontend-src-components-adminaccesscontrol-tsx-with-a-fully-auto-resolved-non-looping-sequential-gate-using-a-useeffect-local-state-imperative-async-flow-the-component-must-1-immediately-render-a-please-log-in-via-internet-identity-prompt-if-isauthenticated-is-false-do-not-show-a-spinner-or-form-2-once-isauthenticated-is-true-run-a-single-useeffect-that-imperatively-calls-the-backend-actor-s-getusername-function-directly-not-via-react-query-to-retrieve-the-stored-username-for-the-authenticated-principal-3-if-the-resolved-username-is-an-empty-string-or-null-undefined-render-the-profilesetupmodal-to-trigger-username-creation-do-not-spin-4-once-a-non-empty-username-string-is-confirmed-immediately-call-isadminusername-with-that-exact-username-string-never-pass-a-principal-undefined-or-null-5-as-soon-as-both-calls-complete-transition-immediately-and-permanently-to-either-granted-render-children-or-denied-render-accessdeniedscreen-using-a-local-status-state-variable-typed-loading-granted-denied-unauthenticated-no-username-6-the-useeffect-must-include-a-hasrun-ref-guard-if-hasrun-current-return-hasrun-current-true-to-ensure-it-executes-exactly-once-per-authentication-session-preventing-re-entry-and-infinite-loops-7-show-a-loading-spinner-only-while-status-loading-8-do-not-use-chained-react-query-enabled-flags-useisadminusername-or-useusername-hooks-for-the-gate-decision-all-async-work-must-be-imperative-inside-the-single-useeffect-9-apply-the-sunset-theme-dusk-bg-dusk-mid-backgrounds-sunset-gold-sunset-orange-accent-colours-orbitron-rajdhani-fonts-sunset-glow-effects-to-the-loading-spinner-login-prompt-and-any-intermediate-states",
-      "featureTitle": "Rewrite `frontend/src/components/AdminAccessControl.tsx` with a fully auto-resolved, non-looping sequential gate using a `useEffect` + local state imperative async flow. The component must: (1) immediately render a 'Please log in via Internet Identity' prompt if `isAuthenticated` is false — do not show a spinner or form; (2) once `isAuthenticated` is true, run a single `useEffect` that imperatively calls the backend actor's `getUsername` function directly (NOT via React Query) to retrieve the stored username for the authenticated principal; (3) if the resolved username is an empty string or null/undefined, render the `ProfileSetupModal` to trigger username creation — do not spin; (4) once a non-empty username string is confirmed, immediately call `isAdminUsername` with that exact username string — never pass a principal, undefined, or null; (5) as soon as both calls complete, transition immediately and permanently to either `'granted'` (render children) or `'denied'` (render `AccessDeniedScreen`) using a local `status` state variable typed `'loading' | 'granted' | 'denied' | 'unauthenticated' | 'no-username'`; (6) the `useEffect` must include a `hasRun` ref guard (`if (hasRun.current) return; hasRun.current = true;`) to ensure it executes exactly once per authentication session, preventing re-entry and infinite loops; (7) show a loading spinner only while `status === 'loading'`; (8) do NOT use chained React Query `enabled` flags, `useIsAdminUsername`, or `useUsername` hooks for the gate decision — all async work must be imperative inside the single `useEffect`; (9) apply the sunset theme (dusk-bg/dusk-mid backgrounds, sunset-gold/sunset-orange accent colours, Orbitron/Rajdhani fonts, sunset glow effects) to the loading spinner, login prompt, and any intermediate states.",
-      "files": [
-        "frontend/src/components/AdminAccessControl.tsx"
-      ],
-      "components": [
-        "authorization@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0",
-        "qr-code@1.0.0",
-        "camera@1.0.0"
-      ],
-      "testIds": [
-        "REQ-111"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-audit-frontend-src-hooks-usequeries-ts-to-ensure-no-query-or-hook-configuration-can-cause-adminaccesscontrol-tsx-to-enter-an-infinite-re-fetch-loop-if-useusername-getusername-or-useisadminusername-hooks-are-still-present-for-other-consumers-set-their-staletime-to-at-least-60-000-ms-and-retry-to-1-confirm-that-none-of-these-hooks-are-wired-into-adminaccesscontrol-s-access-gating-logic-after-the-req-111-rewrite-the-admin-gate-must-rely-solely-on-the-imperative-actor-calls-getusername-and-isadminusername-inside-the-useeffect",
-      "featureTitle": "Audit `frontend/src/hooks/useQueries.ts` to ensure no query or hook configuration can cause `AdminAccessControl.tsx` to enter an infinite re-fetch loop. If `useUsername`/`getUsername` or `useIsAdminUsername` hooks are still present for other consumers, set their `staleTime` to at least 60 000 ms and `retry` to 1. Confirm that none of these hooks are wired into `AdminAccessControl`'s access-gating logic after the REQ-111 rewrite — the admin gate must rely solely on the imperative actor calls (`getUsername` and `isAdminUsername`) inside the `useEffect`.",
+      "featureId": "feature-add-react-query-hooks-to-frontend-src-hooks-usequeries-ts-for-the-new-pin-backend-functions-useverifyadminpin-mutation-that-calls-verifyadminpin-with-the-submitted-pin-string-must-await-the-actor-call-unwrap-the-ok-err-result-variant-throw-a-javascript-error-on-err-and-return-the-boolean-result-useadminpinlockoutstatus-query-that-calls-getadminpinlockoutstatus-with-the-authenticated-user-s-principal-enabled-only-when-the-user-is-authenticated-with-staletime-0-and-retry-0-so-it-always-reflects-the-live-lockout-state",
+      "featureTitle": "Add React Query hooks to `frontend/src/hooks/useQueries.ts` for the new PIN backend functions: `useVerifyAdminPin()` mutation that calls `verifyAdminPin` with the submitted PIN string — must await the actor call, unwrap the `#ok`/`#err` Result variant, throw a JavaScript `Error` on `#err`, and return the boolean result; `useAdminPinLockoutStatus()` query that calls `getAdminPinLockoutStatus` with the authenticated user's principal, enabled only when the user is authenticated, with `staleTime: 0` and `retry: 0` so it always reflects the live lockout state.",
       "files": [
         "frontend/src/hooks/useQueries.ts"
       ],
@@ -39,7 +18,28 @@
         "camera@1.0.0"
       ],
       "testIds": [
-        "REQ-113"
+        "REQ-115"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-rewrite-frontend-src-components-adminaccesscontrol-tsx-to-replace-all-previous-gate-logic-with-a-new-flow-1-if-the-user-is-not-authenticated-via-internet-identity-immediately-render-a-please-log-in-via-internet-identity-to-access-the-admin-panel-prompt-do-not-spin-or-show-a-pin-form-2-once-authenticated-render-a-styled-4-digit-pin-entry-screen-with-a-heading-admin-access-a-subheading-enter-the-4-digit-pin-to-continue-four-individual-single-digit-input-fields-or-a-single-4-character-pin-input-field-and-a-submit-button-use-a-form-element-with-onsubmit-so-both-enter-key-and-button-click-trigger-submission-3-the-onsubmit-handler-must-call-event-preventdefault-set-a-local-loading-state-then-call-the-backend-verifyadminpin-function-via-the-actor-directly-not-react-query-with-the-entered-pin-string-4-if-the-backend-returns-true-correct-pin-transition-to-status-granted-and-render-children-5-if-the-backend-returns-an-error-indicating-lockout-display-the-lockout-message-e-g-too-many-failed-attempts-try-again-in-x-minutes-and-disable-the-form-6-if-the-pin-is-wrong-but-the-principal-is-not-yet-locked-out-display-an-inline-error-such-as-incorrect-pin-x-attempts-remaining-and-clear-the-pin-input-7-any-thrown-error-is-caught-in-a-try-catch-and-displayed-as-an-inline-error-message-never-swallow-errors-silently-8-show-a-loading-spinner-only-while-the-verifyadminpin-call-is-in-flight-9-remove-all-previous-getusername-isadminusername-useusername-useisadminusername-and-username-based-gate-logic-from-this-component-entirely-10-apply-the-sunset-theme-dusk-bg-dusk-mid-backgrounds-sunset-gold-sunset-orange-accent-colours-orbitron-rajdhani-fonts-sunset-glow-effects-to-the-pin-entry-form",
+      "featureTitle": "Rewrite `frontend/src/components/AdminAccessControl.tsx` to replace all previous gate logic with a new flow: (1) If the user is not authenticated via Internet Identity, immediately render a 'Please log in via Internet Identity to access the admin panel' prompt — do not spin or show a PIN form; (2) Once authenticated, render a styled 4-digit PIN entry screen with: a heading 'Admin Access', a subheading 'Enter the 4-digit PIN to continue', four individual single-digit input fields (or a single 4-character PIN input field), and a 'Submit' button — use a `<form>` element with `onSubmit` so both Enter key and button click trigger submission; (3) The `onSubmit` handler must call `event.preventDefault()`, set a local loading state, then call the backend `verifyAdminPin` function (via the actor directly, not React Query) with the entered PIN string; (4) If the backend returns `true` (correct PIN), transition to `status = 'granted'` and render children; (5) If the backend returns an error indicating lockout, display the lockout message (e.g. 'Too many failed attempts. Try again in X minutes.') and disable the form; (6) If the PIN is wrong but the principal is not yet locked out, display an inline error such as 'Incorrect PIN. X attempts remaining.' and clear the PIN input; (7) Any thrown error is caught in a try/catch and displayed as an inline error message — never swallow errors silently; (8) Show a loading spinner only while the `verifyAdminPin` call is in-flight; (9) Remove all previous `getUsername`, `isAdminUsername`, `useUsername`, `useIsAdminUsername`, and username-based gate logic from this component entirely; (10) Apply the sunset theme (dusk-bg/dusk-mid backgrounds, sunset-gold/sunset-orange accent colours, Orbitron/Rajdhani fonts, sunset glow effects) to the PIN entry form.",
+      "files": [
+        "frontend/src/components/AdminAccessControl.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "qr-code@1.0.0",
+        "camera@1.0.0"
+      ],
+      "testIds": [
+        "REQ-116"
       ],
       "confidence": "high"
     }

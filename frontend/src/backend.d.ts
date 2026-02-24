@@ -98,6 +98,10 @@ export interface backendInterface {
     }>;
     deleteCategory(id: bigint): Promise<Result>;
     deleteProduct(id: bigint): Promise<Result>;
+    getAdminPinLockoutStatus(principal: Principal): Promise<{
+        remainingSeconds: bigint;
+        isLockedOut: boolean;
+    }>;
     getAllCategories(): Promise<Array<ProductCategory>>;
     getAllOrders(): Promise<Array<Order>>;
     getAvailableProducts(): Promise<Array<Product>>;
@@ -128,4 +132,11 @@ export interface backendInterface {
     updatePaypalWalletAddress(address: string): Promise<Result>;
     updateProduct(id: bigint, gameName: string, categoryId: bigint, title: string, description: string, accountDetails: string, price: bigint, available: boolean): Promise<Result>;
     updateSubscriptionTierPrices(id: bigint, monthlyPrice: number, yearlyPrice: number): Promise<Result>;
+    verifyAdminPin(pin: string): Promise<{
+        __kind__: "ok";
+        ok: boolean;
+    } | {
+        __kind__: "err";
+        err: string;
+    }>;
 }

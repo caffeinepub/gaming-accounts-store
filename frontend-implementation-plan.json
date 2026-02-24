@@ -1,61 +1,60 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Fully auto-resolved admin gate rewrite (useEffect + imperative async flow)",
+  "title": "Replace admin gate with 4-digit PIN (2006) + lockout system (Frontend)",
   "requirements": [
     {
-      "id": "REQ-111",
-      "summary": "Rewrite AdminAccessControl.tsx with a fully auto-resolved, non-looping sequential gate using useEffect + local state imperative async flow",
+      "id": "REQ-115",
+      "summary": "Add React Query hooks for PIN verification and lockout status checking",
       "acceptanceCriteria": [
-        "When an unauthenticated user navigates to /admin, a 'Please log in via Internet Identity' prompt is shown immediately — no spinner, no form",
-        "When an authenticated user with stored username 'Frosty' navigates to /admin, the component automatically fetches the username and calls isAdminUsername without any manual input",
-        "If isAdminUsername returns true, the admin panel content (children) renders immediately",
-        "If isAdminUsername returns false, AccessDeniedScreen renders immediately",
-        "If the authenticated user has no username, ProfileSetupModal is triggered instead of a spinner",
-        "The useEffect executes exactly once per authentication session — navigating away and back does not trigger duplicate calls or loops",
-        "No chained React Query enabled flags or useIsAdminUsername/useUsername hooks are used for the gate decision",
-        "A loading spinner is shown only during the brief in-flight period while getUsername or isAdminUsername calls are pending",
-        "The component never enters a perpetual spinning/verifying state"
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/components/AdminAccessControl.tsx",
-          "operation": "modify",
-          "description": "Rewrite the component to use a fully auto-resolved imperative async flow inside a single useEffect with a hasRun ref guard. Define a local status state variable typed 'loading' | 'granted' | 'denied' | 'unauthenticated' | 'no-username'. When isAuthenticated is false, immediately render a 'Please log in via Internet Identity' prompt (no spinner, no form). Once isAuthenticated is true, run a useEffect that: (1) checks if hasRun.current is true and returns early if so; (2) sets hasRun.current = true; (3) imperatively calls actor.getUsername() to retrieve the stored username; (4) if the username is empty/null/undefined, set status to 'no-username' and render ProfileSetupModal; (5) if username is non-empty, imperatively call actor.isAdminUsername(username) with that exact string; (6) based on the result, set status to 'granted' or 'denied' and render children or AccessDeniedScreen accordingly. Show a loading spinner only while status === 'loading'. Do NOT use useIsAdminUsername, useUsername, or chained React Query enabled flags for the gate decision. Apply the sunset theme (dusk-bg/dusk-mid backgrounds, sunset-gold/sunset-orange accent colours, Orbitron/Rajdhani fonts, sunset glow effects) to the loading spinner, login prompt, and any intermediate states. Ensure the component never enters a perpetual spinning/verifying state by transitioning immediately once both calls complete."
-        }
-      ]
-    },
-    {
-      "id": "REQ-112",
-      "summary": "Audit and rewrite AdminPanelPage.tsx to remove any internal async gates or loading states",
-      "acceptanceCriteria": [
-        "AdminPanelPage.tsx contains no isAdminUsername calls, no useEffect with async access checks, and no internal loading/verifying states",
-        "Once AdminAccessControl renders its children, the Products tab (default active tab) is visible immediately",
-        "All tabs — Products, Orders, Payments, Admins, Subscriptions, Settings — are rendered without any additional async gating",
-        "No 'Verifying access…' or spinner state originates from AdminPanelPage.tsx itself"
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/pages/AdminPanelPage.tsx",
-          "operation": "modify",
-          "description": "Audit the component to confirm it contains zero internal async gates, isAdminUsername calls, loading states, useEffect checks, or 'verifying access' state logic of its own. Remove any redundant admin checks, verifying-access states, or internal async logic that could produce a perpetual loading state independent of AdminAccessControl. The page must render its tabbed content (Products, Orders, Payments, Admins, Subscriptions, Settings) immediately and unconditionally as soon as AdminAccessControl renders its children. Ensure the Products tab (default active tab) is visible immediately without any additional async gating. Do not introduce any new loading or verification states within this component."
-        }
-      ]
-    },
-    {
-      "id": "REQ-113",
-      "summary": "Audit useQueries.ts to ensure no query configuration can cause AdminAccessControl to enter an infinite re-fetch loop",
-      "acceptanceCriteria": [
-        "Any useUsername / getUsername query hook remaining in useQueries.ts has staleTime ≥ 60 000 ms and retry = 1",
-        "Any useIsAdminUsername query hook remaining in useQueries.ts has staleTime ≥ 60 000 ms and retry = 1",
-        "Neither hook is imported or called inside AdminAccessControl.tsx for the gate decision",
-        "No query configuration in useQueries.ts triggers repeated background refetches that could loop the admin gate"
+        "`useVerifyAdminPin` mutation correctly calls the backend `verifyAdminPin` function",
+        "Mutation throws a JavaScript Error when the backend returns `#err` (e.g. lockout error)",
+        "`useAdminPinLockoutStatus` query is enabled only when the user is authenticated",
+        "Lockout status query has `staleTime: 0` and `retry: 0`"
       ],
       "file_operations": [
         {
           "path": "frontend/src/hooks/useQueries.ts",
           "operation": "modify",
-          "description": "Audit the file to ensure no query or hook configuration can cause AdminAccessControl.tsx to enter an infinite re-fetch loop. If useUsername/getUsername or useIsAdminUsername hooks are still present for other consumers, set their staleTime to at least 60 000 ms and retry to 1. Confirm that none of these hooks are wired into AdminAccessControl's access-gating logic after the REQ-111 rewrite — the admin gate must rely solely on the imperative actor calls (getUsername and isAdminUsername) inside the useEffect. Do not remove the hooks if they are used elsewhere in the application, but ensure their configurations do not trigger repeated background refetches that could loop the admin gate."
+          "description": "Add `useVerifyAdminPin()` mutation hook that calls `actor.verifyAdminPin(pin: string)`, unwraps the Result variant (`#ok` with boolean or `#err` with string), throws a JavaScript Error on `#err`, and returns the boolean result on success. Add `useAdminPinLockoutStatus()` query hook that calls `actor.getAdminPinLockoutStatus(principal)` with the authenticated user's principal, enabled only when both actor and identity are available, with `staleTime: 0` and `retry: 0` to always reflect live lockout state. Both hooks must handle the backend interface types correctly (Result union and lockout status object with `isLockedOut: boolean` and `remainingSeconds: bigint`)."
+        }
+      ]
+    },
+    {
+      "id": "REQ-116",
+      "summary": "Replace AdminAccessControl with 4-digit PIN entry screen and lockout enforcement",
+      "acceptanceCriteria": [
+        "Unauthenticated users see a 'Please log in' prompt, not the PIN form",
+        "Authenticated users immediately see the 4-digit PIN entry form",
+        "Entering PIN '2006' and submitting transitions to access granted (admin panel renders)",
+        "Entering any wrong PIN shows an inline error with remaining attempts",
+        "After 4 wrong attempts, the form shows a lockout message with time remaining and disables the input/submit",
+        "Pressing Enter in the PIN input triggers form submission",
+        "Loading spinner shows only while the backend call is in-flight",
+        "No username-based gate logic remains in this component",
+        "Sunset theme is applied consistently to the PIN entry screen"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/AdminAccessControl.tsx",
+          "operation": "modify",
+          "description": "Rewrite the entire component to replace all username-based gate logic with a PIN-based flow. Remove all imports and usage of `getUsername`, `isAdminUsername`, `useUsername`, and `useIsAdminUsername`. The new flow: (1) If `identity` from `useInternetIdentity()` is null/undefined, render a centered prompt 'Please log in via Internet Identity to access the admin panel' with a link/button to trigger login — do not show the PIN form. (2) Once authenticated, render a styled 4-digit PIN entry screen with a heading 'Admin Access', subheading 'Enter the 4-digit PIN to continue', four single-digit input fields (or one input with maxLength=4 and inputMode='numeric'), and a 'Submit' button, all wrapped in a `<form onSubmit={handleSubmit}>`. (3) The `handleSubmit` async function must call `event.preventDefault()`, set a local `isSubmitting` state to true, call `actor.verifyAdminPin(pinValue)` directly (not via React Query mutation), unwrap the Result variant, and handle: on `#ok(true)` transition to `status = 'granted'` and render `{children}`; on `#ok(false)` or `#err` with remaining attempts, display inline error 'Incorrect PIN. X attempts remaining.' and clear the PIN input; on `#err` indicating lockout, display the lockout message (e.g., 'Too many failed attempts. Try again in X minutes.') and disable the form fields. (4) Use try/catch to handle any thrown errors and display them as inline error messages. (5) Show a loading spinner or disabled state only while `isSubmitting` is true. (6) Apply sunset theme colors (dusk-bg/dusk-mid backgrounds, sunset-gold/sunset-orange accents, Orbitron/Rajdhani fonts, sunset glow effects) to the PIN entry screen using Tailwind classes consistent with `frontend/src/index.css` and `frontend/tailwind.config.js`. Remove all references to ProfileSetupModal or username checks from this component."
+        }
+      ]
+    },
+    {
+      "id": "REQ-117",
+      "summary": "Remove all internal gates from AdminPanelPage",
+      "acceptanceCriteria": [
+        "AdminPanelPage renders its tabbed content immediately once AdminAccessControl grants access",
+        "No internal `isAdminUsername`, `verifyAdminPin`, loading state, or async `useEffect` gate exists in AdminPanelPage",
+        "All six tabs (Products, Orders, Payments, Admins, Subscriptions, Settings) are visible and functional"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/pages/AdminPanelPage.tsx",
+          "operation": "modify",
+          "description": "Audit the file and remove any remaining username-based checks, PIN verification calls, `isAdminUsername`, `useIsAdminUsername`, or async `useEffect` gates. Ensure the page renders its tabbed content (Products, Orders, Payments, Admins, Subscriptions, Settings) immediately and unconditionally, relying solely on the `AdminAccessControl` wrapper for access control. Confirm all six tabs remain present and wired correctly."
         }
       ]
     }

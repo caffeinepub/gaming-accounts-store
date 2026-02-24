@@ -1,14 +1,14 @@
 {
   "schemaVersion": "1.0.0",
-  "projectStateVersion": 65,
-  "summary": "A Shopify-style gaming accounts e-commerce store called Game Vault with a loading screen that features a royalty-free New York sunset video (sourced from a public CDN such as Pexels or Pixabay) playing as the background, replacing the previous 3D Three.js scene entirely. The loading screen enforces a minimum 40-second wait with a 'Game Vault' gradient text (red → purple → orange) progress reveal effect and an 'Enter Store' button that unlocks after 40 seconds. Store sells gaming accounts starting with Car Parking Multiplayer. Features full admin panel, user authentication via Internet Identity, and checkout flows for PayPal, Crypto, UK Gift Cards, and Pay in 3 Installments. The storefront logo has been removed and the 'Game Vault' site name displays a red → purple → orange 3-tone gradient across navbar, footer, loading screen, and all instances. Users must create a unique username (no spaces) on first login before accessing the store; username is used for purchases (order confirmations show username, email, contact info, and product purchased) and for admin panel access control. Admin Panel link is visible to all users in the navbar. The admin gate is now fully auto-resolved: when an authenticated user visits the admin panel, their stored username is automatically fetched and checked against the backend isAdminUsername whitelist — if whitelisted, access is granted immediately with no manual input; if not whitelisted, an 'Access Denied' screen is shown; if unauthenticated, a login prompt is shown. The username 'Frosty' is hardcoded as the initial seed admin in the backend whitelist. The overall website theme is a sunset aesthetic — warm golden-oranges, deep purples, dusky pinks, and soft golden yellows. The 'Game Vault' gradient text (red → purple → orange) remains unchanged. A Subscriptions tab has been added to the navbar with 4 tiers (Starter, Basic, Premium, Pro), each offering progressive perks and discounts. Users toggle between monthly/yearly billing with a disclaimer shown under all tier titles. Pro tier unlocks all perks. PayPal and Crypto are the only supported payment methods for subscriptions. Admins can edit monthly and yearly prices per tier independently, toggle a 7-day free trial on/off per tier, and all changes reflect on the user-facing subscriptions tab. Subscription tier data is stored in backend stable storage.",
+  "projectStateVersion": 67,
+  "summary": "A Shopify-style gaming accounts e-commerce store called Game Vault with a loading screen that features a royalty-free New York sunset video (sourced from a public CDN such as Pexels or Pixabay) playing as the background, replacing the previous 3D Three.js scene entirely. The loading screen enforces a minimum 40-second wait with a 'Game Vault' gradient text (red → purple → orange) progress reveal effect and an 'Enter Store' button that unlocks after 40 seconds. Store sells gaming accounts starting with Car Parking Multiplayer. Features full admin panel, user authentication via Internet Identity, and checkout flows for PayPal, Crypto, UK Gift Cards, and Pay in 3 Installments. The storefront logo has been removed and the 'Game Vault' site name displays a red → purple → orange 3-tone gradient across navbar, footer, loading screen, and all instances. Users must create a unique username (no spaces) on first login before accessing the store; username is used for purchases (order confirmations show username, email, contact info, and product purchased). Admin Panel link is visible to all users in the navbar. The admin gate now uses a 4-digit PIN entry screen (PIN: 2006, hardcoded in backend). The user must be logged in via Internet Identity first, then enter the 4-digit PIN to access the admin panel. After 4 wrong PIN attempts, the user is locked out for 1 hour (lockout tracked per user principal in backend stable storage). The username 'Frosty' is hardcoded as the initial seed admin in the backend whitelist. The overall website theme is a sunset aesthetic — warm golden-oranges, deep purples, dusky pinks, and soft golden yellows. A Subscriptions tab has been added to the navbar with 4 tiers (Starter, Basic, Premium, Pro), each offering progressive perks and discounts. Users toggle between monthly/yearly billing with a disclaimer shown under all tier titles. Pro tier unlocks all perks. PayPal and Crypto are the only supported payment methods for subscriptions. Admins can edit monthly and yearly prices per tier independently, toggle a 7-day free trial on/off per tier, and all changes reflect on the user-facing subscriptions tab. Subscription tier data is stored in backend stable storage.",
   "architectural_notes": [
     "Full-stack app on Internet Computer (ICP) with Internet Identity for auth",
     "Payment methods (PayPal, Crypto, UK Gift Cards, Pay in 3) built as UI/checkout flows; real API keys must be connected by owner",
-    "Username 'Frosty' is hardcoded as the initial seed admin in the backend whitelist",
     "Loading screen now uses a royalty-free NYC sunset video (public CDN URL) as the background instead of a Three.js 3D scene; 40-second timer and progress reveal logic remain",
     "Subscription tiers (Starter, Basic, Premium, Pro) stored in backend stable storage with monthly price, yearly price, perks list, and free trial enabled flag; admin-editable via admin panel",
-    "Admin-configurable wallet addresses (PayPal email, Bitcoin address, Ethereum address) stored in backend stable storage; Bitcoin and Ethereum addresses shown to customers during crypto checkout as QR code + copyable text"
+    "Admin-configurable wallet addresses (PayPal email, Bitcoin address, Ethereum address) stored in backend stable storage; Bitcoin and Ethereum addresses shown to customers during crypto checkout as QR code + copyable text",
+    "Admin panel gate replaced with 4-digit PIN entry (PIN: 2006, hardcoded in backend); user must be authenticated via Internet Identity first, then enter PIN; 4 failed attempts triggers 1-hour lockout tracked per principal in stable storage"
   ],
   "known_issues": [
     "Admin panel create product and create category flows throw errors; backend addCategory/addProduct calls and frontend admin panel components need fixing",
@@ -646,6 +646,22 @@
         "REQ-113"
       ],
       "version": 1
+    },
+    {
+      "id": "feature-add-react-query-hooks-to-frontend-src-hooks-usequeries-ts-for-the-new-pin-backend-functions-useverifyadminpin-mutation-that-calls-verifyadminpin-with-the-submitted-pin-string-must-await-the-actor-call-unwrap-the-ok-err-result-variant-throw-a-javascript-error-on-err-and-return-the-boolean-result-useadminpinlockoutstatus-query-that-calls-getadminpinlockoutstatus-with-the-authenticated-user-s-principal-enabled-only-when-the-user-is-authenticated-with-staletime-0-and-retry-0-so-it-always-reflects-the-live-lockout-state",
+      "title": "Add React Query hooks to `frontend/src/hooks/useQueries.ts` for the new PIN backend functions: `useVerifyAdminPin()` mutation that calls `verifyAdminPin` with the submitted PIN string — must await the actor call, unwrap the `#ok`/`#err` Result variant, throw a JavaScript `Error` on `#err`, and return the boolean result; `useAdminPinLockoutStatus()` query that calls `getAdminPinLockoutStatus` with the authenticated user's principal, enabled only when the user is authenticated, with `staleTime: 0` and `retry: 0` so it always reflects the live lockout state.",
+      "reqIds": [
+        "REQ-115"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-rewrite-frontend-src-components-adminaccesscontrol-tsx-to-replace-all-previous-gate-logic-with-a-new-flow-1-if-the-user-is-not-authenticated-via-internet-identity-immediately-render-a-please-log-in-via-internet-identity-to-access-the-admin-panel-prompt-do-not-spin-or-show-a-pin-form-2-once-authenticated-render-a-styled-4-digit-pin-entry-screen-with-a-heading-admin-access-a-subheading-enter-the-4-digit-pin-to-continue-four-individual-single-digit-input-fields-or-a-single-4-character-pin-input-field-and-a-submit-button-use-a-form-element-with-onsubmit-so-both-enter-key-and-button-click-trigger-submission-3-the-onsubmit-handler-must-call-event-preventdefault-set-a-local-loading-state-then-call-the-backend-verifyadminpin-function-via-the-actor-directly-not-react-query-with-the-entered-pin-string-4-if-the-backend-returns-true-correct-pin-transition-to-status-granted-and-render-children-5-if-the-backend-returns-an-error-indicating-lockout-display-the-lockout-message-e-g-too-many-failed-attempts-try-again-in-x-minutes-and-disable-the-form-6-if-the-pin-is-wrong-but-the-principal-is-not-yet-locked-out-display-an-inline-error-such-as-incorrect-pin-x-attempts-remaining-and-clear-the-pin-input-7-any-thrown-error-is-caught-in-a-try-catch-and-displayed-as-an-inline-error-message-never-swallow-errors-silently-8-show-a-loading-spinner-only-while-the-verifyadminpin-call-is-in-flight-9-remove-all-previous-getusername-isadminusername-useusername-useisadminusername-and-username-based-gate-logic-from-this-component-entirely-10-apply-the-sunset-theme-dusk-bg-dusk-mid-backgrounds-sunset-gold-sunset-orange-accent-colours-orbitron-rajdhani-fonts-sunset-glow-effects-to-the-pin-entry-form",
+      "title": "Rewrite `frontend/src/components/AdminAccessControl.tsx` to replace all previous gate logic with a new flow: (1) If the user is not authenticated via Internet Identity, immediately render a 'Please log in via Internet Identity to access the admin panel' prompt — do not spin or show a PIN form; (2) Once authenticated, render a styled 4-digit PIN entry screen with: a heading 'Admin Access', a subheading 'Enter the 4-digit PIN to continue', four individual single-digit input fields (or a single 4-character PIN input field), and a 'Submit' button — use a `<form>` element with `onSubmit` so both Enter key and button click trigger submission; (3) The `onSubmit` handler must call `event.preventDefault()`, set a local loading state, then call the backend `verifyAdminPin` function (via the actor directly, not React Query) with the entered PIN string; (4) If the backend returns `true` (correct PIN), transition to `status = 'granted'` and render children; (5) If the backend returns an error indicating lockout, display the lockout message (e.g. 'Too many failed attempts. Try again in X minutes.') and disable the form; (6) If the PIN is wrong but the principal is not yet locked out, display an inline error such as 'Incorrect PIN. X attempts remaining.' and clear the PIN input; (7) Any thrown error is caught in a try/catch and displayed as an inline error message — never swallow errors silently; (8) Show a loading spinner only while the `verifyAdminPin` call is in-flight; (9) Remove all previous `getUsername`, `isAdminUsername`, `useUsername`, `useIsAdminUsername`, and username-based gate logic from this component entirely; (10) Apply the sunset theme (dusk-bg/dusk-mid backgrounds, sunset-gold/sunset-orange accent colours, Orbitron/Rajdhani fonts, sunset glow effects) to the PIN entry form.",
+      "reqIds": [
+        "REQ-116"
+      ],
+      "version": 1
     }
   ],
   "new_feature_requests": [
@@ -1024,12 +1040,6 @@
       "status": "pending"
     },
     {
-      "id": "AR-77",
-      "summary": "Replace manual username-entry admin gate with fully auto-resolved gate: authenticated user's stored username is automatically fetched and checked against the whitelist — if whitelisted, access is granted immediately with no input; if not whitelisted, show Access Denied screen; if unauthenticated, show login prompt via Internet Identity.",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
       "id": "AR-79",
       "summary": "Audit `frontend/src/pages/AdminPanelPage.tsx` to confirm it contains zero internal async gates, `isAdminUsername` calls, loading states, or `useEffect` checks of its own. The page must render its tabbed content (Products, Orders, Payments, Admins, Subscriptions, Settings) immediately and unconditionally once `AdminAccessControl` renders its children. Remove any redundant admin checks, verifying-access states, or internal async logic that could produce a perpetual loading state independent of `AdminAccessControl`.",
       "reqIds": [
@@ -1058,6 +1068,36 @@
       "summary": "Audit and rewrite `frontend/src/pages/AdminPanelPage.tsx` to confirm it contains zero internal async gates, `isAdminUsername` calls, loading states, `useEffect` checks, or 'verifying access' state logic of its own. The page must render its tabbed content (Products, Orders, Payments, Admins, Subscriptions, Settings) immediately and unconditionally as soon as `AdminAccessControl` renders its children. Remove any redundant admin checks, verifying-access states, or internal async logic that could produce a perpetual loading state independent of `AdminAccessControl`.",
       "reqIds": [
         "REQ-112"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-85",
+      "summary": "Replace the auto-resolved username admin gate with a 4-digit PIN entry screen. User must be logged in via Internet Identity first, then enter PIN '2006' to access admin panel. After 4 wrong attempts, user is locked out for 1 hour (tracked per user principal in backend stable storage). Hardcode PIN as 2006 in the backend.",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-86",
+      "summary": "Add a 4-digit admin PIN system to `backend/main.mo`. Hardcode the PIN as `2006`. Add a stable map `adminPinAttempts : HashMap<Principal, Nat>` tracking failed attempt counts per principal, and a stable map `adminPinLockoutTime : HashMap<Principal, Int>` tracking lockout expiry timestamps per principal. Expose the following functions: `verifyAdminPin(pin: Text) : async Result.Result<Bool, Text>` — checks the submitted PIN against `\"2006\"`, increments the failed attempt counter on mismatch, locks out the principal for 3600 seconds (1 hour) after 4 failed attempts, returns `#ok(true)` on correct PIN (and resets the attempt counter), returns `#err(\"Locked out. Try again in X minutes.\")` if the principal is currently locked out, and returns `#ok(false)` on wrong PIN with remaining attempts info in the error; `getAdminPinLockoutStatus(principal: Principal) : async { isLockedOut: Bool; remainingSeconds: Int }` — returns whether the caller is currently locked out and how many seconds remain. Timestamps must use `Time.now()` (nanoseconds) converted appropriately.",
+      "reqIds": [
+        "REQ-114"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-89",
+      "summary": "Audit and update `frontend/src/pages/AdminPanelPage.tsx` to ensure it contains zero internal async gates, PIN verification calls, loading states, or `useEffect` checks of its own. The page must render its tabbed content (Products, Orders, Payments, Admins, Subscriptions, Settings) immediately and unconditionally once `AdminAccessControl` renders its children. Remove any remaining username-based or PIN-based gate logic from the page itself — all access control must be handled exclusively by the `AdminAccessControl` wrapper.",
+      "reqIds": [
+        "REQ-117"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-90",
+      "summary": "Update `backend/migration.mo` to ensure the new stable maps for `adminPinAttempts` and `adminPinLockoutTime` are handled correctly during canister upgrades. Both maps must default to empty on first deployment and must not cause data loss for existing stable state (products, orders, users, settings, subscription tiers, admin whitelist).",
+      "reqIds": [
+        "REQ-118"
       ],
       "status": "pending"
     }

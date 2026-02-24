@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useActor } from './useActor';
+import { useInternetIdentity } from './useInternetIdentity';
 import { Principal } from '@dfinity/principal';
 import {
   PaymentMethod,
@@ -113,9 +114,7 @@ export function useGetUsernameByPrincipal(principalStr: string | undefined) {
   return { ...query, isLoading, isFetched };
 }
 
-// ─── Admin Check (NOT used as control-flow in AdminAccessControl) ─────────────
-// These hooks are available for other consumers but must NOT be used to gate
-// admin access — AdminAccessControl uses imperative actor calls instead.
+// ─── Admin Check ──────────────────────────────────────────────────────────────
 
 export function useIsAdminUsername(username: string | undefined) {
   const { actor, isFetching: actorFetching } = useActor();
@@ -129,6 +128,46 @@ export function useIsAdminUsername(username: string | undefined) {
     enabled: !!actor && !actorFetching && !!username && username.length > 0,
     staleTime: 60_000,
     retry: 1,
+  });
+}
+
+// ─── Admin PIN ────────────────────────────────────────────────────────────────
+
+export function useVerifyAdminPin() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation<boolean, Error, string>({
+    mutationFn: async (pin: string) => {
+      if (!actor) throw new Error('Actor not available');
+      const result = await actor.verifyAdminPin(pin);
+      if (result.__kind__ === 'err') {
+        throw new Error(result.err);
+      }
+      return result.ok;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['adminPinLockoutStatus'] });
+    },
+  });
+}
+
+export function useAdminPinLockoutStatus(principalStr: string | undefined) {
+  const { actor, isFetching: actorFetching } = useActor();
+  const { identity } = useInternetIdentity();
+
+  const isEnabled = !!actor && !actorFetching && !!identity && !!principalStr;
+
+  return useQuery<{ isLockedOut: boolean; remainingSeconds: bigint }>({
+    queryKey: ['adminPinLockoutStatus', principalStr],
+    queryFn: async () => {
+      if (!actor || !principalStr) return { isLockedOut: false, remainingSeconds: 0n };
+      const principal = Principal.fromText(principalStr);
+      return actor.getAdminPinLockoutStatus(principal);
+    },
+    enabled: isEnabled,
+    staleTime: 0,
+    retry: 0,
   });
 }
 
@@ -349,45 +388,43 @@ export function useGetOrdersByBuyer(principalStr: string | undefined) {
   });
 }
 
-export function useGetOrderById(id: bigint | undefined | null) {
+export function useGetOrderById(id: bigint | undefined) {
   const { actor, isFetching: actorFetching } = useActor();
 
   return useQuery<Order | null>({
     queryKey: ['order', id?.toString()],
     queryFn: async () => {
-      if (!actor || id === undefined || id === null) return null;
+      if (!actor || id === undefined) return null;
       return actor.getOrderById(id);
     },
-    enabled: !!actor && !actorFetching && id !== undefined && id !== null,
-    staleTime: 30_000,
+    enabled: !!actor && !actorFetching && id !== undefined,
+    staleTime: 10_000,
     retry: 1,
-    refetchInterval: 30_000,
+    refetchInterval: 5_000,
   });
+}
+
+interface PlaceOrderVars {
+  productId: bigint;
+  paymentMethod: PaymentMethod;
+  status: string;
+  approvalStatus: ApprovalStatus;
+  giftCardNumber: string;
+  giftCardBalance: string;
 }
 
 export function usePlaceOrder() {
   const { actor } = useActor();
   const queryClient = useQueryClient();
 
-  return useMutation<
-    bigint,
-    Error,
-    {
-      productId: bigint;
-      paymentMethod: PaymentMethod;
-      status: string;
-      approvalStatus: ApprovalStatus;
-      giftCardNumber: string;
-      giftCardBalance: string;
-    }
-  >({
+  return useMutation<bigint, Error, PlaceOrderVars>({
     mutationFn: async ({ productId, paymentMethod, status, approvalStatus, giftCardNumber, giftCardBalance }) => {
       if (!actor) throw new Error('Actor not available');
       return actor.addOrder(productId, paymentMethod, status, approvalStatus, giftCardNumber, giftCardBalance);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['ordersByBuyer'] });
       queryClient.invalidateQueries({ queryKey: ['allOrders'] });
+      queryClient.invalidateQueries({ queryKey: ['ordersByBuyer'] });
     },
   });
 }
@@ -404,7 +441,6 @@ export function useApproveOrder() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['allOrders'] });
-      queryClient.invalidateQueries({ queryKey: ['order'] });
     },
   });
 }
@@ -421,7 +457,38 @@ export function useDeclineOrder() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['allOrders'] });
-      queryClient.invalidateQueries({ queryKey: ['order'] });
+    },
+  });
+}
+
+// ─── Admin Whitelist ──────────────────────────────────────────────────────────
+
+export function useAddAdminUser() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, string>({
+    mutationFn: async (username: string) => {
+      if (!actor) throw new Error('Actor not available');
+      await actor.addAdminUser(username);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['isAdminUsername'] });
+    },
+  });
+}
+
+export function useRemoveAdminUser() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, string>({
+    mutationFn: async (username: string) => {
+      if (!actor) throw new Error('Actor not available');
+      await actor.removeAdminUser(username);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['isAdminUsername'] });
     },
   });
 }
@@ -487,38 +554,6 @@ export function useUpdateEthereumWallet() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['storeSettings'] });
-    },
-  });
-}
-
-// ─── Admin Whitelist ──────────────────────────────────────────────────────────
-
-export function useAddAdminUser() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
-  return useMutation<void, Error, string>({
-    mutationFn: async (username: string) => {
-      if (!actor) throw new Error('Actor not available');
-      await actor.addAdminUser(username);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['isAdminUsername'] });
-    },
-  });
-}
-
-export function useRemoveAdminUser() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
-  return useMutation<void, Error, string>({
-    mutationFn: async (username: string) => {
-      if (!actor) throw new Error('Actor not available');
-      await actor.removeAdminUser(username);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['isAdminUsername'] });
     },
   });
 }

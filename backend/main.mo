@@ -1,3 +1,4 @@
+import Map "mo:core/Map";
 import Array "mo:core/Array";
 import Float "mo:core/Float";
 import Iter "mo:core/Iter";
@@ -5,17 +6,21 @@ import List "mo:core/List";
 import Nat "mo:core/Nat";
 import Order "mo:core/Order";
 import Text "mo:core/Text";
-import Map "mo:core/Map";
 import Principal "mo:core/Principal";
 import Runtime "mo:core/Runtime";
-
+import Time "mo:core/Time";
+import Int "mo:core/Int";
 
 import MixinAuthorization "authorization/MixinAuthorization";
 import AccessControl "authorization/access-control";
+import Migration "migration";
 
 // Specify the data migration function in with-clause
-
+(with migration = Migration.run)
 actor {
+  let adminPinAttempts = Map.empty<Principal, Nat>();
+  let adminPinLockoutTime = Map.empty<Principal, Int>();
+
   // Product Category
   public type ProductCategory = {
     id : Nat;
@@ -641,5 +646,82 @@ actor {
       Runtime.trap("Unauthorized: Only admins can view all orders");
     };
     orders.values().toArray();
+  };
+
+  // Admin PIN Verification System
+  // Any authenticated caller may attempt PIN verification (it is the authentication mechanism itself).
+  // Anonymous principals (guests) are intentionally allowed so that users can verify the PIN
+  // before being granted admin access.
+  public shared ({ caller }) func verifyAdminPin(pin : Text) : async {
+    #ok : Bool;
+    #err : Text;
+  } {
+    let correctPin = "2006";
+    let maxAttempts = 4;
+    let lockoutDuration = 3600;
+
+    let now = Time.now() / 1_000_000_000;
+
+    switch (adminPinLockoutTime.get(caller)) {
+      case (?lockoutExpiry) {
+        if (now < lockoutExpiry) {
+          let remainingSeconds = lockoutExpiry - now;
+          let minutes = remainingSeconds / 60;
+          return #err(
+            "Locked out. Try again in " # minutes.toText() # " minutes."
+          );
+        };
+      };
+      case (null) {};
+    };
+
+    if (pin == correctPin) {
+      adminPinAttempts.remove(caller);
+      return #ok(true);
+    };
+
+    let currentAttempts = switch (adminPinAttempts.get(caller)) {
+      case (?attempts) { attempts };
+      case (null) { 0 };
+    };
+
+    if (currentAttempts + 1 >= maxAttempts) {
+      let lockoutExpiry = now + lockoutDuration;
+      adminPinLockoutTime.add(caller, lockoutExpiry);
+      adminPinAttempts.remove(caller);
+      let lockoutDurationMinutes = lockoutDuration / 60;
+      return #err(
+        "Locked out. Try again in " # lockoutDurationMinutes.toText() # " minutes."
+      );
+    };
+
+    let remainingAttempts = Int.abs(maxAttempts.toInt() - 1);
+
+    adminPinAttempts.add(
+      caller,
+      currentAttempts + 1,
+    );
+
+    #err(
+      "Incorrect PIN. You have " # remainingAttempts.toText() # " attempts remaining."
+    );
+  };
+
+  // Callers may only check their own lockout status unless they are an admin.
+  public shared ({ caller }) func getAdminPinLockoutStatus(principal : Principal) : async { isLockedOut : Bool; remainingSeconds : Int } {
+    if (caller != principal and not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Can only check your own lockout status");
+    };
+    switch (adminPinLockoutTime.get(principal)) {
+      case (?lockoutExpiry) {
+        let now = Time.now() / 1_000_000_000;
+        if (now < lockoutExpiry) {
+          let remaining = lockoutExpiry - now;
+          return { isLockedOut = true; remainingSeconds = remaining };
+        };
+      };
+      case (null) {};
+    };
+    { isLockedOut = false; remainingSeconds = 0 };
   };
 };

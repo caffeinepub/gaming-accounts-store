@@ -1,62 +1,57 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-24T22:40:27.340Z",
-  "summary": "The diff implements most of the three requirements. AdminAccessControl.tsx is rewritten with imperative async flow, a ref guard (principal-based rather than hasRun boolean), and sunset theming. AdminPanelPage.tsx is described as having no internal async gates. useQueries.ts retains useIsAdminUsername and useGetUsernameByPrincipal with staleTime >= 60,000 ms and retry = 1. However, several specific sub-requirements have deviations or are not clearly met.",
+  "generatedAt": "2026-02-24T23:00:26.439Z",
+  "summary": "The diff implements most of the required PIN system changes across backend and frontend. REQ-114, REQ-116, REQ-118 appear largely implemented. REQ-115 shows the file was modified but the truncated diff does not confirm the new hooks were added. REQ-117 is described in the file summary but the actual file content is not shown. Several specific acceptance criteria warrant scrutiny based on available evidence.",
   "missing_requirements": [
     {
-      "id": "REQ-111",
-      "requirement": "The useEffect must include a hasRun ref guard using 'if (hasRun.current) return; hasRun.current = true;' — a boolean ref that fires once per authentication session.",
-      "reason": "The diff uses a checkedPrincipalRef (principal string ref) instead of the required boolean hasRun ref pattern. While functionally similar, this deviates from the specified implementation contract and could behave differently on re-authentication with the same principal.",
+      "id": "REQ-115",
+      "requirement": "useVerifyAdminPin() mutation and useAdminPinLockoutStatus() query must be added to useQueries.ts with correct behavior (staleTime: 0, retry: 0, enabled only when authenticated, throws JS Error on #err)",
+      "reason": "The diff for useQueries.ts is truncated and only shows existing hooks. There is no visible evidence that useVerifyAdminPin or useAdminPinLockoutStatus were added to this file.",
+      "evidence": [
+        "frontend/src/hooks/useQueries.ts"
+      ]
+    },
+    {
+      "id": "REQ-116",
+      "requirement": "Wrong PIN submission must display inline error with remaining attempts count (e.g. 'Incorrect PIN. X attempts remaining.'), not a generic message",
+      "reason": "In AdminAccessControl.tsx, the wrong-PIN branch shows a generic 'Incorrect PIN. Please try again.' message with no remaining attempts info. The spec requires the remaining attempt count to be shown.",
       "evidence": [
         "frontend/src/components/AdminAccessControl.tsx"
       ]
     },
     {
-      "id": "REQ-111",
-      "requirement": "Step (2): imperatively call the backend actor's getUsername function directly to retrieve the stored username.",
-      "reason": "The diff calls actor.getUsernameByPrincipal(principal) (passing a Principal object) rather than actor.getUsername() as specified. The build request explicitly states getUsername should be called imperatively.",
+      "id": "REQ-114",
+      "requirement": "adminPinAttempts and adminPinLockoutTime must be declared as stable variables so lockout state survives canister upgrades",
+      "reason": "The truncated main.mo shows plain `let adminPinAttempts = Map.empty<Principal, Nat>()` and `let adminPinLockoutTime = Map.empty<Principal, Int>()` bindings. Stable storage in Motoko requires stable var declarations. Without them these maps will not survive canister upgrades.",
       "evidence": [
-        "frontend/src/components/AdminAccessControl.tsx"
-      ]
-    },
-    {
-      "id": "REQ-112",
-      "requirement": "Audit and rewrite AdminPanelPage.tsx — the actual file content is not shown in the diff.",
-      "reason": "The file-diff summary describes AdminPanelPage.tsx as having no internal async gates, but the actual file content was not included in the diff (only the frontend-file-summaries.txt entry references it). Cannot fully verify compliance from diff alone.",
-      "evidence": [
-        "frontend/src/pages/AdminPanelPage.tsx",
-        "frontend-file-summaries.txt"
+        "backend/main.mo"
       ]
     }
   ],
   "hallucinated_features": [
     {
-      "description": "The admin gate uses a principal-string ref (checkedPrincipalRef) instead of the specified boolean hasRun ref, adding logic to reset the ref on logout by setting it to null — this reset-on-unauthenticated behavior was not specified in the requirements.",
-      "reason": "REQ-111 specifies a simple boolean hasRun ref. The principal-tracking ref introduces additional behavior (reset on unauthentication, per-principal deduplication) not requested.",
+      "description": "The AdminAccessControl component uses a result.__kind__ property to discriminate the Motoko Result variant (e.g. result.__kind__ === 'ok'), which is not a standard Candid JS encoding pattern.",
+      "reason": "Standard Candid JS encoding uses { ok: value } or { err: value } objects, not a __kind__ discriminator. This pattern was not requested and may not work correctly with actual Candid-generated JS bindings.",
       "evidence": [
         "frontend/src/components/AdminAccessControl.tsx"
       ]
     },
     {
-      "description": "isLoggingIn state derived from loginStatus === 'logging-in' is imported and computed but does not appear to be used in any render branch based on the visible truncated code.",
-      "reason": "The build request does not mention tracking or displaying a logging-in intermediate state; this appears to be unused scaffolding not requested by any requirement.",
+      "description": "A live countdown timer UI (lockoutSeconds state, countdownRef interval, formatTime function) was implemented in AdminAccessControl to tick down the lockout in real-time on the frontend.",
+      "reason": "The spec only requires displaying the lockout message with time remaining. A live ticking countdown timer was not explicitly requested in any requirement.",
       "evidence": [
         "frontend/src/components/AdminAccessControl.tsx"
       ]
     }
   ],
-  "confidence": 0.72,
+  "confidence": 0.62,
   "changed_files": [
+    "backend/main.mo",
+    "backend/migration.mo",
     "frontend-file-summaries.txt",
     "frontend/src/components/AdminAccessControl.tsx",
-    "frontend/src/components/ProfileSetupModal.tsx",
-    "frontend/src/components/admin/StoreSettingsManager.tsx",
-    "frontend/src/components/admin/SubscriptionManager.tsx",
     "frontend/src/hooks/useQueries.ts",
-    "frontend/src/pages/CheckoutPage.tsx",
-    "frontend/src/pages/OrderConfirmationPage.tsx",
-    "frontend/src/pages/SubscriptionsPage.tsx",
     "project_state.json"
   ]
 }

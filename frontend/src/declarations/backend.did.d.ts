@@ -85,6 +85,10 @@ export interface _SERVICE {
   'declineOrder' : ActorMethod<[bigint], { 'ok' : null } | { 'err' : string }>,
   'deleteCategory' : ActorMethod<[bigint], Result>,
   'deleteProduct' : ActorMethod<[bigint], Result>,
+  'getAdminPinLockoutStatus' : ActorMethod<
+    [Principal],
+    { 'remainingSeconds' : bigint, 'isLockedOut' : boolean }
+  >,
   'getAllCategories' : ActorMethod<[], Array<ProductCategory>>,
   'getAllOrders' : ActorMethod<[], Array<Order>>,
   'getAvailableProducts' : ActorMethod<[], Array<Product>>,
@@ -120,6 +124,11 @@ export interface _SERVICE {
   'updateSubscriptionTierPrices' : ActorMethod<
     [bigint, number, number],
     Result
+  >,
+  'verifyAdminPin' : ActorMethod<
+    [string],
+    { 'ok' : boolean } |
+      { 'err' : string }
   >,
 }
 export declare const idlService: IDL.ServiceClass;

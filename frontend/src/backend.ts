@@ -181,6 +181,10 @@ export interface backendInterface {
     }>;
     deleteCategory(id: bigint): Promise<Result>;
     deleteProduct(id: bigint): Promise<Result>;
+    getAdminPinLockoutStatus(principal: Principal): Promise<{
+        remainingSeconds: bigint;
+        isLockedOut: boolean;
+    }>;
     getAllCategories(): Promise<Array<ProductCategory>>;
     getAllOrders(): Promise<Array<Order>>;
     getAvailableProducts(): Promise<Array<Product>>;
@@ -211,6 +215,13 @@ export interface backendInterface {
     updatePaypalWalletAddress(address: string): Promise<Result>;
     updateProduct(id: bigint, gameName: string, categoryId: bigint, title: string, description: string, accountDetails: string, price: bigint, available: boolean): Promise<Result>;
     updateSubscriptionTierPrices(id: bigint, monthlyPrice: number, yearlyPrice: number): Promise<Result>;
+    verifyAdminPin(pin: string): Promise<{
+        __kind__: "ok";
+        ok: boolean;
+    } | {
+        __kind__: "err";
+        err: string;
+    }>;
 }
 import type { ApprovalStatus as _ApprovalStatus, Order as _Order, PaymentMethod as _PaymentMethod, Result as _Result, UserProfile as _UserProfile, UserRole as _UserRole } from "./declarations/backend.did.d.ts";
 export class Backend implements backendInterface {
@@ -379,6 +390,23 @@ export class Backend implements backendInterface {
         } else {
             const result = await this.actor.deleteProduct(arg0);
             return from_candid_Result_n1(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getAdminPinLockoutStatus(arg0: Principal): Promise<{
+        remainingSeconds: bigint;
+        isLockedOut: boolean;
+    }> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getAdminPinLockoutStatus(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getAdminPinLockoutStatus(arg0);
+            return result;
         }
     }
     async getAllCategories(): Promise<Array<ProductCategory>> {
@@ -801,6 +829,26 @@ export class Backend implements backendInterface {
             return from_candid_Result_n1(this._uploadFile, this._downloadFile, result);
         }
     }
+    async verifyAdminPin(arg0: string): Promise<{
+        __kind__: "ok";
+        ok: boolean;
+    } | {
+        __kind__: "err";
+        err: string;
+    }> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.verifyAdminPin(arg0);
+                return from_candid_variant_n20(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.verifyAdminPin(arg0);
+            return from_candid_variant_n20(this._uploadFile, this._downloadFile, result);
+        }
+    }
 }
 function from_candid_ApprovalStatus_n14(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _ApprovalStatus): ApprovalStatus {
     return from_candid_variant_n15(_uploadFile, _downloadFile, value);
@@ -895,6 +943,25 @@ function from_candid_variant_n2(_uploadFile: (file: ExternalBlob) => Promise<Uin
 }): {
     __kind__: "ok";
     ok: null;
+} | {
+    __kind__: "err";
+    err: string;
+} {
+    return "ok" in value ? {
+        __kind__: "ok",
+        ok: value.ok
+    } : "err" in value ? {
+        __kind__: "err",
+        err: value.err
+    } : value;
+}
+function from_candid_variant_n20(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    ok: boolean;
+} | {
+    err: string;
+}): {
+    __kind__: "ok";
+    ok: boolean;
 } | {
     __kind__: "err";
     err: string;

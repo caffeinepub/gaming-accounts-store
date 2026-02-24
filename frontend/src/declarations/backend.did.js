@@ -99,6 +99,11 @@ export const idlService = IDL.Service({
     ),
   'deleteCategory' : IDL.Func([IDL.Nat], [Result], []),
   'deleteProduct' : IDL.Func([IDL.Nat], [Result], []),
+  'getAdminPinLockoutStatus' : IDL.Func(
+      [IDL.Principal],
+      [IDL.Record({ 'remainingSeconds' : IDL.Int, 'isLockedOut' : IDL.Bool })],
+      [],
+    ),
   'getAllCategories' : IDL.Func([], [IDL.Vec(ProductCategory)], ['query']),
   'getAllOrders' : IDL.Func([], [IDL.Vec(Order)], ['query']),
   'getAvailableProducts' : IDL.Func([], [IDL.Vec(Product)], ['query']),
@@ -152,6 +157,11 @@ export const idlService = IDL.Service({
   'updateSubscriptionTierPrices' : IDL.Func(
       [IDL.Nat, IDL.Float64, IDL.Float64],
       [Result],
+      [],
+    ),
+  'verifyAdminPin' : IDL.Func(
+      [IDL.Text],
+      [IDL.Variant({ 'ok' : IDL.Bool, 'err' : IDL.Text })],
       [],
     ),
 });
@@ -250,6 +260,16 @@ export const idlFactory = ({ IDL }) => {
       ),
     'deleteCategory' : IDL.Func([IDL.Nat], [Result], []),
     'deleteProduct' : IDL.Func([IDL.Nat], [Result], []),
+    'getAdminPinLockoutStatus' : IDL.Func(
+        [IDL.Principal],
+        [
+          IDL.Record({
+            'remainingSeconds' : IDL.Int,
+            'isLockedOut' : IDL.Bool,
+          }),
+        ],
+        [],
+      ),
     'getAllCategories' : IDL.Func([], [IDL.Vec(ProductCategory)], ['query']),
     'getAllOrders' : IDL.Func([], [IDL.Vec(Order)], ['query']),
     'getAvailableProducts' : IDL.Func([], [IDL.Vec(Product)], ['query']),
@@ -311,6 +331,11 @@ export const idlFactory = ({ IDL }) => {
     'updateSubscriptionTierPrices' : IDL.Func(
         [IDL.Nat, IDL.Float64, IDL.Float64],
         [Result],
+        [],
+      ),
+    'verifyAdminPin' : IDL.Func(
+        [IDL.Text],
+        [IDL.Variant({ 'ok' : IDL.Bool, 'err' : IDL.Text })],
         [],
       ),
   });

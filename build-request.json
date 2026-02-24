@@ -1,82 +1,131 @@
 {
   "kind": "build_request",
-  "title": "Fully auto-resolved admin gate rewrite (useEffect + imperative async flow)",
+  "title": "Replace admin gate with 4-digit PIN (2006) + lockout system",
   "projectName": "Game Vault",
   "priority": "high",
   "requirements": [
     {
-      "id": "REQ-111",
-      "text": "Rewrite `frontend/src/components/AdminAccessControl.tsx` with a fully auto-resolved, non-looping sequential gate using a `useEffect` + local state imperative async flow. The component must: (1) immediately render a 'Please log in via Internet Identity' prompt if `isAuthenticated` is false — do not show a spinner or form; (2) once `isAuthenticated` is true, run a single `useEffect` that imperatively calls the backend actor's `getUsername` function directly (NOT via React Query) to retrieve the stored username for the authenticated principal; (3) if the resolved username is an empty string or null/undefined, render the `ProfileSetupModal` to trigger username creation — do not spin; (4) once a non-empty username string is confirmed, immediately call `isAdminUsername` with that exact username string — never pass a principal, undefined, or null; (5) as soon as both calls complete, transition immediately and permanently to either `'granted'` (render children) or `'denied'` (render `AccessDeniedScreen`) using a local `status` state variable typed `'loading' | 'granted' | 'denied' | 'unauthenticated' | 'no-username'`; (6) the `useEffect` must include a `hasRun` ref guard (`if (hasRun.current) return; hasRun.current = true;`) to ensure it executes exactly once per authentication session, preventing re-entry and infinite loops; (7) show a loading spinner only while `status === 'loading'`; (8) do NOT use chained React Query `enabled` flags, `useIsAdminUsername`, or `useUsername` hooks for the gate decision — all async work must be imperative inside the single `useEffect`; (9) apply the sunset theme (dusk-bg/dusk-mid backgrounds, sunset-gold/sunset-orange accent colours, Orbitron/Rajdhani fonts, sunset glow effects) to the loading spinner, login prompt, and any intermediate states.",
+      "id": "REQ-114",
+      "text": "Add a 4-digit admin PIN system to `backend/main.mo`. Hardcode the PIN as `2006`. Add a stable map `adminPinAttempts : HashMap<Principal, Nat>` tracking failed attempt counts per principal, and a stable map `adminPinLockoutTime : HashMap<Principal, Int>` tracking lockout expiry timestamps per principal. Expose the following functions: `verifyAdminPin(pin: Text) : async Result.Result<Bool, Text>` — checks the submitted PIN against `\"2006\"`, increments the failed attempt counter on mismatch, locks out the principal for 3600 seconds (1 hour) after 4 failed attempts, returns `#ok(true)` on correct PIN (and resets the attempt counter), returns `#err(\"Locked out. Try again in X minutes.\")` if the principal is currently locked out, and returns `#ok(false)` on wrong PIN with remaining attempts info in the error; `getAdminPinLockoutStatus(principal: Principal) : async { isLockedOut: Bool; remainingSeconds: Int }` — returns whether the caller is currently locked out and how many seconds remain. Timestamps must use `Time.now()` (nanoseconds) converted appropriately.",
+      "target": "backend",
+      "source": {
+        "messageIds": [
+          "msg-recent"
+        ],
+        "quotes": [
+          "make it so to access the admin panel u need a 4 digit code",
+          "And make the pin code 2006",
+          "4 attempts then have to wait 1 hour"
+        ]
+      },
+      "acceptanceCriteria": [
+        "PIN is hardcoded as '2006' in the backend",
+        "`verifyAdminPin` returns `#ok(true)` when called with '2006'",
+        "`verifyAdminPin` returns `#ok(false)` (or error with attempt info) when called with any other value",
+        "After 4 wrong PIN attempts by the same principal, subsequent calls return a lockout error",
+        "Lockout duration is 1 hour (3600 seconds)",
+        "Lockout state is stored in stable storage and survives canister upgrades",
+        "`getAdminPinLockoutStatus` returns correct `isLockedOut` and `remainingSeconds` values",
+        "Correct PIN resets the failed attempt counter for that principal"
+      ]
+    },
+    {
+      "id": "REQ-115",
+      "text": "Add React Query hooks to `frontend/src/hooks/useQueries.ts` for the new PIN backend functions: `useVerifyAdminPin()` mutation that calls `verifyAdminPin` with the submitted PIN string — must await the actor call, unwrap the `#ok`/`#err` Result variant, throw a JavaScript `Error` on `#err`, and return the boolean result; `useAdminPinLockoutStatus()` query that calls `getAdminPinLockoutStatus` with the authenticated user's principal, enabled only when the user is authenticated, with `staleTime: 0` and `retry: 0` so it always reflects the live lockout state.",
       "target": "frontend",
       "source": {
         "messageIds": [
           "msg-recent"
         ],
         "quotes": [
-          "fully auto-resolved gate (option 2 from the last message): once you're logged in via Internet Identity, the component silently fetches your stored username ('Frosty'), calls `isAdminUsername` with it imperatively inside a single `useEffect` with a run-once guard, and transitions immediately to 'access granted'",
-          "AdminPanelPage.tsx will be stripped of any internal async gates so it renders its tabs unconditionally the moment access is granted"
+          "4 attempts then have to wait 1 hour"
         ]
       },
       "acceptanceCriteria": [
-        "When an unauthenticated user navigates to /admin, a 'Please log in via Internet Identity' prompt is shown immediately — no spinner, no form",
-        "When an authenticated user with stored username 'Frosty' navigates to /admin, the component automatically fetches the username and calls isAdminUsername without any manual input",
-        "If isAdminUsername returns true, the admin panel content (children) renders immediately",
-        "If isAdminUsername returns false, AccessDeniedScreen renders immediately",
-        "If the authenticated user has no username, ProfileSetupModal is triggered instead of a spinner",
-        "The useEffect executes exactly once per authentication session — navigating away and back does not trigger duplicate calls or loops",
-        "No chained React Query enabled flags or useIsAdminUsername/useUsername hooks are used for the gate decision",
-        "A loading spinner is shown only during the brief in-flight period while getUsername or isAdminUsername calls are pending",
-        "The component never enters a perpetual spinning/verifying state"
+        "`useVerifyAdminPin` mutation correctly calls the backend `verifyAdminPin` function",
+        "Mutation throws a JavaScript Error when the backend returns `#err` (e.g. lockout error)",
+        "`useAdminPinLockoutStatus` query is enabled only when the user is authenticated",
+        "Lockout status query has `staleTime: 0` and `retry: 0`"
       ]
     },
     {
-      "id": "REQ-112",
-      "text": "Audit and rewrite `frontend/src/pages/AdminPanelPage.tsx` to confirm it contains zero internal async gates, `isAdminUsername` calls, loading states, `useEffect` checks, or 'verifying access' state logic of its own. The page must render its tabbed content (Products, Orders, Payments, Admins, Subscriptions, Settings) immediately and unconditionally as soon as `AdminAccessControl` renders its children. Remove any redundant admin checks, verifying-access states, or internal async logic that could produce a perpetual loading state independent of `AdminAccessControl`.",
+      "id": "REQ-116",
+      "text": "Rewrite `frontend/src/components/AdminAccessControl.tsx` to replace all previous gate logic with a new flow: (1) If the user is not authenticated via Internet Identity, immediately render a 'Please log in via Internet Identity to access the admin panel' prompt — do not spin or show a PIN form; (2) Once authenticated, render a styled 4-digit PIN entry screen with: a heading 'Admin Access', a subheading 'Enter the 4-digit PIN to continue', four individual single-digit input fields (or a single 4-character PIN input field), and a 'Submit' button — use a `<form>` element with `onSubmit` so both Enter key and button click trigger submission; (3) The `onSubmit` handler must call `event.preventDefault()`, set a local loading state, then call the backend `verifyAdminPin` function (via the actor directly, not React Query) with the entered PIN string; (4) If the backend returns `true` (correct PIN), transition to `status = 'granted'` and render children; (5) If the backend returns an error indicating lockout, display the lockout message (e.g. 'Too many failed attempts. Try again in X minutes.') and disable the form; (6) If the PIN is wrong but the principal is not yet locked out, display an inline error such as 'Incorrect PIN. X attempts remaining.' and clear the PIN input; (7) Any thrown error is caught in a try/catch and displayed as an inline error message — never swallow errors silently; (8) Show a loading spinner only while the `verifyAdminPin` call is in-flight; (9) Remove all previous `getUsername`, `isAdminUsername`, `useUsername`, `useIsAdminUsername`, and username-based gate logic from this component entirely; (10) Apply the sunset theme (dusk-bg/dusk-mid backgrounds, sunset-gold/sunset-orange accent colours, Orbitron/Rajdhani fonts, sunset glow effects) to the PIN entry form.",
       "target": "frontend",
       "source": {
         "messageIds": [
           "msg-recent"
         ],
         "quotes": [
-          "AdminPanelPage.tsx will be stripped of any internal async gates so it renders its tabs unconditionally the moment access is granted"
+          "make it so to access the admin panel u need a 4 digit code",
+          "And make the pin code 2006",
+          "4 attempts then have to wait 1 hour",
+          "user must be logged in via Internet Identity first, then enter the PIN"
         ]
       },
       "acceptanceCriteria": [
-        "AdminPanelPage.tsx contains no isAdminUsername calls, no useEffect with async access checks, and no internal loading/verifying states",
-        "Once AdminAccessControl renders its children, the Products tab (default active tab) is visible immediately",
-        "All tabs — Products, Orders, Payments, Admins, Subscriptions, Settings — are rendered without any additional async gating",
-        "No 'Verifying access…' or spinner state originates from AdminPanelPage.tsx itself"
+        "Unauthenticated users see a 'Please log in' prompt, not the PIN form",
+        "Authenticated users immediately see the 4-digit PIN entry form",
+        "Entering PIN '2006' and submitting transitions to access granted (admin panel renders)",
+        "Entering any wrong PIN shows an inline error with remaining attempts",
+        "After 4 wrong attempts, the form shows a lockout message with time remaining and disables the input/submit",
+        "Pressing Enter in the PIN input triggers form submission",
+        "Loading spinner shows only while the backend call is in-flight",
+        "No username-based gate logic remains in this component",
+        "Sunset theme is applied consistently to the PIN entry screen"
       ]
     },
     {
-      "id": "REQ-113",
-      "text": "Audit `frontend/src/hooks/useQueries.ts` to ensure no query or hook configuration can cause `AdminAccessControl.tsx` to enter an infinite re-fetch loop. If `useUsername`/`getUsername` or `useIsAdminUsername` hooks are still present for other consumers, set their `staleTime` to at least 60 000 ms and `retry` to 1. Confirm that none of these hooks are wired into `AdminAccessControl`'s access-gating logic after the REQ-111 rewrite — the admin gate must rely solely on the imperative actor calls (`getUsername` and `isAdminUsername`) inside the `useEffect`.",
+      "id": "REQ-117",
+      "text": "Audit and update `frontend/src/pages/AdminPanelPage.tsx` to ensure it contains zero internal async gates, PIN verification calls, loading states, or `useEffect` checks of its own. The page must render its tabbed content (Products, Orders, Payments, Admins, Subscriptions, Settings) immediately and unconditionally once `AdminAccessControl` renders its children. Remove any remaining username-based or PIN-based gate logic from the page itself — all access control must be handled exclusively by the `AdminAccessControl` wrapper.",
       "target": "frontend",
       "source": {
         "messageIds": [
           "msg-recent"
+        ],
+        "quotes": [
+          "make it so to access the admin panel u need a 4 digit code"
         ]
       },
       "acceptanceCriteria": [
-        "Any useUsername / getUsername query hook remaining in useQueries.ts has staleTime ≥ 60 000 ms and retry = 1",
-        "Any useIsAdminUsername query hook remaining in useQueries.ts has staleTime ≥ 60 000 ms and retry = 1",
-        "Neither hook is imported or called inside AdminAccessControl.tsx for the gate decision",
-        "No query configuration in useQueries.ts triggers repeated background refetches that could loop the admin gate"
+        "AdminPanelPage renders its tabbed content immediately once AdminAccessControl grants access",
+        "No internal `isAdminUsername`, `verifyAdminPin`, loading state, or async `useEffect` gate exists in AdminPanelPage",
+        "All six tabs (Products, Orders, Payments, Admins, Subscriptions, Settings) are visible and functional"
+      ]
+    },
+    {
+      "id": "REQ-118",
+      "text": "Update `backend/migration.mo` to ensure the new stable maps for `adminPinAttempts` and `adminPinLockoutTime` are handled correctly during canister upgrades. Both maps must default to empty on first deployment and must not cause data loss for existing stable state (products, orders, users, settings, subscription tiers, admin whitelist).",
+      "target": "backend",
+      "source": {
+        "messageIds": [
+          "msg-recent"
+        ],
+        "quotes": [
+          "Lockout tracked per user principal in backend stable storage"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Canister upgrades do not lose existing order, product, user, or settings data",
+        "PIN attempt and lockout stable maps initialise to empty on first deployment",
+        "Migration compiles without errors"
       ]
     }
   ],
   "constraints": [
-    "Do not modify any files listed under frontend.immutablePaths",
-    "All async gate logic in AdminAccessControl.tsx must be imperative (direct actor calls inside useEffect), not driven by chained React Query enabled flags",
-    "The useEffect in AdminAccessControl.tsx must run exactly once per authentication session — use a hasRun ref guard",
-    "Do not remove or alter the backend isAdminUsername or getUsername functions",
-    "The 'Game Vault' red → purple → orange gradient text must remain unchanged"
+    "PIN must be hardcoded as '2006' in the backend — not configurable from the UI",
+    "Internet Identity login is required before the PIN form is shown",
+    "Lockout must be enforced in the backend (not just the frontend) and tracked per Principal",
+    "Lockout duration is exactly 1 hour (3600 seconds)",
+    "Maximum failed attempts before lockout is 4",
+    "All previous username/whitelist-based gate logic must be removed from AdminAccessControl.tsx",
+    "Do not modify files listed in frontend.immutablePaths"
   ],
   "nonGoals": [
-    "Adding any new backend functions or changing the backend data model",
-    "Changing the checkout, storefront, or subscription pages",
-    "Introducing a manual username-entry form in the admin gate",
-    "Modifying the loading screen or any page other than AdminAccessControl.tsx, AdminPanelPage.tsx, and useQueries.ts"
+    "Allowing admins to change the PIN from the UI",
+    "PIN reset functionality",
+    "Email or SMS lockout notifications",
+    "Rate limiting non-admin users on any page other than the admin gate"
   ],
   "imageRequirements": {
     "required": [],

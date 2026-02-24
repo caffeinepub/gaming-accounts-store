@@ -1,44 +1,9 @@
 import Map "mo:core/Map";
+import Nat "mo:core/Nat";
+import Int "mo:core/Int";
 import Principal "mo:core/Principal";
 
 module {
-  type OldOrder = {
-    productId : Nat;
-    buyer : Principal;
-    buyerUsername : Text;
-    buyerEmail : Text;
-    buyerContact : Text;
-    paymentMethod : {
-      #paypal;
-      #cryptocurrency;
-      #ukGiftCard;
-      #payIn3Installments;
-    };
-    status : Text;
-  };
-
-  type NewOrder = {
-    productId : Nat;
-    buyer : Principal;
-    buyerUsername : Text;
-    buyerEmail : Text;
-    buyerContact : Text;
-    paymentMethod : {
-      #paypal;
-      #cryptocurrency;
-      #ukGiftCard;
-      #payIn3Installments;
-    };
-    status : Text;
-    approvalStatus : {
-      #pending;
-      #approved;
-      #declined;
-    };
-    giftCardNumber : Text;
-    giftCardBalance : Text;
-  };
-
   type OldActor = {
     products : Map.Map<Nat, {
       id : Nat;
@@ -55,7 +20,27 @@ module {
       name : Text;
       description : Text;
     }>;
-    orders : Map.Map<Nat, OldOrder>;
+    orders : Map.Map<Nat, {
+      productId : Nat;
+      buyer : Principal;
+      buyerUsername : Text;
+      buyerEmail : Text;
+      buyerContact : Text;
+      paymentMethod : {
+        #paypal;
+        #cryptocurrency;
+        #ukGiftCard;
+        #payIn3Installments;
+      };
+      status : Text;
+      approvalStatus : {
+        #pending;
+        #approved;
+        #declined;
+      };
+      giftCardNumber : Text;
+      giftCardBalance : Text;
+    }>;
     userProfiles : Map.Map<Principal, {
       username : Text;
       email : Text;
@@ -99,7 +84,27 @@ module {
       name : Text;
       description : Text;
     }>;
-    orders : Map.Map<Nat, NewOrder>;
+    orders : Map.Map<Nat, {
+      productId : Nat;
+      buyer : Principal;
+      buyerUsername : Text;
+      buyerEmail : Text;
+      buyerContact : Text;
+      paymentMethod : {
+        #paypal;
+        #cryptocurrency;
+        #ukGiftCard;
+        #payIn3Installments;
+      };
+      status : Text;
+      approvalStatus : {
+        #pending;
+        #approved;
+        #declined;
+      };
+      giftCardNumber : Text;
+      giftCardBalance : Text;
+    }>;
     userProfiles : Map.Map<Principal, {
       username : Text;
       email : Text;
@@ -125,22 +130,15 @@ module {
       bitcoinWalletAddress : Text;
       ethereumWalletAddress : Text;
     };
+    adminPinAttempts : Map.Map<Principal, Nat>;
+    adminPinLockoutTime : Map.Map<Principal, Int>;
   };
 
   public func run(old : OldActor) : NewActor {
-    let newOrders = old.orders.map<Nat, OldOrder, NewOrder>(
-      func(_id, oldOrder) {
-        {
-          oldOrder with
-          approvalStatus = #pending;
-          giftCardNumber = "";
-          giftCardBalance = "";
-        };
-      }
-    );
     {
       old with
-      orders = newOrders;
+      adminPinAttempts = Map.empty<Principal, Nat>();
+      adminPinLockoutTime = Map.empty<Principal, Int>();
     };
   };
 };
