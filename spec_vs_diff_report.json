@@ -1,34 +1,59 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-25T01:06:12.866Z",
-  "summary": "The diff addresses all four requirements partially. REQ-125 is partially addressed via a tiersInitialized flag in backend/main.mo, but the actual seeding logic is truncated and not fully visible. REQ-126 is addressed by removing the Initialize button from SubscriptionManager.tsx. REQ-127 is addressed by fixing the placeOrder mutation in useQueries.ts and adding try/catch error handling in CheckoutPage.tsx. REQ-128 requires migration.mo to be updated, but migration.mo is not present in the diff's modified files list.",
+  "generatedAt": "2026-02-25T02:00:17.765Z",
+  "summary": "The diff addresses all four requirements to varying degrees. REQ-133 (backend fix), REQ-134 (useQueries.ts fix), REQ-135 (CheckoutPage.tsx fix), and REQ-136 (OrderManager/PaymentsManager fix) all appear to have been worked on. However, several key acceptance criteria cannot be fully verified due to truncation, and one notable concern exists around REQ-136's filtering logic in OrderManager.tsx.",
   "missing_requirements": [
     {
-      "id": "REQ-128",
-      "requirement": "Update backend/migration.mo to handle the new subscriptionTiersInitialized stable flag and ensure existing stable data is not lost during upgrades.",
-      "reason": "The file backend/migration.mo does not appear in the diff's modified files list at all. The requirement explicitly calls for migration.mo to be updated or at minimum confirmed to compile correctly with the new stable state. There is no evidence this file was touched.",
+      "id": "REQ-136",
+      "requirement": "Neither component contains filtering logic that could hide newly placed orders.",
+      "reason": "OrderManager.tsx clearly contains a filtered = orders.filter(...) block that filters orders based on a search query. While this is a UI search filter only active when search is non-empty, the component renders filtered rather than orders directly. A search filter could hide newly placed orders if the search field has text in it, which technically violates this AC as written.",
       "evidence": [
-        "backend/migration.mo"
+        "frontend/src/components/admin/OrderManager.tsx"
       ]
     },
     {
-      "id": "REQ-125",
-      "requirement": "The seeding logic must run once at actor construction/upgrade time using a stable boolean flag and populate all four tiers with correct prices and perks/freeTrialEnabled defaults without any external caller.",
-      "reason": "The diff shows 'let tiersInitialized = true; // always true after migration' as a non-stable let binding and the file is truncated before any seeding logic is visible. It is unclear whether the four tiers are actually inserted into the subscriptionTiers map at construction/upgrade time, whether the flag is stable preventing duplicates across upgrades, and whether correct prices and perks are seeded.",
+      "id": "REQ-133",
+      "requirement": "The backend compiles without errors after the fix and placeOrder persists correctly with all required fields.",
+      "reason": "The backend/main.mo diff is truncated and the actual placeOrder function implementation is not visible. We cannot confirm that all required fields are correctly assigned, that the map insertion uses the correct key, or that getOrders() returns all orders without filtering.",
       "evidence": [
         "backend/main.mo"
       ]
+    },
+    {
+      "id": "REQ-134",
+      "requirement": "All required fields are present in the payload sent to the backend, the mutation properly unwraps #ok/#err, and the orders cache is invalidated on success.",
+      "reason": "The useQueries.ts diff is truncated and the actual usePlaceOrder mutation function body is not visible in the provided content. We cannot confirm the await, field completeness, #ok/#err unwrapping, or orders cache invalidation from the truncated diff.",
+      "evidence": [
+        "frontend/src/hooks/useQueries.ts"
+      ]
+    },
+    {
+      "id": "REQ-135",
+      "requirement": "The placeOrder call in CheckoutPage.tsx includes all required fields; gift card orders include giftCardNumber and giftCardBalance; non-gift-card orders pass empty strings; errors surface via toast; success navigates to confirmation.",
+      "reason": "CheckoutPage.tsx is only described in the frontend-file-summaries.txt summary rather than shown as a modified file diff. While the summary describes correct behavior, no actual code diff is shown for this file so the implementation cannot be confirmed.",
+      "evidence": [
+        "frontend-file-summaries.txt"
+      ]
     }
   ],
-  "hallucinated_features": [],
-  "confidence": 0.62,
+  "hallucinated_features": [
+    {
+      "description": "A backend/migration.mo module was added to handle canister upgrade migration logic.",
+      "reason": "The build request does not mention creating a migration module. While the constraint says to preserve stable storage data during upgrades, a specific migration.mo file was not requested as a deliverable.",
+      "evidence": [
+        "backend/migration.mo"
+      ]
+    }
+  ],
+  "confidence": 0.45,
   "changed_files": [
     "backend/main.mo",
+    "backend/migration.mo",
     "frontend-file-summaries.txt",
-    "frontend/src/components/admin/SubscriptionManager.tsx",
+    "frontend/src/components/admin/OrderManager.tsx",
+    "frontend/src/components/admin/PaymentsManager.tsx",
     "frontend/src/hooks/useQueries.ts",
-    "frontend/src/pages/CheckoutPage.tsx",
     "project_state.json"
   ]
 }

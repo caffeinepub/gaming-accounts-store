@@ -1,103 +1,103 @@
 {
   "kind": "build_request",
-  "title": "Fix subscription tiers auto-seeding and orders not appearing in admin panel",
+  "title": "Fix end-to-end order placement flow so orders appear in admin Orders and Payments tabs",
   "projectName": "Game Vault",
   "priority": "high",
   "requirements": [
     {
-      "id": "REQ-125",
-      "text": "Fix subscription tier seeding in `backend/main.mo` so the four default tiers (Starter, Basic, Premium, Pro) are seeded automatically at actor construction/upgrade time using a stable boolean flag (e.g. `subscriptionTiersInitialized`). The seeding logic must run once without requiring any external caller. Remove or neutralise the admin-username-whitelist guard on the internal seeding path so it cannot throw 'Unauthorized: Only admins can initialize subscription tiers'. The four tiers must be present and retrievable via `getSubscriptionTiers()` immediately after deployment without any manual action.",
+      "id": "REQ-133",
+      "text": "Audit and fix `backend/main.mo` to verify the `placeOrder` function correctly accepts all required fields (`buyerPrincipal`, `username`, `email`, `contactInfo`, `productId`, `paymentMethod`, `giftCardNumber`, `giftCardBalance`), assigns `approvalStatus: #pending` to every new order, persists the new Order record into the stable orders map, and that `getOrders()` retrieves all stored orders without any filtering or omission. Fix any bug found — missing field assignment, incorrect map insertion, wrong key type, or retrieval logic error — so that every successfully placed order is immediately visible via `getOrders()`.",
       "target": "backend",
       "source": {
         "messageIds": [
           "msg-recent"
         ],
         "quotes": [
-          "Unauthorized: Only admins can initialize subscription tiers",
-          "No subscription tiers found"
+          "Still can't see the orders if a user orders a product please fix so I can see them in orders in admin panel",
+          "Audit `backend/main.mo` to verify the `placeOrder` function correctly persists new orders to stable storage and that `getOrders()` (used by the admin panel) retrieves all stored orders without filtering or omission."
         ]
       },
       "acceptanceCriteria": [
-        "On first deployment (or after an upgrade), `getSubscriptionTiers()` returns all four tiers (Starter, Basic, Premium, Pro) without any manual initialization call.",
-        "No 'Unauthorized' error is thrown during the auto-seeding process.",
-        "The seeding only runs once; subsequent upgrades do not duplicate tiers.",
-        "All four tiers have correct default prices: Starter £2.99/mo, Basic £5.99/mo, Premium £9.99/mo, Pro £14.99/mo (with ~20% yearly discount).",
-        "The `freeTrialEnabled` and `perks` fields are populated with sensible defaults for each tier."
+        "`placeOrder` assigns all required fields to the new Order record including `approvalStatus: #pending`, `giftCardNumber`, and `giftCardBalance`.",
+        "The new Order record is inserted into the stable orders map using the correct key.",
+        "`getOrders()` returns every order that has been placed — no filtering, no omission.",
+        "Calling `placeOrder` followed immediately by `getOrders()` returns an array that includes the newly placed order.",
+        "The backend compiles without errors after the fix."
       ]
     },
     {
-      "id": "REQ-126",
-      "text": "Remove the 'Initialize Default Tiers' button and all associated initialization UI from `frontend/src/components/admin/SubscriptionManager.tsx`. Since tiers are now auto-seeded in the backend, the component must simply fetch and display the existing tiers via `useSubscriptionTiers()`. If the tiers query returns an empty array (which should no longer happen), display a neutral empty state without an initialization button.",
+      "id": "REQ-134",
+      "text": "Audit and fix the `placeOrder` mutation function in `frontend/src/hooks/useQueries.ts` to ensure it: (1) correctly awaits the actor call; (2) passes all required fields to the backend — `username`, `email`, `contactInfo`, `productId`, `paymentMethod`, `giftCardNumber` (empty string for non-gift-card orders), and `giftCardBalance` (empty string for non-gift-card orders); (3) properly unwraps the Motoko `#ok`/`#err` Result variant and throws a JavaScript `Error` when the backend returns `#err` so the `onError` handler fires; (4) invalidates the `orders` React Query cache on success so the admin panel tables refresh immediately after a purchase.",
       "target": "frontend",
       "source": {
         "messageIds": [
           "msg-recent"
         ],
         "quotes": [
-          "Initialize Default Tiers",
-          "No subscription tiers found. Click \"Initialize Default Tiers\" to create the default set."
+          "Audit and fix the `placeOrder` mutation function in `frontend/src/hooks/useQueries.ts`"
         ]
       },
       "acceptanceCriteria": [
-        "The 'Initialize Default Tiers' button is no longer present in the SubscriptionManager component.",
-        "The component renders the four tier cards/rows fetched from the backend as soon as data is available.",
-        "No initialization-related error toast appears when visiting the Subscriptions tab.",
-        "Admins can still edit prices and toggle free trial per tier via the existing controls."
+        "The `placeOrder` mutation function uses `await` on the actor call.",
+        "All required fields (`username`, `email`, `contactInfo`, `productId`, `paymentMethod`, `giftCardNumber`, `giftCardBalance`) are present in the payload sent to the backend.",
+        "When the backend returns `#err`, the mutation throws a JavaScript `Error` and the `onError` handler fires.",
+        "On success, the `orders` query cache is invalidated so admin tables re-fetch automatically.",
+        "No TypeScript compilation errors in `useQueries.ts`."
       ]
     },
     {
-      "id": "REQ-127",
-      "text": "Trace and fix the full order placement flow end-to-end so that orders placed by users appear in both the admin panel Orders tab and the Payments tab. Audit `backend/main.mo` to verify the `placeOrder` function correctly persists new orders to stable storage and that `getOrders()` (used by the admin panel) retrieves all stored orders. Audit `frontend/src/pages/CheckoutPage.tsx` and `frontend/src/hooks/useQueries.ts` to ensure the `placeOrder` mutation is correctly called with all required fields, the actor call is properly awaited, and the `#ok`/`#err` result is unwrapped. Fix any issue found — whether it is a missing field in the payload, a type mismatch, a silent failure in the mutation, or a backend storage/retrieval bug — so that after a user completes checkout, the resulting order is immediately visible in the admin Orders and Payments tabs.",
-      "target": "both",
+      "id": "REQ-135",
+      "text": "Audit and fix `frontend/src/pages/CheckoutPage.tsx` to ensure: (1) the `placeOrder` mutation is invoked with all required fields — `username`, `email`, `contactInfo`, `productId`, `paymentMethod`, `giftCardNumber`, and `giftCardBalance`; (2) for gift card orders, `giftCardNumber` and `giftCardBalance` are collected from the `GiftCardPayment` component and passed through; for all other payment methods, empty strings are passed for both fields; (3) any error thrown by the mutation is surfaced to the user via a toast notification or visible error message — no silent failures; (4) on successful order placement the user is navigated to the order confirmation page.",
+      "target": "frontend",
       "source": {
         "messageIds": [
           "msg-recent"
         ],
         "quotes": [
-          "orders don't show up in orders section not even in the payments section in admin panel",
-          "Yes but the orders don't show up in orders section not even in the payments section in admin panel"
+          "Audit and fix `frontend/src/pages/CheckoutPage.tsx`"
         ]
       },
       "acceptanceCriteria": [
-        "After a user completes checkout (reaches order confirmation page), the order appears in the admin panel Orders tab.",
-        "The same order also appears in the admin panel Payments tab with the correct payment method badge and 'Pending' approval status.",
-        "The order record contains the buyer's username, email, contact info, product(s) purchased, payment method, and (for gift card orders) gift card number and balance.",
-        "The `placeOrder` mutation in `useQueries.ts` correctly awaits the actor call, unwraps `#ok`/`#err`, and throws a JavaScript Error on `#err`.",
-        "The backend `placeOrder` function persists the new order to the stable orders map and the order is returned by `getOrders()`.",
-        "No silent failures occur — if `placeOrder` fails, an error toast is shown to the user."
+        "The `placeOrder` call in `CheckoutPage.tsx` includes all required fields.",
+        "Gift card orders include the correct `giftCardNumber` and `giftCardBalance` values collected from `GiftCardPayment`.",
+        "Non-gift-card orders pass empty strings for `giftCardNumber` and `giftCardBalance`.",
+        "Mutation errors are displayed to the user via toast or inline error message.",
+        "Successful order placement navigates the user to the order confirmation page.",
+        "No TypeScript compilation errors in `CheckoutPage.tsx`."
       ]
     },
     {
-      "id": "REQ-128",
-      "text": "Update `backend/migration.mo` to ensure that any new stable state introduced by the subscription tier auto-seeding fix (e.g. `subscriptionTiersInitialized` flag or equivalent) is handled correctly during canister upgrades. Existing stable data (products, orders, users, subscription tiers, admin whitelist, store settings, PIN attempt maps) must not be lost. If no new stable state is introduced by REQ-125, confirm the existing migration module compiles without errors and remains valid.",
-      "target": "backend",
+      "id": "REQ-136",
+      "text": "Audit `frontend/src/components/admin/OrderManager.tsx` and `frontend/src/components/admin/PaymentsManager.tsx` to confirm: (1) both components use the correct React Query hook (`useOrders` / the `orders` query key) to fetch all orders from the backend; (2) neither component has any filtering, sorting, or conditional logic that could hide newly placed orders; (3) the `orders` query key used in both components exactly matches the key invalidated by the `placeOrder` mutation on success, so the admin tables auto-refresh after a purchase is made. Fix any mismatch or filtering bug found.",
+      "target": "frontend",
       "source": {
         "messageIds": [
           "msg-recent"
         ],
-        "quotes": []
+        "quotes": [
+          "Audit `frontend/src/components/admin/OrderManager.tsx` and `frontend/src/components/admin/PaymentsManager.tsx` to confirm they use the correct React Query hook"
+        ]
       },
       "acceptanceCriteria": [
-        "The migration module compiles without errors after the REQ-125 backend changes.",
-        "Canister upgrade does not lose any previously stored orders, products, users, subscription tiers, or admin whitelist entries.",
-        "Any new stable variable introduced for the seeding flag is correctly initialised in the migration module."
+        "`OrderManager.tsx` uses the `orders` query and renders every order returned by the backend.",
+        "`PaymentsManager.tsx` uses the `orders` query and renders every order returned by the backend.",
+        "Neither component contains filtering logic that could hide newly placed orders.",
+        "The `orders` query key in both components matches the key invalidated by `placeOrder` on success.",
+        "After a user completes checkout, both admin tabs display the new order without requiring a manual page refresh."
       ]
     }
   ],
   "constraints": [
-    "Do not add real payment API integrations — all payment flows remain mock/UI only.",
-    "Do not alter the 'Game Vault' red → purple → orange gradient text in any component.",
-    "The admin PIN (2006) and lockout logic must remain unchanged.",
-    "The Frosty seed entry in the admin whitelist must not be removed.",
-    "Frontend immutable paths (useInternetIdentity.ts, useActor.ts, main.tsx, components/ui) must not be modified.",
-    "All four subscription tiers must use the existing price defaults: Starter £2.99/mo, Basic £5.99/mo, Premium £9.99/mo, Pro £14.99/mo."
+    "Do not remove or alter the existing Order data type fields (`approvalStatus`, `giftCardNumber`, `giftCardBalance`, `username`, `email`, `contactInfo`).",
+    "Do not change the admin PIN gate logic in `AdminAccessControl.tsx`.",
+    "Do not modify files listed in `frontend.immutablePaths`.",
+    "Preserve all existing stable storage data — no data loss during any canister upgrade triggered by backend changes."
   ],
   "nonGoals": [
-    "Adding new subscription tiers beyond the existing four (Starter, Basic, Premium, Pro).",
-    "Changing the admin PIN or lockout duration.",
-    "Modifying the loading screen video or 40-second timer behaviour.",
-    "Changing the payment methods available for subscriptions (PayPal and Crypto only).",
-    "Altering the existing admin panel tab structure beyond removing the Initialize button."
+    "Adding new order fields beyond those already defined in the backend Order type.",
+    "Changing the checkout UI steps or payment method flows.",
+    "Modifying the admin panel tab structure or adding new tabs.",
+    "Altering the subscription tier management features."
   ],
   "imageRequirements": {
     "required": [],

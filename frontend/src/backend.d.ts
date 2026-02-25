@@ -78,7 +78,6 @@ export enum UserRole {
 export interface backendInterface {
     addAdminUser(username: string): Promise<void>;
     addCategory(name: string, description: string): Promise<Result>;
-    addOrder(productId: bigint, paymentMethod: PaymentMethod, status: string, approvalStatus: ApprovalStatus, giftCardNumber: string, giftCardBalance: string): Promise<bigint>;
     addProduct(gameName: string, categoryId: bigint, title: string, description: string, accountDetails: string, price: bigint, available: boolean): Promise<Result>;
     approveOrder(orderId: bigint): Promise<{
         __kind__: "ok";
@@ -110,6 +109,7 @@ export interface backendInterface {
     getCallerUserRole(): Promise<UserRole>;
     getCategoryById(id: bigint): Promise<ProductCategory>;
     getOrderById(id: bigint): Promise<Order>;
+    getOrders(): Promise<Array<Order>>;
     getOrdersByBuyer(principal: Principal): Promise<Array<Order>>;
     getOrdersByUsername(username: string): Promise<Array<Order>>;
     getProductById(id: bigint): Promise<Product>;
@@ -122,6 +122,7 @@ export interface backendInterface {
     isAdminUsername(username: string): Promise<boolean>;
     isCallerAdmin(): Promise<boolean>;
     isUsernameAvailable(username: string): Promise<boolean>;
+    placeOrder(buyerPrincipal: Principal, username: string, email: string, contactInfo: string, productId: bigint, paymentMethod: PaymentMethod, giftCardNumber: string, giftCardBalance: string): Promise<Result>;
     removeAdminUser(username: string): Promise<void>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
     setSubscriptionTierFreeTrial(id: bigint, enabled: boolean): Promise<Result>;

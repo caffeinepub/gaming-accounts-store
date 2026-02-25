@@ -71,10 +71,6 @@ export interface _SERVICE {
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
   'addAdminUser' : ActorMethod<[string], undefined>,
   'addCategory' : ActorMethod<[string, string], Result>,
-  'addOrder' : ActorMethod<
-    [bigint, PaymentMethod, string, ApprovalStatus, string, string],
-    bigint
-  >,
   'addProduct' : ActorMethod<
     [string, bigint, string, string, string, bigint, boolean],
     Result
@@ -97,6 +93,7 @@ export interface _SERVICE {
   'getCallerUserRole' : ActorMethod<[], UserRole>,
   'getCategoryById' : ActorMethod<[bigint], ProductCategory>,
   'getOrderById' : ActorMethod<[bigint], Order>,
+  'getOrders' : ActorMethod<[], Array<Order>>,
   'getOrdersByBuyer' : ActorMethod<[Principal], Array<Order>>,
   'getOrdersByUsername' : ActorMethod<[string], Array<Order>>,
   'getProductById' : ActorMethod<[bigint], Product>,
@@ -109,6 +106,10 @@ export interface _SERVICE {
   'isAdminUsername' : ActorMethod<[string], boolean>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
   'isUsernameAvailable' : ActorMethod<[string], boolean>,
+  'placeOrder' : ActorMethod<
+    [Principal, string, string, string, bigint, PaymentMethod, string, string],
+    Result
+  >,
   'removeAdminUser' : ActorMethod<[string], undefined>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
   'setSubscriptionTierFreeTrial' : ActorMethod<[bigint, boolean], Result>,

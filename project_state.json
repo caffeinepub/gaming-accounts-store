@@ -1,6 +1,6 @@
 {
   "schemaVersion": "1.0.0",
-  "projectStateVersion": 73,
+  "projectStateVersion": 77,
   "summary": "A Shopify-style gaming accounts e-commerce store called Game Vault with a loading screen that features a royalty-free New York sunset video (sourced from a public CDN such as Pexels or Pixabay) playing as the background, replacing the previous 3D Three.js scene entirely. The loading screen enforces a minimum 40-second wait with a 'Game Vault' gradient text (red → purple → orange) progress reveal effect and an 'Enter Store' button that unlocks after 40 seconds. Store sells gaming accounts starting with Car Parking Multiplayer. Features full admin panel, user authentication via Internet Identity, and checkout flows for PayPal, Crypto, UK Gift Cards, and Pay in 3 Installments. The storefront logo has been removed and the 'Game Vault' site name displays a red → purple → orange 3-tone gradient across navbar, footer, loading screen, and all instances. Users must create a unique username (no spaces) on first login before accessing the store; username is used for purchases (order confirmations show username, email, contact info, and product purchased). Admin Panel link is visible to all users in the navbar. The admin gate now uses a 4-digit PIN entry screen (PIN: 2006, hardcoded in backend). The user must be logged in via Internet Identity first, then enter the 4-digit PIN to access the admin panel. After 4 wrong PIN attempts, the user is locked out for 1 hour (lockout tracked per user principal in backend stable storage). The username 'Frosty' is hardcoded as the initial seed admin in the backend whitelist. The overall website theme is a sunset aesthetic — warm golden-oranges, deep purples, dusky pinks, and soft golden yellows. A Subscriptions tab has been added to the navbar with 4 tiers (Starter, Basic, Premium, Pro), each offering progressive perks and discounts. Users toggle between monthly/yearly billing with a disclaimer shown under all tier titles. Pro tier unlocks all perks. PayPal and Crypto are the only supported payment methods for subscriptions. Admins can edit monthly and yearly prices per tier independently, toggle a 7-day free trial on/off per tier, and all changes reflect on the user-facing subscriptions tab. Subscription tier data is stored in backend stable storage.",
   "architectural_notes": [
     "Full-stack app on Internet Computer (ICP) with Internet Identity for auth",
@@ -679,6 +679,46 @@
         "REQ-127"
       ],
       "version": 1
+    },
+    {
+      "id": "feature-audit-and-fix-the-placeorder-mutation-function-in-frontend-src-hooks-usequeries-ts-to-ensure-it-1-correctly-awaits-the-actor-call-2-passes-all-required-fields-to-the-backend-including-username-email-contactinfo-productid-paymentmethod-giftcardnumber-empty-string-for-non-gift-card-and-giftcardbalance-empty-string-for-non-gift-card-3-properly-unwraps-the-motoko-ok-err-result-variant-and-throws-a-javascript-error-when-the-backend-returns-err-so-the-onerror-handler-fires-4-invalidates-the-orders-react-query-cache-on-success-so-the-admin-panel-tables-refresh-immediately",
+      "title": "Audit and fix the `placeOrder` mutation function in `frontend/src/hooks/useQueries.ts` to ensure it: (1) correctly awaits the actor call; (2) passes all required fields to the backend — including `username`, `email`, `contactInfo`, `productId`, `paymentMethod`, `giftCardNumber` (empty string for non-gift-card), and `giftCardBalance` (empty string for non-gift-card); (3) properly unwraps the Motoko `#ok`/`#err` Result variant and throws a JavaScript `Error` when the backend returns `#err` so the `onError` handler fires; (4) invalidates the `orders` React Query cache on success so the admin panel tables refresh immediately.",
+      "reqIds": [
+        "REQ-130"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-audit-and-fix-frontend-src-pages-checkoutpage-tsx-to-ensure-1-the-placeorder-mutation-is-called-with-all-required-fields-username-email-contactinfo-productid-paymentmethod-giftcardnumber-and-giftcardbalance-2-for-gift-card-orders-giftcardnumber-and-giftcardbalance-are-collected-from-the-giftcardpayment-component-and-passed-through-for-all-other-payment-methods-empty-strings-are-passed-3-there-are-no-silent-failures-any-error-thrown-by-the-mutation-must-be-surfaced-to-the-user-via-a-toast-or-error-message-4-on-successful-order-placement-the-user-is-navigated-to-the-order-confirmation-page",
+      "title": "Audit and fix `frontend/src/pages/CheckoutPage.tsx` to ensure: (1) the `placeOrder` mutation is called with all required fields — username, email, contactInfo, productId, paymentMethod, giftCardNumber, and giftCardBalance; (2) for gift card orders, `giftCardNumber` and `giftCardBalance` are collected from the `GiftCardPayment` component and passed through; for all other payment methods, empty strings are passed; (3) there are no silent failures — any error thrown by the mutation must be surfaced to the user via a toast or error message; (4) on successful order placement, the user is navigated to the order confirmation page.",
+      "reqIds": [
+        "REQ-131"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-audit-frontend-src-components-admin-ordermanager-tsx-and-frontend-src-components-admin-paymentsmanager-tsx-to-confirm-they-use-the-correct-react-query-hook-the-orders-query-useorders-to-fetch-all-orders-and-that-they-correctly-display-every-order-returned-by-the-backend-ensure-neither-component-has-filtering-logic-that-could-hide-newly-placed-orders-confirm-the-orders-query-key-matches-what-placeorder-invalidates-on-success-so-the-admin-tables-refresh-automatically-after-an-order-is-placed",
+      "title": "Audit `frontend/src/components/admin/OrderManager.tsx` and `frontend/src/components/admin/PaymentsManager.tsx` to confirm they use the correct React Query hook (the `orders` query / `useOrders`) to fetch all orders, and that they correctly display every order returned by the backend. Ensure neither component has filtering logic that could hide newly placed orders. Confirm the `orders` query key matches what `placeOrder` invalidates on success so the admin tables refresh automatically after an order is placed.",
+      "reqIds": [
+        "REQ-132"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-audit-and-fix-the-placeorder-mutation-function-in-frontend-src-hooks-usequeries-ts-to-ensure-it-1-correctly-awaits-the-actor-call-2-passes-all-required-fields-to-the-backend-username-email-contactinfo-productid-paymentmethod-giftcardnumber-empty-string-for-non-gift-card-orders-and-giftcardbalance-empty-string-for-non-gift-card-orders-3-properly-unwraps-the-motoko-ok-err-result-variant-and-throws-a-javascript-error-when-the-backend-returns-err-so-the-onerror-handler-fires-4-invalidates-the-orders-react-query-cache-on-success-so-the-admin-panel-tables-refresh-immediately-after-a-purchase",
+      "title": "Audit and fix the `placeOrder` mutation function in `frontend/src/hooks/useQueries.ts` to ensure it: (1) correctly awaits the actor call; (2) passes all required fields to the backend — `username`, `email`, `contactInfo`, `productId`, `paymentMethod`, `giftCardNumber` (empty string for non-gift-card orders), and `giftCardBalance` (empty string for non-gift-card orders); (3) properly unwraps the Motoko `#ok`/`#err` Result variant and throws a JavaScript `Error` when the backend returns `#err` so the `onError` handler fires; (4) invalidates the `orders` React Query cache on success so the admin panel tables refresh immediately after a purchase.",
+      "reqIds": [
+        "REQ-134"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-audit-frontend-src-components-admin-ordermanager-tsx-and-frontend-src-components-admin-paymentsmanager-tsx-to-confirm-1-both-components-use-the-correct-react-query-hook-useorders-the-orders-query-key-to-fetch-all-orders-from-the-backend-2-neither-component-has-any-filtering-sorting-or-conditional-logic-that-could-hide-newly-placed-orders-3-the-orders-query-key-used-in-both-components-exactly-matches-the-key-invalidated-by-the-placeorder-mutation-on-success-so-the-admin-tables-auto-refresh-after-a-purchase-is-made-fix-any-mismatch-or-filtering-bug-found",
+      "title": "Audit `frontend/src/components/admin/OrderManager.tsx` and `frontend/src/components/admin/PaymentsManager.tsx` to confirm: (1) both components use the correct React Query hook (`useOrders` / the `orders` query key) to fetch all orders from the backend; (2) neither component has any filtering, sorting, or conditional logic that could hide newly placed orders; (3) the `orders` query key used in both components exactly matches the key invalidated by the `placeOrder` mutation on success, so the admin tables auto-refresh after a purchase is made. Fix any mismatch or filtering bug found.",
+      "reqIds": [
+        "REQ-136"
+      ],
+      "version": 1
     }
   ],
   "new_feature_requests": [
@@ -1197,6 +1237,30 @@
       "summary": "Update `backend/migration.mo` to ensure that any new stable state introduced by the subscription tier auto-seeding fix (e.g. `subscriptionTiersInitialized` flag or equivalent) is handled correctly during canister upgrades. Existing stable data (products, orders, users, subscription tiers, admin whitelist, store settings, PIN attempt maps) must not be lost. If no new stable state is introduced by REQ-125, confirm the existing migration module compiles without errors and remains valid.",
       "reqIds": [
         "REQ-128"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-104",
+      "summary": "Audit `backend/main.mo` to verify the `placeOrder` function correctly accepts all required fields (buyerPrincipal, username, email, contactInfo, productId, paymentMethod, giftCardNumber, giftCardBalance), persists the new Order record to the stable orders map, and that `getOrders()` retrieves all stored orders without filtering or omission. Ensure the Order type includes `approvalStatus` (defaulting to `#pending`), `giftCardNumber`, and `giftCardBalance` fields. Fix any bug found — missing field assignment, incorrect map insertion, or retrieval logic — so that every successfully placed order is immediately visible via `getOrders()`.",
+      "reqIds": [
+        "REQ-129"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-105",
+      "summary": "Audit and fix `backend/main.mo` to verify the `placeOrder` function correctly accepts all required fields (`buyerPrincipal`, `username`, `email`, `contactInfo`, `productId`, `paymentMethod`, `giftCardNumber`, `giftCardBalance`), assigns `approvalStatus: #pending` to every new order, persists the new Order record into the stable orders map, and that `getOrders()` retrieves all stored orders without any filtering or omission. Fix any bug found — missing field assignment, incorrect map insertion, wrong key type, or retrieval logic error — so that every successfully placed order is immediately visible via `getOrders()`.",
+      "reqIds": [
+        "REQ-133"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-107",
+      "summary": "Audit and fix `frontend/src/pages/CheckoutPage.tsx` to ensure: (1) the `placeOrder` mutation is invoked with all required fields — `username`, `email`, `contactInfo`, `productId`, `paymentMethod`, `giftCardNumber`, and `giftCardBalance`; (2) for gift card orders, `giftCardNumber` and `giftCardBalance` are collected from the `GiftCardPayment` component and passed through; for all other payment methods, empty strings are passed for both fields; (3) any error thrown by the mutation is surfaced to the user via a toast notification or visible error message — no silent failures; (4) on successful order placement the user is navigated to the order confirmation page.",
+      "reqIds": [
+        "REQ-135"
       ],
       "status": "pending"
     }

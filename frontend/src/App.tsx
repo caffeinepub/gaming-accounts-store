@@ -58,7 +58,8 @@ function ProductDetailWrapper({
   onAddToCart: (product: Product) => void;
   onBack: () => void;
 }) {
-  const { data: product, isLoading } = useGetProductById(productId);
+  // useGetProductById now accepts bigint | null | undefined — pass null when undefined
+  const { data: product, isLoading } = useGetProductById(productId ?? null);
   const { data: categories } = useGetAllCategories();
 
   if (isLoading || !product) {

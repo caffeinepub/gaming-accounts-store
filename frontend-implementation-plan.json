@@ -1,50 +1,65 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Fix subscription tiers auto-seeding and orders not appearing in admin panel",
+  "title": "Fix end-to-end order placement flow so orders appear in admin Orders and Payments tabs",
   "requirements": [
     {
-      "id": "REQ-126",
-      "summary": "Remove subscription tier initialization UI from SubscriptionManager component",
+      "id": "REQ-134",
+      "summary": "Fix the placeOrder mutation in useQueries.ts to correctly await the actor call, pass all required fields including giftCardNumber and giftCardBalance, properly handle Result variant unwrapping, and invalidate the orders query cache on success",
       "acceptanceCriteria": [
-        "The 'Initialize Default Tiers' button is no longer present in the SubscriptionManager component.",
-        "The component renders the four tier cards/rows fetched from the backend as soon as data is available.",
-        "No initialization-related error toast appears when visiting the Subscriptions tab.",
-        "Admins can still edit prices and toggle free trial per tier via the existing controls."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/components/admin/SubscriptionManager.tsx",
-          "operation": "modify",
-          "description": "Remove the 'Initialize Default Tiers' button and all initialization UI logic. Simplify the component to fetch and display existing tiers via useSubscriptionTiers(). Replace the initialization empty state with a neutral message that does not prompt manual action. Keep the existing edit controls (price updates and free trial toggle) functional."
-        }
-      ]
-    },
-    {
-      "id": "REQ-127",
-      "summary": "Fix order placement flow so orders appear in admin panel Orders and Payments tabs",
-      "acceptanceCriteria": [
-        "After a user completes checkout (reaches order confirmation page), the order appears in the admin panel Orders tab.",
-        "The same order also appears in the admin panel Payments tab with the correct payment method badge and 'Pending' approval status.",
-        "The order record contains the buyer's username, email, contact info, product(s) purchased, payment method, and (for gift card orders) gift card number and balance.",
-        "The `placeOrder` mutation in `useQueries.ts` correctly awaits the actor call, unwraps `#ok`/`#err`, and throws a JavaScript Error on `#err`.",
-        "No silent failures occur — if `placeOrder` fails, an error toast is shown to the user."
+        "The `placeOrder` mutation function uses `await` on the actor call.",
+        "All required fields (`username`, `email`, `contactInfo`, `productId`, `paymentMethod`, `giftCardNumber`, `giftCardBalance`) are present in the payload sent to the backend.",
+        "When the backend returns `#err`, the mutation throws a JavaScript `Error` and the `onError` handler fires.",
+        "On success, the `orders` query cache is invalidated so admin tables re-fetch automatically.",
+        "No TypeScript compilation errors in `useQueries.ts`."
       ],
       "file_operations": [
         {
           "path": "frontend/src/hooks/useQueries.ts",
           "operation": "modify",
-          "description": "Audit and fix the usePlaceOrder mutation to ensure it correctly awaits the backend actor.addOrder() call, properly unwraps the #ok/#err Result type, and throws a JavaScript Error on #err with a descriptive message. Verify that all required fields (productId, paymentMethod, status, approvalStatus, giftCardNumber, giftCardBalance) are passed with the correct types matching the backend interface. Ensure the mutation's onSuccess callback invalidates both 'orders' and 'allOrders' query keys so the admin panel reflects the new order immediately."
-        },
+          "description": "Fix the placeOrder mutation function to: (1) Add `await` to the actor.placeOrder call; (2) Include `giftCardNumber` and `giftCardBalance` parameters in the function signature and pass them to the backend; (3) Properly unwrap the Motoko Result variant by checking `result.__kind__ === 'err'` and throwing a JavaScript Error with the error message when the backend returns an error; (4) Add `queryClient.invalidateQueries({ queryKey: ['orders'] })` in the onSuccess callback to trigger automatic refetch of admin order tables."
+        }
+      ]
+    },
+    {
+      "id": "REQ-135",
+      "summary": "Fix CheckoutPage.tsx to pass all required fields to placeOrder including giftCardNumber and giftCardBalance, handle errors with user-visible notifications, and navigate to confirmation on success",
+      "acceptanceCriteria": [
+        "The `placeOrder` call in `CheckoutPage.tsx` includes all required fields.",
+        "Gift card orders include the correct `giftCardNumber` and `giftCardBalance` values collected from `GiftCardPayment`.",
+        "Non-gift-card orders pass empty strings for `giftCardNumber` and `giftCardBalance`.",
+        "Mutation errors are displayed to the user via toast or inline error message.",
+        "Successful order placement navigates the user to the order confirmation page.",
+        "No TypeScript compilation errors in `CheckoutPage.tsx`."
+      ],
+      "file_operations": [
         {
           "path": "frontend/src/pages/CheckoutPage.tsx",
           "operation": "modify",
-          "description": "Audit the checkout flow to ensure the placeOrder mutation is called with all required parameters and that the mutation promise is properly awaited. Verify that userProfile data (username, email, contact) is correctly passed. Ensure that for gift card payments, giftCardNumber and giftCardBalance are captured from the GiftCardPayment component state and included in the mutation call. Add error handling to display a toast if the mutation fails. Confirm that on success, the user is redirected to the order confirmation page with the correct orderId."
+          "description": "Fix the placeOrder mutation call to: (1) Add state variables to capture `giftCardNumber` and `giftCardBalance` from the GiftCardPayment component; (2) Update the GiftCardPayment component to pass these values back to CheckoutPage via callback props; (3) Pass all required fields to placeOrder including `giftCardNumber` and `giftCardBalance` — use empty strings for both when paymentMethod is not 'ukGiftCard'; (4) Add an `onError` handler to the mutation that displays a toast notification using the shadcn/ui toast component with the error message; (5) Verify the onSuccess handler correctly navigates to the order confirmation page with the returned order ID."
+        }
+      ]
+    },
+    {
+      "id": "REQ-136",
+      "summary": "Audit OrderManager.tsx and PaymentsManager.tsx to confirm they use the correct orders query key, have no filtering logic that hides new orders, and will auto-refresh when the orders cache is invalidated",
+      "acceptanceCriteria": [
+        "`OrderManager.tsx` uses the `orders` query and renders every order returned by the backend.",
+        "`PaymentsManager.tsx` uses the `orders` query and renders every order returned by the backend.",
+        "Neither component contains filtering logic that could hide newly placed orders.",
+        "The `orders` query key in both components matches the key invalidated by `placeOrder` on success.",
+        "After a user completes checkout, both admin tabs display the new order without requiring a manual page refresh."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/admin/OrderManager.tsx",
+          "operation": "modify",
+          "description": "Audit the component to confirm: (1) It uses the `useOrders` hook (or directly uses `useQuery` with queryKey `['orders']`) to fetch orders; (2) The query key exactly matches `['orders']` with no additional parameters; (3) Remove any filtering, sorting, or conditional rendering logic that could hide pending orders or orders with specific payment methods; (4) Ensure all orders from the query result are rendered in the table without omission."
         },
         {
-          "path": "frontend/src/components/checkout/GiftCardPayment.tsx",
+          "path": "frontend/src/components/admin/PaymentsManager.tsx",
           "operation": "modify",
-          "description": "Ensure the gift card number and balance fields are exposed to the parent CheckoutPage via props or callback so they can be included in the placeOrder mutation payload. Verify validation logic prevents submission if fields are empty or invalid. Add any missing state lifting or event handlers needed for the parent to retrieve these values."
+          "description": "Audit the component to confirm: (1) It uses the `useOrders` hook (or directly uses `useQuery` with queryKey `['orders']`) to fetch orders; (2) The query key exactly matches `['orders']` with no additional parameters; (3) Remove any filtering logic that could hide pending orders or specific payment methods; (4) Ensure all orders from the query result are rendered in the table; (5) Verify the approve/decline mutation callbacks include `queryClient.invalidateQueries({ queryKey: ['orders'] })` so the list refreshes after status changes."
         }
       ]
     }

@@ -10,10 +10,13 @@ import Principal "mo:core/Principal";
 import Runtime "mo:core/Runtime";
 import Time "mo:core/Time";
 import Int "mo:core/Int";
+import Migration "migration";
 
 import MixinAuthorization "authorization/MixinAuthorization";
 import AccessControl "authorization/access-control";
 
+// Apply migration using the with clause
+(with migration = Migration.run)
 actor {
   let adminPinAttempts = Map.empty<Principal, Nat>();
   let adminPinLockoutTime = Map.empty<Principal, Int>();
@@ -441,36 +444,61 @@ actor {
     #ok;
   };
 
-  // Order Management
-  public shared ({ caller }) func addOrder(
+  public shared ({ caller }) func placeOrder(
+    buyerPrincipal : Principal,
+    username : Text,
+    email : Text,
+    contactInfo : Text,
     productId : Nat,
     paymentMethod : PaymentMethod,
-    status : Text,
-    approvalStatus : ApprovalStatus,
     giftCardNumber : Text,
     giftCardBalance : Text,
-  ) : async Nat {
+  ) : async Result {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only store users can purchase");
+      return #err("Unauthorized: Only store users can place orders");
     };
 
-    let order : Order = {
-      productId;
-      buyer = caller;
-      buyerUsername = "defaultUsername";
-      buyerEmail = "defaultEmail";
-      buyerContact = "defaultContact";
-      paymentMethod;
-      status;
-      approvalStatus;
-      giftCardNumber;
-      giftCardBalance;
-    };
+    switch (products.get(productId)) {
+      case (null) {
+        return #err("Product does not exist. The available products might have changed due to concurrent purchases. Please refresh your basket. ");
+      };
+      case (?product) {
+        if (not product.available) {
+          return #err("Product was already purchased. The available products might have changed due to concurrent purchases. Please refresh your basket. ");
+        };
 
-    orders.add(nextOrderId, order);
-    // Increment after, return previous since that's the current order ID
-    nextOrderId += 1;
-    nextOrderId - 1;
+        let order : Order = {
+          buyer = buyerPrincipal;
+          buyerUsername = username;
+          buyerEmail = email;
+          buyerContact = contactInfo;
+          productId;
+          paymentMethod;
+          status = "";
+          approvalStatus = #pending;
+          giftCardNumber;
+          giftCardBalance;
+        };
+
+        orders.add(nextOrderId, order);
+        nextOrderId += 1;
+
+        let updatedProduct : Product = {
+          product with available = false;
+        };
+        products.add(productId, updatedProduct);
+
+        #ok;
+      };
+    };
+  };
+
+  // Retrieves ALL orders. No filter except by caller being authorized.
+  public query ({ caller }) func getOrders() : async [Order] {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only admins can view all orders");
+    };
+    orders.values().toArray();
   };
 
   public shared ({ caller }) func approveOrder(orderId : Nat) : async { #ok; #err : Text } {

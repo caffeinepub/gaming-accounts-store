@@ -39,6 +39,7 @@ export default function ProductForm({ product, onSuccess }: ProductFormProps) {
         {
           id: product.id,
           gameName: gameName.trim(),
+          categoryId: product.categoryId ?? 0n,
           title: title.trim(),
           description: description.trim(),
           accountDetails: accountDetails.trim(),
@@ -59,6 +60,7 @@ export default function ProductForm({ product, onSuccess }: ProductFormProps) {
       addProduct.mutate(
         {
           gameName: gameName.trim(),
+          categoryId: 0n,
           title: title.trim(),
           description: description.trim(),
           accountDetails: accountDetails.trim(),
@@ -151,11 +153,9 @@ export default function ProductForm({ product, onSuccess }: ProductFormProps) {
               type="checkbox"
               checked={available}
               onChange={(e) => setAvailable(e.target.checked)}
-              className="accent-sunset-gold w-4 h-4"
+              className="w-4 h-4 accent-sunset-gold"
             />
-            <span className="font-rajdhani font-semibold text-sm text-foreground">
-              Available for purchase
-            </span>
+            <span className={labelClass.replace('block mb-1', '')}>Available</span>
           </label>
         </div>
       </div>
@@ -163,17 +163,15 @@ export default function ProductForm({ product, onSuccess }: ProductFormProps) {
       <button
         type="submit"
         disabled={isPending || !gameName.trim() || !title.trim() || !price}
-        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-sm bg-gradient-to-r from-sunset-orange to-sunset-pink text-white font-rajdhani font-bold tracking-wider uppercase hover:opacity-90 transition-all sunset-glow-sm disabled:opacity-50"
+        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-sm bg-gradient-to-r from-sunset-orange to-sunset-pink text-white font-rajdhani font-bold tracking-wider uppercase hover:opacity-90 transition-all sunset-glow disabled:opacity-50"
       >
         {isPending ? (
           <>
             <Loader2 className="w-4 h-4 animate-spin" />
-            Saving...
+            {isEditing ? 'Updating...' : 'Creating...'}
           </>
-        ) : isEditing ? (
-          'Update Product'
         ) : (
-          'Add Product'
+          isEditing ? 'Update Product' : 'Create Product'
         )}
       </button>
     </form>

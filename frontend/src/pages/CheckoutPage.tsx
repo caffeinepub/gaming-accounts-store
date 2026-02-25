@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { ArrowLeft, ArrowRight, ShoppingCart, User, CreditCard, CheckCircle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { PaymentMethod, ApprovalStatus } from '../backend';
+import { PaymentMethod } from '../backend';
 import type { Product } from '../backend';
-import { usePlaceOrder } from '../hooks/useQueries';
+import { usePlaceOrder, useGetCallerUserProfile } from '../hooks/useQueries';
+import { useInternetIdentity } from '../hooks/useInternetIdentity';
+import { Principal } from '@dfinity/principal';
 import PaymentMethodSelector from '../components/checkout/PaymentMethodSelector';
 import PayPalPayment from '../components/checkout/PayPalPayment';
 import CryptoPayment from '../components/checkout/CryptoPayment';
@@ -36,44 +38,48 @@ export default function CheckoutPage({ cartItems, onOrderComplete, onBack }: Che
   const [contact, setContact] = useState('');
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null);
 
+  const { identity } = useInternetIdentity();
+  const { data: userProfile } = useGetCallerUserProfile();
   const placeOrder = usePlaceOrder();
 
   const total = cartItems.reduce((sum, item) => sum + Number(item.product.price) * item.quantity, 0);
   const currentStepIndex = STEPS.findIndex((s) => s.id === step);
 
+  const buildOrderVars = (gcNumber = '', gcBalance = '') => {
+    const product = cartItems[0].product;
+    const principal = identity?.getPrincipal() ?? Principal.anonymous();
+    return {
+      buyerPrincipal: principal,
+      username: userProfile?.username ?? '',
+      email: email.trim() || userProfile?.email || '',
+      contactInfo: contact.trim() || userProfile?.contact || '',
+      productId: product.id,
+      paymentMethod: selectedMethod!,
+      giftCardNumber: gcNumber,
+      giftCardBalance: gcBalance,
+    };
+  };
+
   const handlePlaceOrder = async () => {
     if (!selectedMethod || cartItems.length === 0) return;
-    const product = cartItems[0].product;
     try {
-      const orderId = await placeOrder.mutateAsync({
-        productId: product.id,
-        paymentMethod: selectedMethod,
-        status: 'confirmed',
-        approvalStatus: ApprovalStatus.pending,
-        giftCardNumber: '',
-        giftCardBalance: '',
-      });
-      onOrderComplete(orderId);
-    } catch (err: any) {
-      toast.error(err?.message ?? 'Failed to place order. Please try again.');
+      await placeOrder.mutateAsync(buildOrderVars());
+      // Use 0n as sentinel — OrderConfirmationPage handles this gracefully
+      onOrderComplete(0n);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to place order. Please try again.';
+      toast.error(msg);
     }
   };
 
   const handleGiftCardPlaceOrder = async (cardNumber: string, cardBalance: string) => {
     if (!selectedMethod || cartItems.length === 0) return;
-    const product = cartItems[0].product;
     try {
-      const orderId = await placeOrder.mutateAsync({
-        productId: product.id,
-        paymentMethod: selectedMethod,
-        status: 'confirmed',
-        approvalStatus: ApprovalStatus.pending,
-        giftCardNumber: cardNumber,
-        giftCardBalance: cardBalance,
-      });
-      onOrderComplete(orderId);
-    } catch (err: any) {
-      toast.error(err?.message ?? 'Failed to place order. Please try again.');
+      await placeOrder.mutateAsync(buildOrderVars(cardNumber, cardBalance));
+      onOrderComplete(0n);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to place order. Please try again.';
+      toast.error(msg);
     }
   };
 
@@ -159,7 +165,7 @@ export default function CheckoutPage({ cartItems, onOrderComplete, onBack }: Che
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      placeholder="your@email.com"
+                      placeholder={userProfile?.email || 'your@email.com'}
                       className="w-full px-3 py-2 rounded-sm border border-border bg-input text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-sunset-gold focus:ring-1 focus:ring-sunset-gold/30 font-rajdhani transition-colors"
                     />
                   </div>
@@ -171,7 +177,7 @@ export default function CheckoutPage({ cartItems, onOrderComplete, onBack }: Che
                       type="text"
                       value={contact}
                       onChange={(e) => setContact(e.target.value)}
-                      placeholder="Discord#1234 or phone"
+                      placeholder={userProfile?.contact || 'Discord#1234 or phone'}
                       className="w-full px-3 py-2 rounded-sm border border-border bg-input text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-sunset-gold focus:ring-1 focus:ring-sunset-gold/30 font-rajdhani transition-colors"
                     />
                   </div>
@@ -185,7 +191,7 @@ export default function CheckoutPage({ cartItems, onOrderComplete, onBack }: Che
                   </button>
                   <button
                     onClick={() => setStep('payment-method')}
-                    disabled={!email.trim()}
+                    disabled={!email.trim() && !userProfile?.email}
                     className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-sm bg-gradient-to-r from-sunset-orange to-sunset-pink text-white font-rajdhani font-bold tracking-wider uppercase hover:opacity-90 transition-all sunset-glow disabled:opacity-50"
                   >
                     Continue
@@ -224,10 +230,18 @@ export default function CheckoutPage({ cartItems, onOrderComplete, onBack }: Che
               <div className="space-y-4">
                 <h2 className="font-orbitron text-lg font-bold text-foreground">Payment Details</h2>
                 {selectedMethod === PaymentMethod.paypal && (
-                  <PayPalPayment amount={total} onConfirm={handlePlaceOrder} isLoading={placeOrder.isPending} />
+                  <PayPalPayment
+                    amount={total}
+                    onConfirm={handlePlaceOrder}
+                    isLoading={placeOrder.isPending}
+                  />
                 )}
                 {selectedMethod === PaymentMethod.cryptocurrency && (
-                  <CryptoPayment amount={total} onConfirm={handlePlaceOrder} isLoading={placeOrder.isPending} />
+                  <CryptoPayment
+                    amount={total}
+                    onConfirm={handlePlaceOrder}
+                    isLoading={placeOrder.isPending}
+                  />
                 )}
                 {selectedMethod === PaymentMethod.ukGiftCard && (
                   <GiftCardPayment
@@ -237,7 +251,11 @@ export default function CheckoutPage({ cartItems, onOrderComplete, onBack }: Che
                   />
                 )}
                 {selectedMethod === PaymentMethod.payIn3Installments && (
-                  <PayIn3Payment amount={total} onConfirm={handlePlaceOrder} isLoading={placeOrder.isPending} />
+                  <PayIn3Payment
+                    amount={total}
+                    onConfirm={handlePlaceOrder}
+                    isLoading={placeOrder.isPending}
+                  />
                 )}
                 <button
                   onClick={() => setStep('payment-method')}

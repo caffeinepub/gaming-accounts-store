@@ -58,10 +58,82 @@ function ApprovalStatusBadge({ status }: { status: ApprovalStatus }) {
   );
 }
 
+// Generic success screen shown when orderId is 0n (sentinel: order placed but ID unknown)
+function GenericSuccessScreen({ onContinueShopping }: { onContinueShopping: () => void }) {
+  return (
+    <div className="min-h-screen bg-background">
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="text-center mb-8">
+          <div className="w-16 h-16 rounded-full bg-success/10 border border-success/30 flex items-center justify-center mx-auto mb-4">
+            <CheckCircle className="w-8 h-8 text-success" />
+          </div>
+          <h1 className="font-orbitron text-2xl font-black text-foreground mb-2">Order Confirmed!</h1>
+          <p className="font-rajdhani text-muted-foreground">
+            Your order has been placed successfully and is pending admin approval.
+          </p>
+        </div>
+
+        <div className="rounded-sm border border-border bg-card overflow-hidden mb-6">
+          <div className="h-1 w-full bg-gradient-to-r from-sunset-gold via-sunset-orange to-sunset-pink" />
+          <div className="p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <Clock className="w-4 h-4 text-sunset-gold" />
+              <h2 className="font-orbitron text-sm font-bold text-sunset-gold uppercase tracking-wider">
+                Order Status
+              </h2>
+            </div>
+            <p className="font-rajdhani text-sm text-muted-foreground mb-3">
+              Your order is being reviewed by our team. You will be notified once it has been approved.
+            </p>
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-sm bg-sunset-gold/10 border border-sunset-gold/30 w-fit">
+              <Clock className="w-3.5 h-3.5 text-sunset-gold" />
+              <span className="font-rajdhani text-sm font-bold text-sunset-gold">Pending Review</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-sm border border-border bg-card p-5 mb-8">
+          <h3 className="font-orbitron text-sm font-bold text-foreground mb-3 uppercase tracking-wider">
+            What Happens Next?
+          </h3>
+          <ol className="space-y-2">
+            {[
+              'Our team will review your order and payment.',
+              'Once approved, your account credentials will be sent to your email.',
+              'If you have any issues, contact us via Discord or email.',
+            ].map((s, i) => (
+              <li key={i} className="flex items-start gap-3">
+                <span className="w-5 h-5 rounded-full bg-sunset-orange/20 border border-sunset-orange/40 text-sunset-orange text-xs font-orbitron font-bold flex items-center justify-center flex-shrink-0 mt-0.5">
+                  {i + 1}
+                </span>
+                <p className="font-rajdhani text-sm text-muted-foreground">{s}</p>
+              </li>
+            ))}
+          </ol>
+        </div>
+
+        <button
+          onClick={onContinueShopping}
+          className="w-full flex items-center justify-center gap-2 py-3 rounded-sm bg-gradient-to-r from-sunset-orange to-sunset-pink text-white font-rajdhani font-bold tracking-wider uppercase hover:opacity-90 transition-all sunset-glow"
+        >
+          Continue Shopping
+          <ArrowRight className="w-4 h-4" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function OrderConfirmationPage({ orderId, onContinueShopping }: OrderConfirmationPageProps) {
-  // Refetch every 30 seconds so the buyer sees live approval status updates
-  // useGetOrderById accepts only one argument (id); refetchInterval is configured inside the hook
-  const { data: order, isLoading, error } = useGetOrderById(orderId);
+  // orderId === 0n is a sentinel meaning "order placed but ID unknown"
+  const isUnknownId = orderId === 0n;
+
+  // Refetch every 10 seconds so the buyer sees live approval status updates
+  const { data: order, isLoading, error } = useGetOrderById(isUnknownId ? null : orderId);
+
+  if (isUnknownId) {
+    return <GenericSuccessScreen onContinueShopping={onContinueShopping} />;
+  }
 
   if (isLoading) {
     return (
@@ -113,7 +185,7 @@ export default function OrderConfirmationPage({ orderId, onContinueShopping }: O
             <div className="flex items-center justify-between">
               <div>
                 <p className="font-rajdhani text-sm text-muted-foreground mb-2">
-                  Your order is being reviewed by our team. Status updates automatically every 30 seconds.
+                  Your order is being reviewed by our team. Status updates automatically every 10 seconds.
                 </p>
                 <ApprovalStatusBadge status={order.approvalStatus} />
               </div>
@@ -193,12 +265,12 @@ export default function OrderConfirmationPage({ orderId, onContinueShopping }: O
               'Our team will review your order and payment.',
               'Once approved, your account credentials will be sent to your email.',
               'If you have any issues, contact us via Discord or email.',
-            ].map((step, i) => (
+            ].map((s, i) => (
               <li key={i} className="flex items-start gap-3">
                 <span className="w-5 h-5 rounded-full bg-sunset-orange/20 border border-sunset-orange/40 text-sunset-orange text-xs font-orbitron font-bold flex items-center justify-center flex-shrink-0 mt-0.5">
                   {i + 1}
                 </span>
-                <p className="font-rajdhani text-sm text-muted-foreground">{step}</p>
+                <p className="font-rajdhani text-sm text-muted-foreground">{s}</p>
               </li>
             ))}
           </ol>

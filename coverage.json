@@ -1,7 +1,7 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-25T01:06:12.874Z",
+  "generatedAt": "2026-02-25T02:00:17.772Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
@@ -11,59 +11,57 @@
     "implemented": 2,
     "items": [
       {
-        "id": "REQ-125",
-        "summary": "Fix subscription tier seeding in `backend/main.mo` so the four default tiers (Starter, Basic, Premium, Pro) are seeded automatically at actor construction/upgrade time using a stable boolean flag (e.g. `subscriptionTiersInitialized`). The seeding logic must run once without requiring any external caller. Remove or neutralise the admin-username-whitelist guard on the internal seeding path so it cannot throw 'Unauthorized: Only admins can initialize subscription tiers'. The four tiers must be present and retrievable via `getSubscriptionTiers()` immediately after deployment without any manual action.",
+        "id": "REQ-133",
+        "summary": "Audit and fix `backend/main.mo` to verify the `placeOrder` function correctly accepts all required fields (`buyerPrincipal`, `username`, `email`, `contactInfo`, `productId`, `paymentMethod`, `giftCardNumber`, `giftCardBalance`), assigns `approvalStatus: #pending` to every new order, persists the new Order record into the stable orders map, and that `getOrders()` retrieves all stored orders without any filtering or omission. Fix any bug found — missing field assignment, incorrect map insertion, wrong key type, or retrieval logic error — so that every successfully placed order is immediately visible via `getOrders()`.",
         "status": "unknown",
         "plannedFiles": [],
         "matchedFiles": []
       },
       {
-        "id": "REQ-126",
-        "summary": "Remove the 'Initialize Default Tiers' button and all associated initialization UI from `frontend/src/components/admin/SubscriptionManager.tsx`. Since tiers are now auto-seeded in the backend, the component must simply fetch and display the existing tiers via `useSubscriptionTiers()`. If the tiers query returns an empty array (which should no longer happen), display a neutral empty state without an initialization button.",
+        "id": "REQ-134",
+        "summary": "Audit and fix the `placeOrder` mutation function in `frontend/src/hooks/useQueries.ts` to ensure it: (1) correctly awaits the actor call; (2) passes all required fields to the backend — `username`, `email`, `contactInfo`, `productId`, `paymentMethod`, `giftCardNumber` (empty string for non-gift-card orders), and `giftCardBalance` (empty string for non-gift-card orders); (3) properly unwraps the Motoko `#ok`/`#err` Result variant and throws a JavaScript `Error` when the backend returns `#err` so the `onError` handler fires; (4) invalidates the `orders` React Query cache on success so the admin panel tables refresh immediately after a purchase.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/components/admin/SubscriptionManager.tsx"
+          "frontend/src/hooks/useQueries.ts"
         ],
         "matchedFiles": [
-          "frontend/src/components/admin/SubscriptionManager.tsx"
+          "frontend/src/hooks/useQueries.ts"
         ]
       },
       {
-        "id": "REQ-127",
-        "summary": "Trace and fix the full order placement flow end-to-end so that orders placed by users appear in both the admin panel Orders tab and the Payments tab. Audit `backend/main.mo` to verify the `placeOrder` function correctly persists new orders to stable storage and that `getOrders()` (used by the admin panel) retrieves all stored orders. Audit `frontend/src/pages/CheckoutPage.tsx` and `frontend/src/hooks/useQueries.ts` to ensure the `placeOrder` mutation is correctly called with all required fields, the actor call is properly awaited, and the `#ok`/`#err` result is unwrapped. Fix any issue found — whether it is a missing field in the payload, a type mismatch, a silent failure in the mutation, or a backend storage/retrieval bug — so that after a user completes checkout, the resulting order is immediately visible in the admin Orders and Payments tabs.",
-        "status": "implemented",
+        "id": "REQ-135",
+        "summary": "Audit and fix `frontend/src/pages/CheckoutPage.tsx` to ensure: (1) the `placeOrder` mutation is invoked with all required fields — `username`, `email`, `contactInfo`, `productId`, `paymentMethod`, `giftCardNumber`, and `giftCardBalance`; (2) for gift card orders, `giftCardNumber` and `giftCardBalance` are collected from the `GiftCardPayment` component and passed through; for all other payment methods, empty strings are passed for both fields; (3) any error thrown by the mutation is surfaced to the user via a toast notification or visible error message — no silent failures; (4) on successful order placement the user is navigated to the order confirmation page.",
+        "status": "missing",
         "plannedFiles": [
-          "frontend/src/hooks/useQueries.ts",
-          "frontend/src/pages/CheckoutPage.tsx",
-          "frontend/src/components/checkout/GiftCardPayment.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/hooks/useQueries.ts",
           "frontend/src/pages/CheckoutPage.tsx"
-        ]
+        ],
+        "matchedFiles": []
       },
       {
-        "id": "REQ-128",
-        "summary": "Update `backend/migration.mo` to ensure that any new stable state introduced by the subscription tier auto-seeding fix (e.g. `subscriptionTiersInitialized` flag or equivalent) is handled correctly during canister upgrades. Existing stable data (products, orders, users, subscription tiers, admin whitelist, store settings, PIN attempt maps) must not be lost. If no new stable state is introduced by REQ-125, confirm the existing migration module compiles without errors and remains valid.",
-        "status": "unknown",
-        "plannedFiles": [],
-        "matchedFiles": []
+        "id": "REQ-136",
+        "summary": "Audit `frontend/src/components/admin/OrderManager.tsx` and `frontend/src/components/admin/PaymentsManager.tsx` to confirm: (1) both components use the correct React Query hook (`useOrders` / the `orders` query key) to fetch all orders from the backend; (2) neither component has any filtering, sorting, or conditional logic that could hide newly placed orders; (3) the `orders` query key used in both components exactly matches the key invalidated by the `placeOrder` mutation on success, so the admin tables auto-refresh after a purchase is made. Fix any mismatch or filtering bug found.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/components/admin/OrderManager.tsx",
+          "frontend/src/components/admin/PaymentsManager.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/components/admin/OrderManager.tsx",
+          "frontend/src/components/admin/PaymentsManager.tsx"
+        ]
       }
     ]
   },
   "changedFiles": [
     "backend/main.mo",
+    "backend/migration.mo",
     "build-request.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/backend.d.ts",
-    "frontend/src/backend.ts",
-    "frontend/src/components/admin/SubscriptionManager.tsx",
-    "frontend/src/declarations/backend.did.d.ts",
-    "frontend/src/declarations/backend.did.js",
+    "frontend/src/components/admin/OrderManager.tsx",
+    "frontend/src/components/admin/PaymentsManager.tsx",
     "frontend/src/hooks/useQueries.ts",
-    "frontend/src/pages/CheckoutPage.tsx",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

@@ -9,6 +9,16 @@
 import { IDL } from '@icp-sdk/core/candid';
 
 export const Result = IDL.Variant({ 'ok' : IDL.Null, 'err' : IDL.Text });
+export const UserRole = IDL.Variant({
+  'admin' : IDL.Null,
+  'user' : IDL.Null,
+  'guest' : IDL.Null,
+});
+export const ProductCategory = IDL.Record({
+  'id' : IDL.Nat,
+  'name' : IDL.Text,
+  'description' : IDL.Text,
+});
 export const PaymentMethod = IDL.Variant({
   'cryptocurrency' : IDL.Null,
   'payIn3Installments' : IDL.Null,
@@ -19,16 +29,6 @@ export const ApprovalStatus = IDL.Variant({
   'pending' : IDL.Null,
   'approved' : IDL.Null,
   'declined' : IDL.Null,
-});
-export const UserRole = IDL.Variant({
-  'admin' : IDL.Null,
-  'user' : IDL.Null,
-  'guest' : IDL.Null,
-});
-export const ProductCategory = IDL.Record({
-  'id' : IDL.Nat,
-  'name' : IDL.Text,
-  'description' : IDL.Text,
 });
 export const Order = IDL.Record({
   'status' : IDL.Text,
@@ -75,11 +75,6 @@ export const idlService = IDL.Service({
   '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
   'addAdminUser' : IDL.Func([IDL.Text], [], []),
   'addCategory' : IDL.Func([IDL.Text, IDL.Text], [Result], []),
-  'addOrder' : IDL.Func(
-      [IDL.Nat, PaymentMethod, IDL.Text, ApprovalStatus, IDL.Text, IDL.Text],
-      [IDL.Nat],
-      [],
-    ),
   'addProduct' : IDL.Func(
       [IDL.Text, IDL.Nat, IDL.Text, IDL.Text, IDL.Text, IDL.Nat, IDL.Bool],
       [Result],
@@ -112,6 +107,7 @@ export const idlService = IDL.Service({
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
   'getCategoryById' : IDL.Func([IDL.Nat], [ProductCategory], ['query']),
   'getOrderById' : IDL.Func([IDL.Nat], [Order], ['query']),
+  'getOrders' : IDL.Func([], [IDL.Vec(Order)], ['query']),
   'getOrdersByBuyer' : IDL.Func([IDL.Principal], [IDL.Vec(Order)], ['query']),
   'getOrdersByUsername' : IDL.Func([IDL.Text], [IDL.Vec(Order)], ['query']),
   'getProductById' : IDL.Func([IDL.Nat], [Product], ['query']),
@@ -132,6 +128,20 @@ export const idlService = IDL.Service({
   'isAdminUsername' : IDL.Func([IDL.Text], [IDL.Bool], ['query']),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
   'isUsernameAvailable' : IDL.Func([IDL.Text], [IDL.Bool], ['query']),
+  'placeOrder' : IDL.Func(
+      [
+        IDL.Principal,
+        IDL.Text,
+        IDL.Text,
+        IDL.Text,
+        IDL.Nat,
+        PaymentMethod,
+        IDL.Text,
+        IDL.Text,
+      ],
+      [Result],
+      [],
+    ),
   'removeAdminUser' : IDL.Func([IDL.Text], [], []),
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
   'setSubscriptionTierFreeTrial' : IDL.Func([IDL.Nat, IDL.Bool], [Result], []),
@@ -169,6 +179,16 @@ export const idlInitArgs = [];
 
 export const idlFactory = ({ IDL }) => {
   const Result = IDL.Variant({ 'ok' : IDL.Null, 'err' : IDL.Text });
+  const UserRole = IDL.Variant({
+    'admin' : IDL.Null,
+    'user' : IDL.Null,
+    'guest' : IDL.Null,
+  });
+  const ProductCategory = IDL.Record({
+    'id' : IDL.Nat,
+    'name' : IDL.Text,
+    'description' : IDL.Text,
+  });
   const PaymentMethod = IDL.Variant({
     'cryptocurrency' : IDL.Null,
     'payIn3Installments' : IDL.Null,
@@ -179,16 +199,6 @@ export const idlFactory = ({ IDL }) => {
     'pending' : IDL.Null,
     'approved' : IDL.Null,
     'declined' : IDL.Null,
-  });
-  const UserRole = IDL.Variant({
-    'admin' : IDL.Null,
-    'user' : IDL.Null,
-    'guest' : IDL.Null,
-  });
-  const ProductCategory = IDL.Record({
-    'id' : IDL.Nat,
-    'name' : IDL.Text,
-    'description' : IDL.Text,
   });
   const Order = IDL.Record({
     'status' : IDL.Text,
@@ -235,11 +245,6 @@ export const idlFactory = ({ IDL }) => {
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
     'addAdminUser' : IDL.Func([IDL.Text], [], []),
     'addCategory' : IDL.Func([IDL.Text, IDL.Text], [Result], []),
-    'addOrder' : IDL.Func(
-        [IDL.Nat, PaymentMethod, IDL.Text, ApprovalStatus, IDL.Text, IDL.Text],
-        [IDL.Nat],
-        [],
-      ),
     'addProduct' : IDL.Func(
         [IDL.Text, IDL.Nat, IDL.Text, IDL.Text, IDL.Text, IDL.Nat, IDL.Bool],
         [Result],
@@ -277,6 +282,7 @@ export const idlFactory = ({ IDL }) => {
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
     'getCategoryById' : IDL.Func([IDL.Nat], [ProductCategory], ['query']),
     'getOrderById' : IDL.Func([IDL.Nat], [Order], ['query']),
+    'getOrders' : IDL.Func([], [IDL.Vec(Order)], ['query']),
     'getOrdersByBuyer' : IDL.Func([IDL.Principal], [IDL.Vec(Order)], ['query']),
     'getOrdersByUsername' : IDL.Func([IDL.Text], [IDL.Vec(Order)], ['query']),
     'getProductById' : IDL.Func([IDL.Nat], [Product], ['query']),
@@ -301,6 +307,20 @@ export const idlFactory = ({ IDL }) => {
     'isAdminUsername' : IDL.Func([IDL.Text], [IDL.Bool], ['query']),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
     'isUsernameAvailable' : IDL.Func([IDL.Text], [IDL.Bool], ['query']),
+    'placeOrder' : IDL.Func(
+        [
+          IDL.Principal,
+          IDL.Text,
+          IDL.Text,
+          IDL.Text,
+          IDL.Nat,
+          PaymentMethod,
+          IDL.Text,
+          IDL.Text,
+        ],
+        [Result],
+        [],
+      ),
     'removeAdminUser' : IDL.Func([IDL.Text], [], []),
     'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
     'setSubscriptionTierFreeTrial' : IDL.Func(

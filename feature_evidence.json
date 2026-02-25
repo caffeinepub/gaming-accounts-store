@@ -2,10 +2,10 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-remove-the-initialize-default-tiers-button-and-all-associated-initialization-ui-from-frontend-src-components-admin-subscriptionmanager-tsx-since-tiers-are-now-auto-seeded-in-the-backend-the-component-must-simply-fetch-and-display-the-existing-tiers-via-usesubscriptiontiers-if-the-tiers-query-returns-an-empty-array-which-should-no-longer-happen-display-a-neutral-empty-state-without-an-initialization-button",
-      "featureTitle": "Remove the 'Initialize Default Tiers' button and all associated initialization UI from `frontend/src/components/admin/SubscriptionManager.tsx`. Since tiers are now auto-seeded in the backend, the component must simply fetch and display the existing tiers via `useSubscriptionTiers()`. If the tiers query returns an empty array (which should no longer happen), display a neutral empty state without an initialization button.",
+      "featureId": "feature-audit-and-fix-the-placeorder-mutation-function-in-frontend-src-hooks-usequeries-ts-to-ensure-it-1-correctly-awaits-the-actor-call-2-passes-all-required-fields-to-the-backend-username-email-contactinfo-productid-paymentmethod-giftcardnumber-empty-string-for-non-gift-card-orders-and-giftcardbalance-empty-string-for-non-gift-card-orders-3-properly-unwraps-the-motoko-ok-err-result-variant-and-throws-a-javascript-error-when-the-backend-returns-err-so-the-onerror-handler-fires-4-invalidates-the-orders-react-query-cache-on-success-so-the-admin-panel-tables-refresh-immediately-after-a-purchase",
+      "featureTitle": "Audit and fix the `placeOrder` mutation function in `frontend/src/hooks/useQueries.ts` to ensure it: (1) correctly awaits the actor call; (2) passes all required fields to the backend — `username`, `email`, `contactInfo`, `productId`, `paymentMethod`, `giftCardNumber` (empty string for non-gift-card orders), and `giftCardBalance` (empty string for non-gift-card orders); (3) properly unwraps the Motoko `#ok`/`#err` Result variant and throws a JavaScript `Error` when the backend returns `#err` so the `onError` handler fires; (4) invalidates the `orders` React Query cache on success so the admin panel tables refresh immediately after a purchase.",
       "files": [
-        "frontend/src/components/admin/SubscriptionManager.tsx"
+        "frontend/src/hooks/useQueries.ts"
       ],
       "components": [
         "authorization@4.0.0",
@@ -18,16 +18,16 @@
         "camera@1.0.0"
       ],
       "testIds": [
-        "REQ-126"
+        "REQ-134"
       ],
       "confidence": "high"
     },
     {
-      "featureId": "feature-trace-and-fix-the-full-order-placement-flow-end-to-end-so-that-orders-placed-by-users-appear-in-both-the-admin-panel-orders-tab-and-the-payments-tab-audit-backend-main-mo-to-verify-the-placeorder-function-correctly-persists-new-orders-to-stable-storage-and-that-getorders-used-by-the-admin-panel-retrieves-all-stored-orders-audit-frontend-src-pages-checkoutpage-tsx-and-frontend-src-hooks-usequeries-ts-to-ensure-the-placeorder-mutation-is-correctly-called-with-all-required-fields-the-actor-call-is-properly-awaited-and-the-ok-err-result-is-unwrapped-fix-any-issue-found-whether-it-is-a-missing-field-in-the-payload-a-type-mismatch-a-silent-failure-in-the-mutation-or-a-backend-storage-retrieval-bug-so-that-after-a-user-completes-checkout-the-resulting-order-is-immediately-visible-in-the-admin-orders-and-payments-tabs",
-      "featureTitle": "Trace and fix the full order placement flow end-to-end so that orders placed by users appear in both the admin panel Orders tab and the Payments tab. Audit `backend/main.mo` to verify the `placeOrder` function correctly persists new orders to stable storage and that `getOrders()` (used by the admin panel) retrieves all stored orders. Audit `frontend/src/pages/CheckoutPage.tsx` and `frontend/src/hooks/useQueries.ts` to ensure the `placeOrder` mutation is correctly called with all required fields, the actor call is properly awaited, and the `#ok`/`#err` result is unwrapped. Fix any issue found — whether it is a missing field in the payload, a type mismatch, a silent failure in the mutation, or a backend storage/retrieval bug — so that after a user completes checkout, the resulting order is immediately visible in the admin Orders and Payments tabs.",
+      "featureId": "feature-audit-frontend-src-components-admin-ordermanager-tsx-and-frontend-src-components-admin-paymentsmanager-tsx-to-confirm-1-both-components-use-the-correct-react-query-hook-useorders-the-orders-query-key-to-fetch-all-orders-from-the-backend-2-neither-component-has-any-filtering-sorting-or-conditional-logic-that-could-hide-newly-placed-orders-3-the-orders-query-key-used-in-both-components-exactly-matches-the-key-invalidated-by-the-placeorder-mutation-on-success-so-the-admin-tables-auto-refresh-after-a-purchase-is-made-fix-any-mismatch-or-filtering-bug-found",
+      "featureTitle": "Audit `frontend/src/components/admin/OrderManager.tsx` and `frontend/src/components/admin/PaymentsManager.tsx` to confirm: (1) both components use the correct React Query hook (`useOrders` / the `orders` query key) to fetch all orders from the backend; (2) neither component has any filtering, sorting, or conditional logic that could hide newly placed orders; (3) the `orders` query key used in both components exactly matches the key invalidated by the `placeOrder` mutation on success, so the admin tables auto-refresh after a purchase is made. Fix any mismatch or filtering bug found.",
       "files": [
-        "frontend/src/hooks/useQueries.ts",
-        "frontend/src/pages/CheckoutPage.tsx"
+        "frontend/src/components/admin/OrderManager.tsx",
+        "frontend/src/components/admin/PaymentsManager.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -40,7 +40,7 @@
         "camera@1.0.0"
       ],
       "testIds": [
-        "REQ-127"
+        "REQ-136"
       ],
       "confidence": "high"
     }
