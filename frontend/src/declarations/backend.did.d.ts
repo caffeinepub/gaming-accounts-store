@@ -106,7 +106,6 @@ export interface _SERVICE {
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
   'getUsernameByPrincipal' : ActorMethod<[Principal], [] | [string]>,
   'hasUsername' : ActorMethod<[Principal], boolean>,
-  'initializeDefaultTiers' : ActorMethod<[], undefined>,
   'isAdminUsername' : ActorMethod<[string], boolean>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
   'isUsernameAvailable' : ActorMethod<[string], boolean>,

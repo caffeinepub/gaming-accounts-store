@@ -8,7 +8,6 @@ import {
   useGetSubscriptionTiers,
   useUpdateSubscriptionTierPrices,
   useSetSubscriptionTierFreeTrial,
-  useInitializeDefaultTiers,
 } from '../../hooks/useQueries';
 import type { SubscriptionTier } from '../../backend';
 
@@ -225,16 +224,6 @@ function TierRow({ tier }: { tier: SubscriptionTier }) {
 
 export default function SubscriptionManager() {
   const { data: tiers, isLoading, error } = useGetSubscriptionTiers();
-  const initializeTiers = useInitializeDefaultTiers();
-
-  const handleInitialize = async () => {
-    try {
-      await initializeTiers.mutateAsync();
-      toast.success('Default subscription tiers initialized');
-    } catch (err: any) {
-      toast.error(err?.message ?? 'Failed to initialize tiers');
-    }
-  };
 
   if (isLoading) {
     return (
@@ -256,34 +245,18 @@ export default function SubscriptionManager() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="font-orbitron text-lg font-black text-foreground mb-1">Subscription Tiers</h2>
-          <p className="font-rajdhani text-sm text-muted-foreground">
-            Manage pricing and free trial settings for each subscription tier.
-          </p>
-        </div>
-        {(!tiers || tiers.length === 0) && (
-          <button
-            onClick={handleInitialize}
-            disabled={initializeTiers.isPending}
-            className="flex items-center gap-2 px-4 py-2 rounded-sm bg-sunset-gold/10 border border-sunset-gold/30 text-sunset-gold hover:bg-sunset-gold/20 font-rajdhani font-semibold text-sm uppercase tracking-wider transition-all disabled:opacity-50"
-          >
-            {initializeTiers.isPending ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Crown className="w-4 h-4" />
-            )}
-            Initialize Default Tiers
-          </button>
-        )}
+      <div>
+        <h2 className="font-orbitron text-lg font-black text-foreground mb-1">Subscription Tiers</h2>
+        <p className="font-rajdhani text-sm text-muted-foreground">
+          Manage pricing and free trial settings for each subscription tier.
+        </p>
       </div>
 
       {(!tiers || tiers.length === 0) ? (
         <div className="flex flex-col items-center justify-center py-16 gap-3">
-          <Crown className="w-10 h-10 text-muted-foreground" />
+          <Crown className="w-10 h-10 text-muted-foreground opacity-40" />
           <p className="font-rajdhani text-muted-foreground text-center">
-            No subscription tiers found. Click "Initialize Default Tiers" to create the default set.
+            Subscription tiers are being set up. Please refresh in a moment.
           </p>
         </div>
       ) : (

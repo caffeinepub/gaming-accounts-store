@@ -1,60 +1,50 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Replace admin gate with 4-digit PIN (2006) + lockout system (Frontend)",
+  "title": "Fix subscription tiers auto-seeding and orders not appearing in admin panel",
   "requirements": [
     {
-      "id": "REQ-115",
-      "summary": "Add React Query hooks for PIN verification and lockout status checking",
+      "id": "REQ-126",
+      "summary": "Remove subscription tier initialization UI from SubscriptionManager component",
       "acceptanceCriteria": [
-        "`useVerifyAdminPin` mutation correctly calls the backend `verifyAdminPin` function",
-        "Mutation throws a JavaScript Error when the backend returns `#err` (e.g. lockout error)",
-        "`useAdminPinLockoutStatus` query is enabled only when the user is authenticated",
-        "Lockout status query has `staleTime: 0` and `retry: 0`"
+        "The 'Initialize Default Tiers' button is no longer present in the SubscriptionManager component.",
+        "The component renders the four tier cards/rows fetched from the backend as soon as data is available.",
+        "No initialization-related error toast appears when visiting the Subscriptions tab.",
+        "Admins can still edit prices and toggle free trial per tier via the existing controls."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/admin/SubscriptionManager.tsx",
+          "operation": "modify",
+          "description": "Remove the 'Initialize Default Tiers' button and all initialization UI logic. Simplify the component to fetch and display existing tiers via useSubscriptionTiers(). Replace the initialization empty state with a neutral message that does not prompt manual action. Keep the existing edit controls (price updates and free trial toggle) functional."
+        }
+      ]
+    },
+    {
+      "id": "REQ-127",
+      "summary": "Fix order placement flow so orders appear in admin panel Orders and Payments tabs",
+      "acceptanceCriteria": [
+        "After a user completes checkout (reaches order confirmation page), the order appears in the admin panel Orders tab.",
+        "The same order also appears in the admin panel Payments tab with the correct payment method badge and 'Pending' approval status.",
+        "The order record contains the buyer's username, email, contact info, product(s) purchased, payment method, and (for gift card orders) gift card number and balance.",
+        "The `placeOrder` mutation in `useQueries.ts` correctly awaits the actor call, unwraps `#ok`/`#err`, and throws a JavaScript Error on `#err`.",
+        "No silent failures occur — if `placeOrder` fails, an error toast is shown to the user."
       ],
       "file_operations": [
         {
           "path": "frontend/src/hooks/useQueries.ts",
           "operation": "modify",
-          "description": "Add `useVerifyAdminPin()` mutation hook that calls `actor.verifyAdminPin(pin: string)`, unwraps the Result variant (`#ok` with boolean or `#err` with string), throws a JavaScript Error on `#err`, and returns the boolean result on success. Add `useAdminPinLockoutStatus()` query hook that calls `actor.getAdminPinLockoutStatus(principal)` with the authenticated user's principal, enabled only when both actor and identity are available, with `staleTime: 0` and `retry: 0` to always reflect live lockout state. Both hooks must handle the backend interface types correctly (Result union and lockout status object with `isLockedOut: boolean` and `remainingSeconds: bigint`)."
-        }
-      ]
-    },
-    {
-      "id": "REQ-116",
-      "summary": "Replace AdminAccessControl with 4-digit PIN entry screen and lockout enforcement",
-      "acceptanceCriteria": [
-        "Unauthenticated users see a 'Please log in' prompt, not the PIN form",
-        "Authenticated users immediately see the 4-digit PIN entry form",
-        "Entering PIN '2006' and submitting transitions to access granted (admin panel renders)",
-        "Entering any wrong PIN shows an inline error with remaining attempts",
-        "After 4 wrong attempts, the form shows a lockout message with time remaining and disables the input/submit",
-        "Pressing Enter in the PIN input triggers form submission",
-        "Loading spinner shows only while the backend call is in-flight",
-        "No username-based gate logic remains in this component",
-        "Sunset theme is applied consistently to the PIN entry screen"
-      ],
-      "file_operations": [
+          "description": "Audit and fix the usePlaceOrder mutation to ensure it correctly awaits the backend actor.addOrder() call, properly unwraps the #ok/#err Result type, and throws a JavaScript Error on #err with a descriptive message. Verify that all required fields (productId, paymentMethod, status, approvalStatus, giftCardNumber, giftCardBalance) are passed with the correct types matching the backend interface. Ensure the mutation's onSuccess callback invalidates both 'orders' and 'allOrders' query keys so the admin panel reflects the new order immediately."
+        },
         {
-          "path": "frontend/src/components/AdminAccessControl.tsx",
+          "path": "frontend/src/pages/CheckoutPage.tsx",
           "operation": "modify",
-          "description": "Rewrite the entire component to replace all username-based gate logic with a PIN-based flow. Remove all imports and usage of `getUsername`, `isAdminUsername`, `useUsername`, and `useIsAdminUsername`. The new flow: (1) If `identity` from `useInternetIdentity()` is null/undefined, render a centered prompt 'Please log in via Internet Identity to access the admin panel' with a link/button to trigger login — do not show the PIN form. (2) Once authenticated, render a styled 4-digit PIN entry screen with a heading 'Admin Access', subheading 'Enter the 4-digit PIN to continue', four single-digit input fields (or one input with maxLength=4 and inputMode='numeric'), and a 'Submit' button, all wrapped in a `<form onSubmit={handleSubmit}>`. (3) The `handleSubmit` async function must call `event.preventDefault()`, set a local `isSubmitting` state to true, call `actor.verifyAdminPin(pinValue)` directly (not via React Query mutation), unwrap the Result variant, and handle: on `#ok(true)` transition to `status = 'granted'` and render `{children}`; on `#ok(false)` or `#err` with remaining attempts, display inline error 'Incorrect PIN. X attempts remaining.' and clear the PIN input; on `#err` indicating lockout, display the lockout message (e.g., 'Too many failed attempts. Try again in X minutes.') and disable the form fields. (4) Use try/catch to handle any thrown errors and display them as inline error messages. (5) Show a loading spinner or disabled state only while `isSubmitting` is true. (6) Apply sunset theme colors (dusk-bg/dusk-mid backgrounds, sunset-gold/sunset-orange accents, Orbitron/Rajdhani fonts, sunset glow effects) to the PIN entry screen using Tailwind classes consistent with `frontend/src/index.css` and `frontend/tailwind.config.js`. Remove all references to ProfileSetupModal or username checks from this component."
-        }
-      ]
-    },
-    {
-      "id": "REQ-117",
-      "summary": "Remove all internal gates from AdminPanelPage",
-      "acceptanceCriteria": [
-        "AdminPanelPage renders its tabbed content immediately once AdminAccessControl grants access",
-        "No internal `isAdminUsername`, `verifyAdminPin`, loading state, or async `useEffect` gate exists in AdminPanelPage",
-        "All six tabs (Products, Orders, Payments, Admins, Subscriptions, Settings) are visible and functional"
-      ],
-      "file_operations": [
+          "description": "Audit the checkout flow to ensure the placeOrder mutation is called with all required parameters and that the mutation promise is properly awaited. Verify that userProfile data (username, email, contact) is correctly passed. Ensure that for gift card payments, giftCardNumber and giftCardBalance are captured from the GiftCardPayment component state and included in the mutation call. Add error handling to display a toast if the mutation fails. Confirm that on success, the user is redirected to the order confirmation page with the correct orderId."
+        },
         {
-          "path": "frontend/src/pages/AdminPanelPage.tsx",
+          "path": "frontend/src/components/checkout/GiftCardPayment.tsx",
           "operation": "modify",
-          "description": "Audit the file and remove any remaining username-based checks, PIN verification calls, `isAdminUsername`, `useIsAdminUsername`, or async `useEffect` gates. Ensure the page renders its tabbed content (Products, Orders, Payments, Admins, Subscriptions, Settings) immediately and unconditionally, relying solely on the `AdminAccessControl` wrapper for access control. Confirm all six tabs remain present and wired correctly."
+          "description": "Ensure the gift card number and balance fields are exposed to the parent CheckoutPage via props or callback so they can be included in the placeOrder mutation payload. Verify validation logic prevents submission if fields are empty or invalid. Add any missing state lifting or event handlers needed for the parent to retrieve these values."
         }
       ]
     }

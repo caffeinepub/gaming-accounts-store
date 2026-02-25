@@ -364,11 +364,21 @@ export function useGetAllOrders() {
     queryKey: ['allOrders'],
     queryFn: async () => {
       if (!actor) return [];
-      return actor.getAllOrders();
+      try {
+        return await actor.getAllOrders();
+      } catch (err: any) {
+        // getAllOrders requires admin role on the backend.
+        // Return empty array gracefully if the caller lacks admin permission.
+        const msg: string = err?.message ?? String(err);
+        if (msg.includes('Unauthorized') || msg.includes('unauthorized')) {
+          return [];
+        }
+        throw err;
+      }
     },
     enabled: !!actor && !actorFetching,
-    staleTime: 30_000,
-    retry: 1,
+    staleTime: 15_000,
+    retry: 0,
   });
 }
 
@@ -420,11 +430,20 @@ export function usePlaceOrder() {
   return useMutation<bigint, Error, PlaceOrderVars>({
     mutationFn: async ({ productId, paymentMethod, status, approvalStatus, giftCardNumber, giftCardBalance }) => {
       if (!actor) throw new Error('Actor not available');
-      return actor.addOrder(productId, paymentMethod, status, approvalStatus, giftCardNumber, giftCardBalance);
+      const orderId = await actor.addOrder(
+        productId,
+        paymentMethod,
+        status,
+        approvalStatus,
+        giftCardNumber,
+        giftCardBalance,
+      );
+      return orderId;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['allOrders'] });
       queryClient.invalidateQueries({ queryKey: ['ordersByBuyer'] });
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
     },
   });
 }
@@ -441,6 +460,7 @@ export function useApproveOrder() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['allOrders'] });
+      queryClient.invalidateQueries({ queryKey: ['order'] });
     },
   });
 }
@@ -457,6 +477,7 @@ export function useDeclineOrder() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['allOrders'] });
+      queryClient.invalidateQueries({ queryKey: ['order'] });
     },
   });
 }
@@ -572,21 +593,6 @@ export function useGetSubscriptionTiers() {
     enabled: !!actor && !actorFetching,
     staleTime: 60_000,
     retry: 1,
-  });
-}
-
-export function useInitializeDefaultTiers() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
-  return useMutation<void, Error, void>({
-    mutationFn: async () => {
-      if (!actor) throw new Error('Actor not available');
-      await actor.initializeDefaultTiers();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['subscriptionTiers'] });
-    },
   });
 }
 

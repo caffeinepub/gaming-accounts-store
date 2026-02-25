@@ -202,7 +202,6 @@ export interface backendInterface {
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     getUsernameByPrincipal(user: Principal): Promise<string | null>;
     hasUsername(user: Principal): Promise<boolean>;
-    initializeDefaultTiers(): Promise<void>;
     isAdminUsername(username: string): Promise<boolean>;
     isCallerAdmin(): Promise<boolean>;
     isUsernameAvailable(username: string): Promise<boolean>;
@@ -644,20 +643,6 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.hasUsername(arg0);
-            return result;
-        }
-    }
-    async initializeDefaultTiers(): Promise<void> {
-        if (this.processError) {
-            try {
-                const result = await this.actor.initializeDefaultTiers();
-                return result;
-            } catch (e) {
-                this.processError(e);
-                throw new Error("unreachable");
-            }
-        } else {
-            const result = await this.actor.initializeDefaultTiers();
             return result;
         }
     }

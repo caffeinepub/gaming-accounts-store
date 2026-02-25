@@ -1,6 +1,6 @@
 {
   "schemaVersion": "1.0.0",
-  "projectStateVersion": 67,
+  "projectStateVersion": 73,
   "summary": "A Shopify-style gaming accounts e-commerce store called Game Vault with a loading screen that features a royalty-free New York sunset video (sourced from a public CDN such as Pexels or Pixabay) playing as the background, replacing the previous 3D Three.js scene entirely. The loading screen enforces a minimum 40-second wait with a 'Game Vault' gradient text (red → purple → orange) progress reveal effect and an 'Enter Store' button that unlocks after 40 seconds. Store sells gaming accounts starting with Car Parking Multiplayer. Features full admin panel, user authentication via Internet Identity, and checkout flows for PayPal, Crypto, UK Gift Cards, and Pay in 3 Installments. The storefront logo has been removed and the 'Game Vault' site name displays a red → purple → orange 3-tone gradient across navbar, footer, loading screen, and all instances. Users must create a unique username (no spaces) on first login before accessing the store; username is used for purchases (order confirmations show username, email, contact info, and product purchased). Admin Panel link is visible to all users in the navbar. The admin gate now uses a 4-digit PIN entry screen (PIN: 2006, hardcoded in backend). The user must be logged in via Internet Identity first, then enter the 4-digit PIN to access the admin panel. After 4 wrong PIN attempts, the user is locked out for 1 hour (lockout tracked per user principal in backend stable storage). The username 'Frosty' is hardcoded as the initial seed admin in the backend whitelist. The overall website theme is a sunset aesthetic — warm golden-oranges, deep purples, dusky pinks, and soft golden yellows. A Subscriptions tab has been added to the navbar with 4 tiers (Starter, Basic, Premium, Pro), each offering progressive perks and discounts. Users toggle between monthly/yearly billing with a disclaimer shown under all tier titles. Pro tier unlocks all perks. PayPal and Crypto are the only supported payment methods for subscriptions. Admins can edit monthly and yearly prices per tier independently, toggle a 7-day free trial on/off per tier, and all changes reflect on the user-facing subscriptions tab. Subscription tier data is stored in backend stable storage.",
   "architectural_notes": [
     "Full-stack app on Internet Computer (ICP) with Internet Identity for auth",
@@ -19,7 +19,8 @@
     "Admin panel stuck in 'verifying access' spin loop after Version 22 — AdminAccessControl.tsx sequential gate (auth → username → isAdminUsername) never resolves to granted or denied state",
     "Admin panel username entry form silently does nothing on Enter/Submit — form onSubmit not wired correctly, isAdminUsername backend call not being triggered or result not updating state",
     "Admin panel shows 'We are still connecting, try back later' in production (Version 26) instead of the username entry form — frontend actor client is failing to reach the backend canister; worked in Version 24, broke in Versions 25–26",
-    "Storefront not loading in production (Version 27) — both storefront and admin panel broken; actor client failing to connect to backend canister; admin panel username entry form appears but submitting does nothing (isAdminUsername call not triggered)"
+    "Storefront not loading in production (Version 27) — both storefront and admin panel broken; actor client failing to connect to backend canister; admin panel username entry form appears but submitting does nothing (isAdminUsername call not triggered)",
+    "addProduct (and likely updateProduct/deleteProduct) throws 'Not Authorised' for authenticated admin users after PIN entry — backend admin whitelist check is not correctly matching the caller's principal; same issue affects updateSubscriptionTierPrices and setSubscriptionTierFreeTrial"
   ],
   "isFixRequest": true,
   "existing_features": [
@@ -662,6 +663,22 @@
         "REQ-116"
       ],
       "version": 1
+    },
+    {
+      "id": "feature-remove-the-initialize-default-tiers-button-and-all-associated-initialization-ui-from-frontend-src-components-admin-subscriptionmanager-tsx-since-tiers-are-now-auto-seeded-in-the-backend-the-component-must-simply-fetch-and-display-the-existing-tiers-via-usesubscriptiontiers-if-the-tiers-query-returns-an-empty-array-which-should-no-longer-happen-display-a-neutral-empty-state-without-an-initialization-button",
+      "title": "Remove the 'Initialize Default Tiers' button and all associated initialization UI from `frontend/src/components/admin/SubscriptionManager.tsx`. Since tiers are now auto-seeded in the backend, the component must simply fetch and display the existing tiers via `useSubscriptionTiers()`. If the tiers query returns an empty array (which should no longer happen), display a neutral empty state without an initialization button.",
+      "reqIds": [
+        "REQ-126"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-trace-and-fix-the-full-order-placement-flow-end-to-end-so-that-orders-placed-by-users-appear-in-both-the-admin-panel-orders-tab-and-the-payments-tab-audit-backend-main-mo-to-verify-the-placeorder-function-correctly-persists-new-orders-to-stable-storage-and-that-getorders-used-by-the-admin-panel-retrieves-all-stored-orders-audit-frontend-src-pages-checkoutpage-tsx-and-frontend-src-hooks-usequeries-ts-to-ensure-the-placeorder-mutation-is-correctly-called-with-all-required-fields-the-actor-call-is-properly-awaited-and-the-ok-err-result-is-unwrapped-fix-any-issue-found-whether-it-is-a-missing-field-in-the-payload-a-type-mismatch-a-silent-failure-in-the-mutation-or-a-backend-storage-retrieval-bug-so-that-after-a-user-completes-checkout-the-resulting-order-is-immediately-visible-in-the-admin-orders-and-payments-tabs",
+      "title": "Trace and fix the full order placement flow end-to-end so that orders placed by users appear in both the admin panel Orders tab and the Payments tab. Audit `backend/main.mo` to verify the `placeOrder` function correctly persists new orders to stable storage and that `getOrders()` (used by the admin panel) retrieves all stored orders. Audit `frontend/src/pages/CheckoutPage.tsx` and `frontend/src/hooks/useQueries.ts` to ensure the `placeOrder` mutation is correctly called with all required fields, the actor call is properly awaited, and the `#ok`/`#err` result is unwrapped. Fix any issue found — whether it is a missing field in the payload, a type mismatch, a silent failure in the mutation, or a backend storage/retrieval bug — so that after a user completes checkout, the resulting order is immediately visible in the admin Orders and Payments tabs.",
+      "reqIds": [
+        "REQ-127"
+      ],
+      "version": 1
     }
   ],
   "new_feature_requests": [
@@ -1098,6 +1115,88 @@
       "summary": "Update `backend/migration.mo` to ensure the new stable maps for `adminPinAttempts` and `adminPinLockoutTime` are handled correctly during canister upgrades. Both maps must default to empty on first deployment and must not cause data loss for existing stable state (products, orders, users, settings, subscription tiers, admin whitelist).",
       "reqIds": [
         "REQ-118"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-91",
+      "summary": "Fix backend admin authorisation for addProduct, updateProduct, deleteProduct, updateSubscriptionTierPrices, and setSubscriptionTierFreeTrial — these functions are rejecting authenticated admin principals with 'Not Authorised' even after PIN entry grants access to the admin panel",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-92",
+      "summary": "Audit and fix the admin authorisation checks in `backend/main.mo` for the `addProduct`, `updateProduct`, and `deleteProduct` functions. Currently these functions reject authenticated admin principals with 'Not Authorised' even after PIN entry grants access to the admin panel. The root cause is that these functions are checking the caller's principal against the admin whitelist using a username-based lookup, but the caller's principal is not mapped to a whitelisted username at the time of the call. Replace the admin check in these three functions with a direct PIN-verified session approach OR remove the admin-username-based authorisation guard entirely from these functions and rely solely on the PIN gate already enforced by `AdminAccessControl` on the frontend. The simplest correct fix is to remove the `isAdminUsername`/whitelist check from `addProduct`, `updateProduct`, and `deleteProduct` and instead allow any authenticated principal to call them (since the PIN gate on the frontend is the access control layer), OR alternatively add a backend mechanism (e.g. a per-principal 'admin session' flag set by `verifyAdminPin` returning true) that these functions check instead of the username whitelist. Choose whichever approach compiles cleanly and resolves the 'Not Authorised' error.",
+      "reqIds": [
+        "REQ-119"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-93",
+      "summary": "Audit and fix the admin authorisation checks in `backend/main.mo` for the `updateSubscriptionTierPrices` and `setSubscriptionTierFreeTrial` functions. These functions currently return 'Not Authorised' for authenticated admin principals after PIN entry. Apply the same fix as REQ-119: remove or replace the username-whitelist-based admin guard on these two functions so that authenticated principals (or PIN-verified sessions) can call them successfully. The fix must be consistent with the approach taken in REQ-119.",
+      "reqIds": [
+        "REQ-120"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-94",
+      "summary": "Update `backend/migration.mo` if necessary to ensure that any changes to the authorisation model in REQ-119 and REQ-120 (e.g. addition of a per-principal admin session map or any new stable variable) are handled correctly during canister upgrades. If no new stable state is introduced, confirm that the existing migration module remains valid and does not need changes.",
+      "reqIds": [
+        "REQ-121"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-95",
+      "summary": "Audit and fix the admin authorisation checks in `backend/main.mo` for the `addProduct`, `updateProduct`, and `deleteProduct` functions. These functions currently reject authenticated admin principals with 'Unauthorized: Only admins can add products' (and equivalent messages for update/delete) even after the PIN gate on the frontend grants admin panel access. The root cause is that these functions check the caller's principal against the username-based admin whitelist, but the caller's principal is never mapped to a whitelisted username at the time of the call. Fix: remove the `isAdminUsername`/whitelist-based authorisation guard from `addProduct`, `updateProduct`, and `deleteProduct` entirely, and allow any authenticated principal (i.e. any caller whose principal is not the anonymous principal) to invoke these functions. The PIN gate enforced by `AdminAccessControl` on the frontend is the access control layer; the backend does not need a secondary username-whitelist check on these CRUD operations.",
+      "reqIds": [
+        "REQ-122"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-96",
+      "summary": "Audit and fix the admin authorisation checks in `backend/main.mo` for the `updateSubscriptionTierPrices` and `setSubscriptionTierFreeTrial` functions. These functions currently return 'Not Authorised' for authenticated admin principals after PIN entry. Apply the same fix as REQ-122: remove the username-whitelist-based admin guard from both functions and allow any authenticated (non-anonymous) principal to call them. The PIN gate on the frontend is the sole access control layer.",
+      "reqIds": [
+        "REQ-123"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-97",
+      "summary": "Review `backend/migration.mo` and confirm it remains valid and does not require changes after the authorisation model fixes in REQ-122 and REQ-123. If no new stable state is introduced by those changes, explicitly verify that the existing migration module compiles without errors and that no previously stored stable data (products, orders, users, subscription tiers, admin whitelist, store settings, PIN attempt maps) is lost during a canister upgrade.",
+      "reqIds": [
+        "REQ-124"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-98",
+      "summary": "Fix subscription tiers auto-seeding on first deployment — remove 'Initialize Default Tiers' button from SubscriptionManager, seed Starter/Basic/Premium/Pro tiers directly in backend at actor construction/upgrade time, fix authorization so any authenticated (non-anonymous) principal can call subscription tier functions (remove username-whitelist guard)",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-99",
+      "summary": "Fix orders not showing up in admin panel Orders tab and Payments tab — trace full order flow (checkout → placeOrder → backend storage → admin retrieval) and fix whatever is breaking save/retrieval so orders appear correctly in both admin views",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-100",
+      "summary": "Fix subscription tier seeding in `backend/main.mo` so the four default tiers (Starter, Basic, Premium, Pro) are seeded automatically at actor construction/upgrade time using a stable boolean flag (e.g. `subscriptionTiersInitialized`). The seeding logic must run once without requiring any external caller. Remove or neutralise the admin-username-whitelist guard on the internal seeding path so it cannot throw 'Unauthorized: Only admins can initialize subscription tiers'. The four tiers must be present and retrievable via `getSubscriptionTiers()` immediately after deployment without any manual action.",
+      "reqIds": [
+        "REQ-125"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-103",
+      "summary": "Update `backend/migration.mo` to ensure that any new stable state introduced by the subscription tier auto-seeding fix (e.g. `subscriptionTiersInitialized` flag or equivalent) is handled correctly during canister upgrades. Existing stable data (products, orders, users, subscription tiers, admin whitelist, store settings, PIN attempt maps) must not be lost. If no new stable state is introduced by REQ-125, confirm the existing migration module compiles without errors and remains valid.",
+      "reqIds": [
+        "REQ-128"
       ],
       "status": "pending"
     }

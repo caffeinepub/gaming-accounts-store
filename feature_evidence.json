@@ -2,10 +2,10 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-add-react-query-hooks-to-frontend-src-hooks-usequeries-ts-for-the-new-pin-backend-functions-useverifyadminpin-mutation-that-calls-verifyadminpin-with-the-submitted-pin-string-must-await-the-actor-call-unwrap-the-ok-err-result-variant-throw-a-javascript-error-on-err-and-return-the-boolean-result-useadminpinlockoutstatus-query-that-calls-getadminpinlockoutstatus-with-the-authenticated-user-s-principal-enabled-only-when-the-user-is-authenticated-with-staletime-0-and-retry-0-so-it-always-reflects-the-live-lockout-state",
-      "featureTitle": "Add React Query hooks to `frontend/src/hooks/useQueries.ts` for the new PIN backend functions: `useVerifyAdminPin()` mutation that calls `verifyAdminPin` with the submitted PIN string — must await the actor call, unwrap the `#ok`/`#err` Result variant, throw a JavaScript `Error` on `#err`, and return the boolean result; `useAdminPinLockoutStatus()` query that calls `getAdminPinLockoutStatus` with the authenticated user's principal, enabled only when the user is authenticated, with `staleTime: 0` and `retry: 0` so it always reflects the live lockout state.",
+      "featureId": "feature-remove-the-initialize-default-tiers-button-and-all-associated-initialization-ui-from-frontend-src-components-admin-subscriptionmanager-tsx-since-tiers-are-now-auto-seeded-in-the-backend-the-component-must-simply-fetch-and-display-the-existing-tiers-via-usesubscriptiontiers-if-the-tiers-query-returns-an-empty-array-which-should-no-longer-happen-display-a-neutral-empty-state-without-an-initialization-button",
+      "featureTitle": "Remove the 'Initialize Default Tiers' button and all associated initialization UI from `frontend/src/components/admin/SubscriptionManager.tsx`. Since tiers are now auto-seeded in the backend, the component must simply fetch and display the existing tiers via `useSubscriptionTiers()`. If the tiers query returns an empty array (which should no longer happen), display a neutral empty state without an initialization button.",
       "files": [
-        "frontend/src/hooks/useQueries.ts"
+        "frontend/src/components/admin/SubscriptionManager.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -18,15 +18,16 @@
         "camera@1.0.0"
       ],
       "testIds": [
-        "REQ-115"
+        "REQ-126"
       ],
       "confidence": "high"
     },
     {
-      "featureId": "feature-rewrite-frontend-src-components-adminaccesscontrol-tsx-to-replace-all-previous-gate-logic-with-a-new-flow-1-if-the-user-is-not-authenticated-via-internet-identity-immediately-render-a-please-log-in-via-internet-identity-to-access-the-admin-panel-prompt-do-not-spin-or-show-a-pin-form-2-once-authenticated-render-a-styled-4-digit-pin-entry-screen-with-a-heading-admin-access-a-subheading-enter-the-4-digit-pin-to-continue-four-individual-single-digit-input-fields-or-a-single-4-character-pin-input-field-and-a-submit-button-use-a-form-element-with-onsubmit-so-both-enter-key-and-button-click-trigger-submission-3-the-onsubmit-handler-must-call-event-preventdefault-set-a-local-loading-state-then-call-the-backend-verifyadminpin-function-via-the-actor-directly-not-react-query-with-the-entered-pin-string-4-if-the-backend-returns-true-correct-pin-transition-to-status-granted-and-render-children-5-if-the-backend-returns-an-error-indicating-lockout-display-the-lockout-message-e-g-too-many-failed-attempts-try-again-in-x-minutes-and-disable-the-form-6-if-the-pin-is-wrong-but-the-principal-is-not-yet-locked-out-display-an-inline-error-such-as-incorrect-pin-x-attempts-remaining-and-clear-the-pin-input-7-any-thrown-error-is-caught-in-a-try-catch-and-displayed-as-an-inline-error-message-never-swallow-errors-silently-8-show-a-loading-spinner-only-while-the-verifyadminpin-call-is-in-flight-9-remove-all-previous-getusername-isadminusername-useusername-useisadminusername-and-username-based-gate-logic-from-this-component-entirely-10-apply-the-sunset-theme-dusk-bg-dusk-mid-backgrounds-sunset-gold-sunset-orange-accent-colours-orbitron-rajdhani-fonts-sunset-glow-effects-to-the-pin-entry-form",
-      "featureTitle": "Rewrite `frontend/src/components/AdminAccessControl.tsx` to replace all previous gate logic with a new flow: (1) If the user is not authenticated via Internet Identity, immediately render a 'Please log in via Internet Identity to access the admin panel' prompt — do not spin or show a PIN form; (2) Once authenticated, render a styled 4-digit PIN entry screen with: a heading 'Admin Access', a subheading 'Enter the 4-digit PIN to continue', four individual single-digit input fields (or a single 4-character PIN input field), and a 'Submit' button — use a `<form>` element with `onSubmit` so both Enter key and button click trigger submission; (3) The `onSubmit` handler must call `event.preventDefault()`, set a local loading state, then call the backend `verifyAdminPin` function (via the actor directly, not React Query) with the entered PIN string; (4) If the backend returns `true` (correct PIN), transition to `status = 'granted'` and render children; (5) If the backend returns an error indicating lockout, display the lockout message (e.g. 'Too many failed attempts. Try again in X minutes.') and disable the form; (6) If the PIN is wrong but the principal is not yet locked out, display an inline error such as 'Incorrect PIN. X attempts remaining.' and clear the PIN input; (7) Any thrown error is caught in a try/catch and displayed as an inline error message — never swallow errors silently; (8) Show a loading spinner only while the `verifyAdminPin` call is in-flight; (9) Remove all previous `getUsername`, `isAdminUsername`, `useUsername`, `useIsAdminUsername`, and username-based gate logic from this component entirely; (10) Apply the sunset theme (dusk-bg/dusk-mid backgrounds, sunset-gold/sunset-orange accent colours, Orbitron/Rajdhani fonts, sunset glow effects) to the PIN entry form.",
+      "featureId": "feature-trace-and-fix-the-full-order-placement-flow-end-to-end-so-that-orders-placed-by-users-appear-in-both-the-admin-panel-orders-tab-and-the-payments-tab-audit-backend-main-mo-to-verify-the-placeorder-function-correctly-persists-new-orders-to-stable-storage-and-that-getorders-used-by-the-admin-panel-retrieves-all-stored-orders-audit-frontend-src-pages-checkoutpage-tsx-and-frontend-src-hooks-usequeries-ts-to-ensure-the-placeorder-mutation-is-correctly-called-with-all-required-fields-the-actor-call-is-properly-awaited-and-the-ok-err-result-is-unwrapped-fix-any-issue-found-whether-it-is-a-missing-field-in-the-payload-a-type-mismatch-a-silent-failure-in-the-mutation-or-a-backend-storage-retrieval-bug-so-that-after-a-user-completes-checkout-the-resulting-order-is-immediately-visible-in-the-admin-orders-and-payments-tabs",
+      "featureTitle": "Trace and fix the full order placement flow end-to-end so that orders placed by users appear in both the admin panel Orders tab and the Payments tab. Audit `backend/main.mo` to verify the `placeOrder` function correctly persists new orders to stable storage and that `getOrders()` (used by the admin panel) retrieves all stored orders. Audit `frontend/src/pages/CheckoutPage.tsx` and `frontend/src/hooks/useQueries.ts` to ensure the `placeOrder` mutation is correctly called with all required fields, the actor call is properly awaited, and the `#ok`/`#err` result is unwrapped. Fix any issue found — whether it is a missing field in the payload, a type mismatch, a silent failure in the mutation, or a backend storage/retrieval bug — so that after a user completes checkout, the resulting order is immediately visible in the admin Orders and Payments tabs.",
       "files": [
-        "frontend/src/components/AdminAccessControl.tsx"
+        "frontend/src/hooks/useQueries.ts",
+        "frontend/src/pages/CheckoutPage.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -39,7 +40,7 @@
         "camera@1.0.0"
       ],
       "testIds": [
-        "REQ-116"
+        "REQ-127"
       ],
       "confidence": "high"
     }

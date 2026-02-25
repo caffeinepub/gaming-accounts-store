@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ArrowLeft, ArrowRight, ShoppingCart, User, CreditCard, CheckCircle, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { PaymentMethod, ApprovalStatus } from '../backend';
 import type { Product } from '../backend';
 import { usePlaceOrder } from '../hooks/useQueries';
@@ -34,8 +35,6 @@ export default function CheckoutPage({ cartItems, onOrderComplete, onBack }: Che
   const [email, setEmail] = useState('');
   const [contact, setContact] = useState('');
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null);
-  const [giftCardNumber, setGiftCardNumber] = useState('');
-  const [giftCardBalance, setGiftCardBalance] = useState('');
 
   const placeOrder = usePlaceOrder();
 
@@ -45,31 +44,37 @@ export default function CheckoutPage({ cartItems, onOrderComplete, onBack }: Che
   const handlePlaceOrder = async () => {
     if (!selectedMethod || cartItems.length === 0) return;
     const product = cartItems[0].product;
-    const orderId = await placeOrder.mutateAsync({
-      productId: product.id,
-      paymentMethod: selectedMethod,
-      status: 'confirmed',
-      approvalStatus: ApprovalStatus.pending,
-      giftCardNumber: '',
-      giftCardBalance: '',
-    });
-    onOrderComplete(orderId);
+    try {
+      const orderId = await placeOrder.mutateAsync({
+        productId: product.id,
+        paymentMethod: selectedMethod,
+        status: 'confirmed',
+        approvalStatus: ApprovalStatus.pending,
+        giftCardNumber: '',
+        giftCardBalance: '',
+      });
+      onOrderComplete(orderId);
+    } catch (err: any) {
+      toast.error(err?.message ?? 'Failed to place order. Please try again.');
+    }
   };
 
   const handleGiftCardPlaceOrder = async (cardNumber: string, cardBalance: string) => {
     if (!selectedMethod || cartItems.length === 0) return;
     const product = cartItems[0].product;
-    const orderId = await placeOrder.mutateAsync({
-      productId: product.id,
-      paymentMethod: selectedMethod,
-      status: 'confirmed',
-      approvalStatus: ApprovalStatus.pending,
-      giftCardNumber: cardNumber,
-      giftCardBalance: cardBalance,
-    });
-    setGiftCardNumber(cardNumber);
-    setGiftCardBalance(cardBalance);
-    onOrderComplete(orderId);
+    try {
+      const orderId = await placeOrder.mutateAsync({
+        productId: product.id,
+        paymentMethod: selectedMethod,
+        status: 'confirmed',
+        approvalStatus: ApprovalStatus.pending,
+        giftCardNumber: cardNumber,
+        giftCardBalance: cardBalance,
+      });
+      onOrderComplete(orderId);
+    } catch (err: any) {
+      toast.error(err?.message ?? 'Failed to place order. Please try again.');
+    }
   };
 
   return (

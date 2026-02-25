@@ -119,7 +119,6 @@ export interface backendInterface {
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     getUsernameByPrincipal(user: Principal): Promise<string | null>;
     hasUsername(user: Principal): Promise<boolean>;
-    initializeDefaultTiers(): Promise<void>;
     isAdminUsername(username: string): Promise<boolean>;
     isCallerAdmin(): Promise<boolean>;
     isUsernameAvailable(username: string): Promise<boolean>;

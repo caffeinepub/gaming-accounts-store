@@ -1,131 +1,103 @@
 {
   "kind": "build_request",
-  "title": "Replace admin gate with 4-digit PIN (2006) + lockout system",
+  "title": "Fix subscription tiers auto-seeding and orders not appearing in admin panel",
   "projectName": "Game Vault",
   "priority": "high",
   "requirements": [
     {
-      "id": "REQ-114",
-      "text": "Add a 4-digit admin PIN system to `backend/main.mo`. Hardcode the PIN as `2006`. Add a stable map `adminPinAttempts : HashMap<Principal, Nat>` tracking failed attempt counts per principal, and a stable map `adminPinLockoutTime : HashMap<Principal, Int>` tracking lockout expiry timestamps per principal. Expose the following functions: `verifyAdminPin(pin: Text) : async Result.Result<Bool, Text>` — checks the submitted PIN against `\"2006\"`, increments the failed attempt counter on mismatch, locks out the principal for 3600 seconds (1 hour) after 4 failed attempts, returns `#ok(true)` on correct PIN (and resets the attempt counter), returns `#err(\"Locked out. Try again in X minutes.\")` if the principal is currently locked out, and returns `#ok(false)` on wrong PIN with remaining attempts info in the error; `getAdminPinLockoutStatus(principal: Principal) : async { isLockedOut: Bool; remainingSeconds: Int }` — returns whether the caller is currently locked out and how many seconds remain. Timestamps must use `Time.now()` (nanoseconds) converted appropriately.",
+      "id": "REQ-125",
+      "text": "Fix subscription tier seeding in `backend/main.mo` so the four default tiers (Starter, Basic, Premium, Pro) are seeded automatically at actor construction/upgrade time using a stable boolean flag (e.g. `subscriptionTiersInitialized`). The seeding logic must run once without requiring any external caller. Remove or neutralise the admin-username-whitelist guard on the internal seeding path so it cannot throw 'Unauthorized: Only admins can initialize subscription tiers'. The four tiers must be present and retrievable via `getSubscriptionTiers()` immediately after deployment without any manual action.",
       "target": "backend",
       "source": {
         "messageIds": [
           "msg-recent"
         ],
         "quotes": [
-          "make it so to access the admin panel u need a 4 digit code",
-          "And make the pin code 2006",
-          "4 attempts then have to wait 1 hour"
+          "Unauthorized: Only admins can initialize subscription tiers",
+          "No subscription tiers found"
         ]
       },
       "acceptanceCriteria": [
-        "PIN is hardcoded as '2006' in the backend",
-        "`verifyAdminPin` returns `#ok(true)` when called with '2006'",
-        "`verifyAdminPin` returns `#ok(false)` (or error with attempt info) when called with any other value",
-        "After 4 wrong PIN attempts by the same principal, subsequent calls return a lockout error",
-        "Lockout duration is 1 hour (3600 seconds)",
-        "Lockout state is stored in stable storage and survives canister upgrades",
-        "`getAdminPinLockoutStatus` returns correct `isLockedOut` and `remainingSeconds` values",
-        "Correct PIN resets the failed attempt counter for that principal"
+        "On first deployment (or after an upgrade), `getSubscriptionTiers()` returns all four tiers (Starter, Basic, Premium, Pro) without any manual initialization call.",
+        "No 'Unauthorized' error is thrown during the auto-seeding process.",
+        "The seeding only runs once; subsequent upgrades do not duplicate tiers.",
+        "All four tiers have correct default prices: Starter £2.99/mo, Basic £5.99/mo, Premium £9.99/mo, Pro £14.99/mo (with ~20% yearly discount).",
+        "The `freeTrialEnabled` and `perks` fields are populated with sensible defaults for each tier."
       ]
     },
     {
-      "id": "REQ-115",
-      "text": "Add React Query hooks to `frontend/src/hooks/useQueries.ts` for the new PIN backend functions: `useVerifyAdminPin()` mutation that calls `verifyAdminPin` with the submitted PIN string — must await the actor call, unwrap the `#ok`/`#err` Result variant, throw a JavaScript `Error` on `#err`, and return the boolean result; `useAdminPinLockoutStatus()` query that calls `getAdminPinLockoutStatus` with the authenticated user's principal, enabled only when the user is authenticated, with `staleTime: 0` and `retry: 0` so it always reflects the live lockout state.",
+      "id": "REQ-126",
+      "text": "Remove the 'Initialize Default Tiers' button and all associated initialization UI from `frontend/src/components/admin/SubscriptionManager.tsx`. Since tiers are now auto-seeded in the backend, the component must simply fetch and display the existing tiers via `useSubscriptionTiers()`. If the tiers query returns an empty array (which should no longer happen), display a neutral empty state without an initialization button.",
       "target": "frontend",
       "source": {
         "messageIds": [
           "msg-recent"
         ],
         "quotes": [
-          "4 attempts then have to wait 1 hour"
+          "Initialize Default Tiers",
+          "No subscription tiers found. Click \"Initialize Default Tiers\" to create the default set."
         ]
       },
       "acceptanceCriteria": [
-        "`useVerifyAdminPin` mutation correctly calls the backend `verifyAdminPin` function",
-        "Mutation throws a JavaScript Error when the backend returns `#err` (e.g. lockout error)",
-        "`useAdminPinLockoutStatus` query is enabled only when the user is authenticated",
-        "Lockout status query has `staleTime: 0` and `retry: 0`"
+        "The 'Initialize Default Tiers' button is no longer present in the SubscriptionManager component.",
+        "The component renders the four tier cards/rows fetched from the backend as soon as data is available.",
+        "No initialization-related error toast appears when visiting the Subscriptions tab.",
+        "Admins can still edit prices and toggle free trial per tier via the existing controls."
       ]
     },
     {
-      "id": "REQ-116",
-      "text": "Rewrite `frontend/src/components/AdminAccessControl.tsx` to replace all previous gate logic with a new flow: (1) If the user is not authenticated via Internet Identity, immediately render a 'Please log in via Internet Identity to access the admin panel' prompt — do not spin or show a PIN form; (2) Once authenticated, render a styled 4-digit PIN entry screen with: a heading 'Admin Access', a subheading 'Enter the 4-digit PIN to continue', four individual single-digit input fields (or a single 4-character PIN input field), and a 'Submit' button — use a `<form>` element with `onSubmit` so both Enter key and button click trigger submission; (3) The `onSubmit` handler must call `event.preventDefault()`, set a local loading state, then call the backend `verifyAdminPin` function (via the actor directly, not React Query) with the entered PIN string; (4) If the backend returns `true` (correct PIN), transition to `status = 'granted'` and render children; (5) If the backend returns an error indicating lockout, display the lockout message (e.g. 'Too many failed attempts. Try again in X minutes.') and disable the form; (6) If the PIN is wrong but the principal is not yet locked out, display an inline error such as 'Incorrect PIN. X attempts remaining.' and clear the PIN input; (7) Any thrown error is caught in a try/catch and displayed as an inline error message — never swallow errors silently; (8) Show a loading spinner only while the `verifyAdminPin` call is in-flight; (9) Remove all previous `getUsername`, `isAdminUsername`, `useUsername`, `useIsAdminUsername`, and username-based gate logic from this component entirely; (10) Apply the sunset theme (dusk-bg/dusk-mid backgrounds, sunset-gold/sunset-orange accent colours, Orbitron/Rajdhani fonts, sunset glow effects) to the PIN entry form.",
-      "target": "frontend",
+      "id": "REQ-127",
+      "text": "Trace and fix the full order placement flow end-to-end so that orders placed by users appear in both the admin panel Orders tab and the Payments tab. Audit `backend/main.mo` to verify the `placeOrder` function correctly persists new orders to stable storage and that `getOrders()` (used by the admin panel) retrieves all stored orders. Audit `frontend/src/pages/CheckoutPage.tsx` and `frontend/src/hooks/useQueries.ts` to ensure the `placeOrder` mutation is correctly called with all required fields, the actor call is properly awaited, and the `#ok`/`#err` result is unwrapped. Fix any issue found — whether it is a missing field in the payload, a type mismatch, a silent failure in the mutation, or a backend storage/retrieval bug — so that after a user completes checkout, the resulting order is immediately visible in the admin Orders and Payments tabs.",
+      "target": "both",
       "source": {
         "messageIds": [
           "msg-recent"
         ],
         "quotes": [
-          "make it so to access the admin panel u need a 4 digit code",
-          "And make the pin code 2006",
-          "4 attempts then have to wait 1 hour",
-          "user must be logged in via Internet Identity first, then enter the PIN"
+          "orders don't show up in orders section not even in the payments section in admin panel",
+          "Yes but the orders don't show up in orders section not even in the payments section in admin panel"
         ]
       },
       "acceptanceCriteria": [
-        "Unauthenticated users see a 'Please log in' prompt, not the PIN form",
-        "Authenticated users immediately see the 4-digit PIN entry form",
-        "Entering PIN '2006' and submitting transitions to access granted (admin panel renders)",
-        "Entering any wrong PIN shows an inline error with remaining attempts",
-        "After 4 wrong attempts, the form shows a lockout message with time remaining and disables the input/submit",
-        "Pressing Enter in the PIN input triggers form submission",
-        "Loading spinner shows only while the backend call is in-flight",
-        "No username-based gate logic remains in this component",
-        "Sunset theme is applied consistently to the PIN entry screen"
+        "After a user completes checkout (reaches order confirmation page), the order appears in the admin panel Orders tab.",
+        "The same order also appears in the admin panel Payments tab with the correct payment method badge and 'Pending' approval status.",
+        "The order record contains the buyer's username, email, contact info, product(s) purchased, payment method, and (for gift card orders) gift card number and balance.",
+        "The `placeOrder` mutation in `useQueries.ts` correctly awaits the actor call, unwraps `#ok`/`#err`, and throws a JavaScript Error on `#err`.",
+        "The backend `placeOrder` function persists the new order to the stable orders map and the order is returned by `getOrders()`.",
+        "No silent failures occur — if `placeOrder` fails, an error toast is shown to the user."
       ]
     },
     {
-      "id": "REQ-117",
-      "text": "Audit and update `frontend/src/pages/AdminPanelPage.tsx` to ensure it contains zero internal async gates, PIN verification calls, loading states, or `useEffect` checks of its own. The page must render its tabbed content (Products, Orders, Payments, Admins, Subscriptions, Settings) immediately and unconditionally once `AdminAccessControl` renders its children. Remove any remaining username-based or PIN-based gate logic from the page itself — all access control must be handled exclusively by the `AdminAccessControl` wrapper.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-recent"
-        ],
-        "quotes": [
-          "make it so to access the admin panel u need a 4 digit code"
-        ]
-      },
-      "acceptanceCriteria": [
-        "AdminPanelPage renders its tabbed content immediately once AdminAccessControl grants access",
-        "No internal `isAdminUsername`, `verifyAdminPin`, loading state, or async `useEffect` gate exists in AdminPanelPage",
-        "All six tabs (Products, Orders, Payments, Admins, Subscriptions, Settings) are visible and functional"
-      ]
-    },
-    {
-      "id": "REQ-118",
-      "text": "Update `backend/migration.mo` to ensure the new stable maps for `adminPinAttempts` and `adminPinLockoutTime` are handled correctly during canister upgrades. Both maps must default to empty on first deployment and must not cause data loss for existing stable state (products, orders, users, settings, subscription tiers, admin whitelist).",
+      "id": "REQ-128",
+      "text": "Update `backend/migration.mo` to ensure that any new stable state introduced by the subscription tier auto-seeding fix (e.g. `subscriptionTiersInitialized` flag or equivalent) is handled correctly during canister upgrades. Existing stable data (products, orders, users, subscription tiers, admin whitelist, store settings, PIN attempt maps) must not be lost. If no new stable state is introduced by REQ-125, confirm the existing migration module compiles without errors and remains valid.",
       "target": "backend",
       "source": {
         "messageIds": [
           "msg-recent"
         ],
-        "quotes": [
-          "Lockout tracked per user principal in backend stable storage"
-        ]
+        "quotes": []
       },
       "acceptanceCriteria": [
-        "Canister upgrades do not lose existing order, product, user, or settings data",
-        "PIN attempt and lockout stable maps initialise to empty on first deployment",
-        "Migration compiles without errors"
+        "The migration module compiles without errors after the REQ-125 backend changes.",
+        "Canister upgrade does not lose any previously stored orders, products, users, subscription tiers, or admin whitelist entries.",
+        "Any new stable variable introduced for the seeding flag is correctly initialised in the migration module."
       ]
     }
   ],
   "constraints": [
-    "PIN must be hardcoded as '2006' in the backend — not configurable from the UI",
-    "Internet Identity login is required before the PIN form is shown",
-    "Lockout must be enforced in the backend (not just the frontend) and tracked per Principal",
-    "Lockout duration is exactly 1 hour (3600 seconds)",
-    "Maximum failed attempts before lockout is 4",
-    "All previous username/whitelist-based gate logic must be removed from AdminAccessControl.tsx",
-    "Do not modify files listed in frontend.immutablePaths"
+    "Do not add real payment API integrations — all payment flows remain mock/UI only.",
+    "Do not alter the 'Game Vault' red → purple → orange gradient text in any component.",
+    "The admin PIN (2006) and lockout logic must remain unchanged.",
+    "The Frosty seed entry in the admin whitelist must not be removed.",
+    "Frontend immutable paths (useInternetIdentity.ts, useActor.ts, main.tsx, components/ui) must not be modified.",
+    "All four subscription tiers must use the existing price defaults: Starter £2.99/mo, Basic £5.99/mo, Premium £9.99/mo, Pro £14.99/mo."
   ],
   "nonGoals": [
-    "Allowing admins to change the PIN from the UI",
-    "PIN reset functionality",
-    "Email or SMS lockout notifications",
-    "Rate limiting non-admin users on any page other than the admin gate"
+    "Adding new subscription tiers beyond the existing four (Starter, Basic, Premium, Pro).",
+    "Changing the admin PIN or lockout duration.",
+    "Modifying the loading screen video or 40-second timer behaviour.",
+    "Changing the payment methods available for subscriptions (PayPal and Crypto only).",
+    "Altering the existing admin panel tab structure beyond removing the Initialize button."
   ],
   "imageRequirements": {
     "required": [],

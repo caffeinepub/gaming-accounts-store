@@ -1,57 +1,34 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-24T23:00:26.439Z",
-  "summary": "The diff implements most of the required PIN system changes across backend and frontend. REQ-114, REQ-116, REQ-118 appear largely implemented. REQ-115 shows the file was modified but the truncated diff does not confirm the new hooks were added. REQ-117 is described in the file summary but the actual file content is not shown. Several specific acceptance criteria warrant scrutiny based on available evidence.",
+  "generatedAt": "2026-02-25T01:06:12.866Z",
+  "summary": "The diff addresses all four requirements partially. REQ-125 is partially addressed via a tiersInitialized flag in backend/main.mo, but the actual seeding logic is truncated and not fully visible. REQ-126 is addressed by removing the Initialize button from SubscriptionManager.tsx. REQ-127 is addressed by fixing the placeOrder mutation in useQueries.ts and adding try/catch error handling in CheckoutPage.tsx. REQ-128 requires migration.mo to be updated, but migration.mo is not present in the diff's modified files list.",
   "missing_requirements": [
     {
-      "id": "REQ-115",
-      "requirement": "useVerifyAdminPin() mutation and useAdminPinLockoutStatus() query must be added to useQueries.ts with correct behavior (staleTime: 0, retry: 0, enabled only when authenticated, throws JS Error on #err)",
-      "reason": "The diff for useQueries.ts is truncated and only shows existing hooks. There is no visible evidence that useVerifyAdminPin or useAdminPinLockoutStatus were added to this file.",
+      "id": "REQ-128",
+      "requirement": "Update backend/migration.mo to handle the new subscriptionTiersInitialized stable flag and ensure existing stable data is not lost during upgrades.",
+      "reason": "The file backend/migration.mo does not appear in the diff's modified files list at all. The requirement explicitly calls for migration.mo to be updated or at minimum confirmed to compile correctly with the new stable state. There is no evidence this file was touched.",
       "evidence": [
-        "frontend/src/hooks/useQueries.ts"
+        "backend/migration.mo"
       ]
     },
     {
-      "id": "REQ-116",
-      "requirement": "Wrong PIN submission must display inline error with remaining attempts count (e.g. 'Incorrect PIN. X attempts remaining.'), not a generic message",
-      "reason": "In AdminAccessControl.tsx, the wrong-PIN branch shows a generic 'Incorrect PIN. Please try again.' message with no remaining attempts info. The spec requires the remaining attempt count to be shown.",
-      "evidence": [
-        "frontend/src/components/AdminAccessControl.tsx"
-      ]
-    },
-    {
-      "id": "REQ-114",
-      "requirement": "adminPinAttempts and adminPinLockoutTime must be declared as stable variables so lockout state survives canister upgrades",
-      "reason": "The truncated main.mo shows plain `let adminPinAttempts = Map.empty<Principal, Nat>()` and `let adminPinLockoutTime = Map.empty<Principal, Int>()` bindings. Stable storage in Motoko requires stable var declarations. Without them these maps will not survive canister upgrades.",
+      "id": "REQ-125",
+      "requirement": "The seeding logic must run once at actor construction/upgrade time using a stable boolean flag and populate all four tiers with correct prices and perks/freeTrialEnabled defaults without any external caller.",
+      "reason": "The diff shows 'let tiersInitialized = true; // always true after migration' as a non-stable let binding and the file is truncated before any seeding logic is visible. It is unclear whether the four tiers are actually inserted into the subscriptionTiers map at construction/upgrade time, whether the flag is stable preventing duplicates across upgrades, and whether correct prices and perks are seeded.",
       "evidence": [
         "backend/main.mo"
       ]
     }
   ],
-  "hallucinated_features": [
-    {
-      "description": "The AdminAccessControl component uses a result.__kind__ property to discriminate the Motoko Result variant (e.g. result.__kind__ === 'ok'), which is not a standard Candid JS encoding pattern.",
-      "reason": "Standard Candid JS encoding uses { ok: value } or { err: value } objects, not a __kind__ discriminator. This pattern was not requested and may not work correctly with actual Candid-generated JS bindings.",
-      "evidence": [
-        "frontend/src/components/AdminAccessControl.tsx"
-      ]
-    },
-    {
-      "description": "A live countdown timer UI (lockoutSeconds state, countdownRef interval, formatTime function) was implemented in AdminAccessControl to tick down the lockout in real-time on the frontend.",
-      "reason": "The spec only requires displaying the lockout message with time remaining. A live ticking countdown timer was not explicitly requested in any requirement.",
-      "evidence": [
-        "frontend/src/components/AdminAccessControl.tsx"
-      ]
-    }
-  ],
+  "hallucinated_features": [],
   "confidence": 0.62,
   "changed_files": [
     "backend/main.mo",
-    "backend/migration.mo",
     "frontend-file-summaries.txt",
-    "frontend/src/components/AdminAccessControl.tsx",
+    "frontend/src/components/admin/SubscriptionManager.tsx",
     "frontend/src/hooks/useQueries.ts",
+    "frontend/src/pages/CheckoutPage.tsx",
     "project_state.json"
   ]
 }

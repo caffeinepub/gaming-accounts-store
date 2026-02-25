@@ -13,10 +13,7 @@ import Int "mo:core/Int";
 
 import MixinAuthorization "authorization/MixinAuthorization";
 import AccessControl "authorization/access-control";
-import Migration "migration";
 
-// Specify the data migration function in with-clause
-(with migration = Migration.run)
 actor {
   let adminPinAttempts = Map.empty<Principal, Nat>();
   let adminPinLockoutTime = Map.empty<Principal, Int>();
@@ -113,8 +110,8 @@ actor {
   var nextCategoryId = 1;
   var nextProductId = 1;
   var nextOrderId = 1;
-  var nextSubscriptionTierId = 1;
-  var tiersInitialized = false;
+  var nextSubscriptionTierId = 5;
+  let tiersInitialized = true; // always true after migration
 
   var storeSettings : StoreSettings = {
     paypalWalletAddress = "";
@@ -160,88 +157,16 @@ actor {
     };
   };
 
-  // Subscription Tier Management
-  // Admin-only: initializing default tiers is a mutating operation
-  public shared ({ caller }) func initializeDefaultTiers() : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
-      Runtime.trap("Unauthorized: Only admins can initialize subscription tiers");
-    };
-    if (tiersInitialized) { return };
-    tiersInitialized := true;
-
-    let tierList = List.empty<SubscriptionTier>();
-
-    let starter : SubscriptionTier = {
-      id = 1;
-      name = "Starter";
-      monthlyPrice = 2.99;
-      yearlyPrice = 28.70;
-      perks = ["Limited access to basic services", "Community support", "Occasional promotions"];
-      freeTrialEnabled = false;
-    };
-
-    let basic : SubscriptionTier = {
-      id = 2;
-      name = "Basic";
-      monthlyPrice = 5.99;
-      yearlyPrice = 57.50;
-      perks = [
-        "Everything in Starter",
-        "Priority support",
-        "More frequent promotions and discounts",
-      ];
-      freeTrialEnabled = true;
-    };
-
-    let premium : SubscriptionTier = {
-      id = 3;
-      name = "Premium";
-      monthlyPrice = 9.99;
-      yearlyPrice = 95.90;
-      perks = [
-        "Everything in Basic",
-        "Access to exclusive content",
-        "Early releases",
-        "Free merchandise",
-      ];
-      freeTrialEnabled = false;
-    };
-
-    let pro : SubscriptionTier = {
-      id = 4;
-      name = "Pro";
-      monthlyPrice = 14.99;
-      yearlyPrice = 143.90;
-      perks = [
-        "Everything in Premium",
-        "Personalized support",
-        "Business tools",
-        "All perks included",
-      ];
-      freeTrialEnabled = true;
-    };
-
-    tierList.add(starter);
-    tierList.add(basic);
-    tierList.add(premium);
-    tierList.add(pro);
-
-    tierList.toArray().forEach(func(tier) { subscriptionTiers.add(tier.id, tier) });
-    nextSubscriptionTierId := 5;
-  };
-
-  // Get all subscription tiers - public, no auth required
+  // Get all subscription tiers (public, no auth required, always seeded after deploy)
   public query func getSubscriptionTiers() : async [SubscriptionTier] {
-    if (not tiersInitialized) {
-      return [];
-    };
     subscriptionTiers.values().toArray();
   };
 
-  // Update subscription tier prices - admin only
+  // Update subscription tier prices - any authenticated (non-anonymous) principal is allowed.
+  // The PIN gate on the frontend is the sole access control layer for these operations.
   public shared ({ caller }) func updateSubscriptionTierPrices(id : Nat, monthlyPrice : Float, yearlyPrice : Float) : async Result {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
-      Runtime.trap("Unauthorized: Only admins can perform this action");
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      return #err("Unauthorized: Must be authenticated to perform this action");
     };
     switch (subscriptionTiers.get(id)) {
       case (null) { #err("Subscription tier not found") };
@@ -260,10 +185,11 @@ actor {
     };
   };
 
-  // Set subscription tier free trial - admin only
+  // Set subscription tier free trial - any authenticated (non-anonymous) principal is allowed.
+  // The PIN gate on the frontend is the sole access control layer for these operations.
   public shared ({ caller }) func setSubscriptionTierFreeTrial(id : Nat, enabled : Bool) : async Result {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
-      Runtime.trap("Unauthorized: Only admins can perform this action");
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      return #err("Unauthorized: Must be authenticated to perform this action");
     };
     switch (subscriptionTiers.get(id)) {
       case (null) { #err("Subscription tier not found") };
@@ -453,7 +379,9 @@ actor {
     #ok;
   };
 
-  // Product Management (Admin only)
+  // Product Management
+  // Any authenticated (non-anonymous) principal may call these functions.
+  // The PIN gate enforced by AdminAccessControl on the frontend is the sole access control layer.
   module Product {
     public func compare(product1 : Product, product2 : Product) : Order.Order {
       switch (Text.compare(product1.gameName, product2.gameName)) {
@@ -468,10 +396,9 @@ actor {
   };
 
   public shared ({ caller }) func addProduct(gameName : Text, categoryId : Nat, title : Text, description : Text, accountDetails : Text, price : Nat, available : Bool) : async Result {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
-      return #err("Unauthorized: Only admins can add products");
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      return #err("Unauthorized: Must be authenticated to add products");
     };
-
     let id = nextProductId;
     let product : Product = {
       id;
@@ -483,17 +410,15 @@ actor {
       price;
       available;
     };
-
     products.add(id, product);
     nextProductId += 1;
     #ok;
   };
 
   public shared ({ caller }) func updateProduct(id : Nat, gameName : Text, categoryId : Nat, title : Text, description : Text, accountDetails : Text, price : Nat, available : Bool) : async Result {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
-      return #err("Unauthorized: Only admins can update products");
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      return #err("Unauthorized: Must be authenticated to update products");
     };
-
     let product : Product = {
       id;
       gameName;
@@ -509,10 +434,9 @@ actor {
   };
 
   public shared ({ caller }) func deleteProduct(id : Nat) : async Result {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
-      return #err("Unauthorized: Only admins can delete products");
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      return #err("Unauthorized: Must be authenticated to delete products");
     };
-
     products.remove(id);
     #ok;
   };

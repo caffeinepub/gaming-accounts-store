@@ -1,56 +1,50 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-24T23:00:26.447Z",
+  "generatedAt": "2026-02-25T01:06:12.874Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 5,
+    "total": 4,
     "implemented": 2,
     "items": [
       {
-        "id": "REQ-114",
-        "summary": "Add a 4-digit admin PIN system to `backend/main.mo`. Hardcode the PIN as `2006`. Add a stable map `adminPinAttempts : HashMap<Principal, Nat>` tracking failed attempt counts per principal, and a stable map `adminPinLockoutTime : HashMap<Principal, Int>` tracking lockout expiry timestamps per principal. Expose the following functions: `verifyAdminPin(pin: Text) : async Result.Result<Bool, Text>` — checks the submitted PIN against `\"2006\"`, increments the failed attempt counter on mismatch, locks out the principal for 3600 seconds (1 hour) after 4 failed attempts, returns `#ok(true)` on correct PIN (and resets the attempt counter), returns `#err(\"Locked out. Try again in X minutes.\")` if the principal is currently locked out, and returns `#ok(false)` on wrong PIN with remaining attempts info in the error; `getAdminPinLockoutStatus(principal: Principal) : async { isLockedOut: Bool; remainingSeconds: Int }` — returns whether the caller is currently locked out and how many seconds remain. Timestamps must use `Time.now()` (nanoseconds) converted appropriately.",
+        "id": "REQ-125",
+        "summary": "Fix subscription tier seeding in `backend/main.mo` so the four default tiers (Starter, Basic, Premium, Pro) are seeded automatically at actor construction/upgrade time using a stable boolean flag (e.g. `subscriptionTiersInitialized`). The seeding logic must run once without requiring any external caller. Remove or neutralise the admin-username-whitelist guard on the internal seeding path so it cannot throw 'Unauthorized: Only admins can initialize subscription tiers'. The four tiers must be present and retrievable via `getSubscriptionTiers()` immediately after deployment without any manual action.",
         "status": "unknown",
         "plannedFiles": [],
         "matchedFiles": []
       },
       {
-        "id": "REQ-115",
-        "summary": "Add React Query hooks to `frontend/src/hooks/useQueries.ts` for the new PIN backend functions: `useVerifyAdminPin()` mutation that calls `verifyAdminPin` with the submitted PIN string — must await the actor call, unwrap the `#ok`/`#err` Result variant, throw a JavaScript `Error` on `#err`, and return the boolean result; `useAdminPinLockoutStatus()` query that calls `getAdminPinLockoutStatus` with the authenticated user's principal, enabled only when the user is authenticated, with `staleTime: 0` and `retry: 0` so it always reflects the live lockout state.",
+        "id": "REQ-126",
+        "summary": "Remove the 'Initialize Default Tiers' button and all associated initialization UI from `frontend/src/components/admin/SubscriptionManager.tsx`. Since tiers are now auto-seeded in the backend, the component must simply fetch and display the existing tiers via `useSubscriptionTiers()`. If the tiers query returns an empty array (which should no longer happen), display a neutral empty state without an initialization button.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/hooks/useQueries.ts"
+          "frontend/src/components/admin/SubscriptionManager.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/hooks/useQueries.ts"
+          "frontend/src/components/admin/SubscriptionManager.tsx"
         ]
       },
       {
-        "id": "REQ-116",
-        "summary": "Rewrite `frontend/src/components/AdminAccessControl.tsx` to replace all previous gate logic with a new flow: (1) If the user is not authenticated via Internet Identity, immediately render a 'Please log in via Internet Identity to access the admin panel' prompt — do not spin or show a PIN form; (2) Once authenticated, render a styled 4-digit PIN entry screen with: a heading 'Admin Access', a subheading 'Enter the 4-digit PIN to continue', four individual single-digit input fields (or a single 4-character PIN input field), and a 'Submit' button — use a `<form>` element with `onSubmit` so both Enter key and button click trigger submission; (3) The `onSubmit` handler must call `event.preventDefault()`, set a local loading state, then call the backend `verifyAdminPin` function (via the actor directly, not React Query) with the entered PIN string; (4) If the backend returns `true` (correct PIN), transition to `status = 'granted'` and render children; (5) If the backend returns an error indicating lockout, display the lockout message (e.g. 'Too many failed attempts. Try again in X minutes.') and disable the form; (6) If the PIN is wrong but the principal is not yet locked out, display an inline error such as 'Incorrect PIN. X attempts remaining.' and clear the PIN input; (7) Any thrown error is caught in a try/catch and displayed as an inline error message — never swallow errors silently; (8) Show a loading spinner only while the `verifyAdminPin` call is in-flight; (9) Remove all previous `getUsername`, `isAdminUsername`, `useUsername`, `useIsAdminUsername`, and username-based gate logic from this component entirely; (10) Apply the sunset theme (dusk-bg/dusk-mid backgrounds, sunset-gold/sunset-orange accent colours, Orbitron/Rajdhani fonts, sunset glow effects) to the PIN entry form.",
+        "id": "REQ-127",
+        "summary": "Trace and fix the full order placement flow end-to-end so that orders placed by users appear in both the admin panel Orders tab and the Payments tab. Audit `backend/main.mo` to verify the `placeOrder` function correctly persists new orders to stable storage and that `getOrders()` (used by the admin panel) retrieves all stored orders. Audit `frontend/src/pages/CheckoutPage.tsx` and `frontend/src/hooks/useQueries.ts` to ensure the `placeOrder` mutation is correctly called with all required fields, the actor call is properly awaited, and the `#ok`/`#err` result is unwrapped. Fix any issue found — whether it is a missing field in the payload, a type mismatch, a silent failure in the mutation, or a backend storage/retrieval bug — so that after a user completes checkout, the resulting order is immediately visible in the admin Orders and Payments tabs.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/components/AdminAccessControl.tsx"
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/pages/CheckoutPage.tsx",
+          "frontend/src/components/checkout/GiftCardPayment.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/components/AdminAccessControl.tsx"
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/pages/CheckoutPage.tsx"
         ]
       },
       {
-        "id": "REQ-117",
-        "summary": "Audit and update `frontend/src/pages/AdminPanelPage.tsx` to ensure it contains zero internal async gates, PIN verification calls, loading states, or `useEffect` checks of its own. The page must render its tabbed content (Products, Orders, Payments, Admins, Subscriptions, Settings) immediately and unconditionally once `AdminAccessControl` renders its children. Remove any remaining username-based or PIN-based gate logic from the page itself — all access control must be handled exclusively by the `AdminAccessControl` wrapper.",
-        "status": "missing",
-        "plannedFiles": [
-          "frontend/src/pages/AdminPanelPage.tsx"
-        ],
-        "matchedFiles": []
-      },
-      {
-        "id": "REQ-118",
-        "summary": "Update `backend/migration.mo` to ensure the new stable maps for `adminPinAttempts` and `adminPinLockoutTime` are handled correctly during canister upgrades. Both maps must default to empty on first deployment and must not cause data loss for existing stable state (products, orders, users, settings, subscription tiers, admin whitelist).",
+        "id": "REQ-128",
+        "summary": "Update `backend/migration.mo` to ensure that any new stable state introduced by the subscription tier auto-seeding fix (e.g. `subscriptionTiersInitialized` flag or equivalent) is handled correctly during canister upgrades. Existing stable data (products, orders, users, subscription tiers, admin whitelist, store settings, PIN attempt maps) must not be lost. If no new stable state is introduced by REQ-125, confirm the existing migration module compiles without errors and remains valid.",
         "status": "unknown",
         "plannedFiles": [],
         "matchedFiles": []
@@ -59,17 +53,17 @@
   },
   "changedFiles": [
     "backend/main.mo",
-    "backend/migration.mo",
     "build-request.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
     "frontend/src/backend.d.ts",
     "frontend/src/backend.ts",
-    "frontend/src/components/AdminAccessControl.tsx",
+    "frontend/src/components/admin/SubscriptionManager.tsx",
     "frontend/src/declarations/backend.did.d.ts",
     "frontend/src/declarations/backend.did.js",
     "frontend/src/hooks/useQueries.ts",
+    "frontend/src/pages/CheckoutPage.tsx",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",
