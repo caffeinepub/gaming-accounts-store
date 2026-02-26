@@ -1,263 +1,209 @@
 import React, { useState } from 'react';
-import { Check, Star, Zap, Crown, Sparkles, AlertCircle, Loader2 } from 'lucide-react';
+import { Crown, Check, Loader2, Zap } from 'lucide-react';
 import { useGetSubscriptionTiers } from '../hooks/useQueries';
-import type { SubscriptionTier } from '../backend';
+import { type SubscriptionTier } from '../backend';
 
-interface SubscriptionsPageProps {
+interface TierCardProps {
+  tier: SubscriptionTier;
+  isYearly: boolean;
   onSubscribe: (tier: SubscriptionTier, billingCycle: 'monthly' | 'yearly', price: number) => void;
 }
 
-const TIER_ICONS: Record<string, React.ReactNode> = {
-  Starter: <Zap className="w-6 h-6" />,
-  Basic: <Star className="w-6 h-6" />,
-  Premium: <Sparkles className="w-6 h-6" />,
-  Pro: <Crown className="w-6 h-6" />,
-};
+function TierCard({ tier, isYearly, onSubscribe }: TierCardProps) {
+  const price = isYearly ? tier.yearlyPrice : tier.monthlyPrice;
+  const period = isYearly ? 'yr' : 'mo';
+  const billingCycle: 'monthly' | 'yearly' = isYearly ? 'yearly' : 'monthly';
 
-const TIER_COLORS: Record<string, { border: string; icon: string; badge: string; glow: string }> = {
-  Starter: {
-    border: 'border-border hover:border-sunset-gold/50',
-    icon: 'text-sunset-gold',
-    badge: 'bg-sunset-gold/10 text-sunset-gold border-sunset-gold/30',
-    glow: '',
-  },
-  Basic: {
-    border: 'border-border hover:border-sunset-orange/50',
-    icon: 'text-sunset-orange',
-    badge: 'bg-sunset-orange/10 text-sunset-orange border-sunset-orange/30',
-    glow: '',
-  },
-  Premium: {
-    border: 'border-border hover:border-sunset-pink/50',
-    icon: 'text-sunset-pink',
-    badge: 'bg-sunset-pink/10 text-sunset-pink border-sunset-pink/30',
-    glow: '',
-  },
-  Pro: {
-    border: 'border-sunset-gold sunset-glow',
-    icon: 'text-sunset-gold',
-    badge: 'bg-sunset-gold/20 text-sunset-gold border-sunset-gold/50',
-    glow: 'sunset-glow',
-  },
-};
-
-function TierCard({
-  tier,
-  billingCycle,
-  onSubscribe,
-}: {
-  tier: SubscriptionTier;
-  billingCycle: 'monthly' | 'yearly';
-  onSubscribe: () => void;
-}) {
-  const isPro = tier.name === 'Pro';
-  const colors = TIER_COLORS[tier.name] ?? TIER_COLORS['Starter'];
-  const icon = TIER_ICONS[tier.name] ?? <Star className="w-6 h-6" />;
-  const price = billingCycle === 'monthly' ? tier.monthlyPrice : tier.yearlyPrice;
-  const priceLabel = billingCycle === 'monthly' ? '/mo' : '/yr';
+  const isPopular = tier.name.toLowerCase() === 'premium';
 
   return (
     <div
-      className={`relative flex flex-col rounded-sm border bg-card transition-all duration-200 ${colors.border} ${isPro ? 'scale-[1.02]' : ''}`}
+      className={`relative rounded-2xl border flex flex-col overflow-hidden transition-transform hover:-translate-y-1 ${
+        isPopular
+          ? 'border-sunset-gold bg-dusk-mid shadow-lg shadow-sunset-gold/10'
+          : 'border-sunset-gold/20 bg-dusk-mid/60'
+      }`}
     >
-      {isPro && (
-        <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
-          <span className="px-3 py-1 rounded-full bg-gradient-to-r from-sunset-orange to-sunset-pink text-white text-xs font-orbitron font-bold tracking-wider uppercase sunset-glow-sm">
-            Most Popular
+      {isPopular && (
+        <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-sunset-orange via-sunset-gold to-sunset-orange" />
+      )}
+
+      <div className="px-6 pt-6 pb-4">
+        {isPopular && (
+          <div className="flex items-center gap-1.5 mb-3">
+            <Crown size={13} className="text-sunset-gold" />
+            <span className="font-rajdhani text-xs text-sunset-gold uppercase tracking-widest font-semibold">
+              Most Popular
+            </span>
+          </div>
+        )}
+
+        <h3 className="font-orbitron text-xl font-bold text-foreground tracking-wide">
+          {tier.name}
+        </h3>
+
+        <div className="mt-3 flex items-end gap-1">
+          <span className="font-orbitron text-3xl font-bold text-sunset-gold">
+            £{price.toFixed(2)}
           </span>
+          <span className="font-rajdhani text-muted-foreground text-sm mb-1">/{period}</span>
+        </div>
+
+        {isYearly && tier.monthlyPrice > 0 && (
+          <p className="font-rajdhani text-xs text-sunset-orange mt-1">
+            Save £{((tier.monthlyPrice * 12) - tier.yearlyPrice).toFixed(2)} vs monthly
+          </p>
+        )}
+
+        {tier.freeTrialEnabled && (
+          <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-sunset-orange/15 border border-sunset-orange/30">
+            <Zap size={11} className="text-sunset-orange" />
+            <span className="font-rajdhani text-xs text-sunset-orange font-semibold">
+              Free Trial Available
+            </span>
+          </div>
+        )}
+      </div>
+
+      {tier.perks.length > 0 && (
+        <div className="px-6 pb-4 flex-1">
+          <ul className="space-y-2">
+            {tier.perks.map((perk, i) => (
+              <li key={i} className="flex items-start gap-2.5">
+                <Check size={14} className="text-sunset-gold mt-0.5 shrink-0" />
+                <span className="font-rajdhani text-sm text-foreground/80">{perk}</span>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 
-      <div className="p-6 flex-1">
-        {/* Header */}
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div className={`p-2 rounded-sm bg-muted ${colors.icon}`}>
-              {icon}
-            </div>
-            <div>
-              <h3 className="font-orbitron font-bold text-lg text-foreground">{tier.name}</h3>
-              {tier.freeTrialEnabled && (
-                <span className={`inline-flex items-center gap-1 text-xs font-rajdhani font-semibold px-2 py-0.5 rounded-full border mt-1 ${colors.badge}`}>
-                  <Sparkles className="w-3 h-3" />
-                  7-day free trial
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Disclaimer */}
-        <p className="font-rajdhani text-xs text-muted-foreground mb-4 italic">
-          If you select monthly you will need to pay monthly each time
-        </p>
-
-        {/* Price */}
-        <div className="mb-6">
-          <div className="flex items-end gap-1">
-            <span className={`font-orbitron font-black text-3xl ${isPro ? 'text-sunset-gold' : 'text-foreground'}`}>
-              £{price.toFixed(2)}
-            </span>
-            <span className="font-rajdhani text-muted-foreground text-sm mb-1">{priceLabel}</span>
-          </div>
-          {billingCycle === 'yearly' && (
-            <p className="font-rajdhani text-xs text-success mt-1">
-              Save ~20% vs monthly billing
-            </p>
-          )}
-        </div>
-
-        {/* Perks */}
-        <ul className="space-y-2.5 mb-6">
-          {tier.perks.map((perk, idx) => (
-            <li key={idx} className="flex items-start gap-2">
-              <Check className={`w-4 h-4 mt-0.5 flex-shrink-0 ${colors.icon}`} />
-              <span className="font-rajdhani text-sm text-muted-foreground">{perk}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      {/* CTA */}
-      <div className="p-6 pt-0">
-        {tier.freeTrialEnabled && (
-          <p className="font-rajdhani text-xs text-center text-muted-foreground mb-2">
-            Start free — billing begins after 7 days
-          </p>
-        )}
+      <div className="px-6 pb-6 mt-auto">
         <button
-          onClick={onSubscribe}
-          className={`w-full py-3 rounded-sm font-rajdhani font-bold tracking-wider uppercase text-sm transition-all ${
-            isPro
-              ? 'bg-gradient-to-r from-sunset-orange to-sunset-pink text-white hover:opacity-90 sunset-glow-sm'
-              : 'border border-border text-foreground hover:border-sunset-gold hover:text-sunset-gold hover:bg-sunset-gold/5'
+          onClick={() => onSubscribe(tier, billingCycle, price)}
+          className={`w-full py-2.5 rounded-xl font-rajdhani font-semibold text-sm tracking-wide transition-all ${
+            isPopular
+              ? 'bg-sunset-gold hover:bg-sunset-gold/90 text-dusk-bg'
+              : 'bg-sunset-gold/15 hover:bg-sunset-gold/25 text-sunset-gold border border-sunset-gold/30'
           }`}
         >
-          {tier.freeTrialEnabled ? 'Start Free Trial' : `Subscribe to ${tier.name}`}
+          {tier.freeTrialEnabled ? 'Start Free Trial' : 'Subscribe'}
         </button>
       </div>
     </div>
   );
 }
 
-export default function SubscriptionsPage({ onSubscribe }: SubscriptionsPageProps) {
-  const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
-  const { data: tiers, isLoading, error } = useGetSubscriptionTiers();
+interface SubscriptionsPageProps {
+  onSubscribe?: (tier: SubscriptionTier, billingCycle: 'monthly' | 'yearly', price: number) => void;
+}
 
-  const orderedTiers = tiers
-    ? [...tiers].sort((a, b) => Number(a.id) - Number(b.id))
-    : [];
+export default function SubscriptionsPage({ onSubscribe }: SubscriptionsPageProps) {
+  const [isYearly, setIsYearly] = useState(false);
+  const { data: tiers, isLoading, isError } = useGetSubscriptionTiers();
+
+  const handleSubscribe = (tier: SubscriptionTier, billingCycle: 'monthly' | 'yearly', price: number) => {
+    if (onSubscribe) {
+      onSubscribe(tier, billingCycle, price);
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Page Header */}
-        <div className="text-center mb-10">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-sunset-gold/30 bg-sunset-gold/5 mb-4">
-            <Crown className="w-4 h-4 text-sunset-gold" />
-            <span className="font-rajdhani text-sm font-semibold text-sunset-gold tracking-wider uppercase">
-              Game Vault Memberships
-            </span>
-          </div>
-          <h1 className="font-orbitron text-3xl sm:text-4xl font-black text-foreground mb-3">
-            Choose Your{' '}
-            <span className="game-vault-gradient">Subscription</span>
-          </h1>
-          <p className="font-rajdhani text-muted-foreground text-lg max-w-xl mx-auto">
-            Unlock exclusive perks, discounts, and benefits with a Game Vault membership.
-          </p>
+    <main className="min-h-screen bg-dusk-bg py-16 px-4">
+      {/* Page header */}
+      <div className="max-w-5xl mx-auto text-center mb-12">
+        <div className="flex items-center justify-center gap-2 mb-4">
+          <Crown size={22} className="text-sunset-gold" />
+          <span className="font-orbitron text-sunset-gold text-sm uppercase tracking-widest font-semibold">
+            Membership Plans
+          </span>
         </div>
+        <h1 className="font-orbitron text-4xl md:text-5xl font-bold text-foreground tracking-tight mb-4">
+          Choose Your Plan
+        </h1>
+        <p className="font-rajdhani text-muted-foreground text-lg max-w-xl mx-auto">
+          Unlock exclusive perks, early access, and premium support with a Game Vault membership.
+        </p>
 
-        {/* Billing Toggle */}
-        <div className="flex flex-col items-center gap-3 mb-10">
-          <div className="flex items-center gap-1 p-1 rounded-sm border border-border bg-card">
+        {/* Billing toggle — only show when tiers exist */}
+        {tiers && tiers.length > 0 && (
+          <div className="mt-8 inline-flex items-center gap-3 bg-dusk-mid border border-sunset-gold/20 rounded-full px-5 py-2.5">
             <button
-              onClick={() => setBillingCycle('monthly')}
-              className={`px-5 py-2 rounded-sm font-rajdhani font-semibold text-sm tracking-wider uppercase transition-all ${
-                billingCycle === 'monthly'
-                  ? 'bg-sunset-gold text-background sunset-glow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
+              onClick={() => setIsYearly(false)}
+              className={`font-rajdhani text-sm font-semibold transition-colors ${
+                !isYearly ? 'text-sunset-gold' : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               Monthly
             </button>
+            <div
+              onClick={() => setIsYearly((v) => !v)}
+              className={`relative w-10 h-5 rounded-full cursor-pointer transition-colors ${
+                isYearly ? 'bg-sunset-gold' : 'bg-muted'
+              }`}
+            >
+              <div
+                className={`absolute top-0.5 w-4 h-4 rounded-full bg-dusk-bg transition-transform ${
+                  isYearly ? 'translate-x-5' : 'translate-x-0.5'
+                }`}
+              />
+            </div>
             <button
-              onClick={() => setBillingCycle('yearly')}
-              className={`px-5 py-2 rounded-sm font-rajdhani font-semibold text-sm tracking-wider uppercase transition-all flex items-center gap-2 ${
-                billingCycle === 'yearly'
-                  ? 'bg-sunset-gold text-background sunset-glow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
+              onClick={() => setIsYearly(true)}
+              className={`font-rajdhani text-sm font-semibold transition-colors ${
+                isYearly ? 'text-sunset-gold' : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               Yearly
-              <span className="text-xs bg-success/20 text-success px-1.5 py-0.5 rounded-full font-bold">
-                Save 20%
-              </span>
+              <span className="ml-1.5 text-xs text-sunset-orange font-rajdhani">Save more</span>
             </button>
           </div>
-          {billingCycle === 'monthly' && (
-            <div className="flex items-center gap-2 px-4 py-2 rounded-sm border border-warning/30 bg-warning/5">
-              <AlertCircle className="w-4 h-4 text-warning flex-shrink-0" />
-              <p className="font-rajdhani text-sm text-warning">
-                If you select monthly you will need to pay monthly each time
-              </p>
-            </div>
-          )}
-        </div>
-
-        {/* Loading */}
-        {isLoading && (
-          <div className="flex items-center justify-center py-20">
-            <Loader2 className="w-8 h-8 animate-spin text-sunset-gold" />
-          </div>
         )}
+      </div>
 
-        {/* Error */}
-        {error && (
-          <div className="flex items-center justify-center py-20">
-            <div className="text-center space-y-2">
-              <AlertCircle className="w-10 h-10 text-destructive mx-auto" />
-              <p className="font-rajdhani text-muted-foreground">Failed to load subscription tiers.</p>
-            </div>
+      {/* Content area */}
+      <div className="max-w-5xl mx-auto">
+        {isLoading ? (
+          <div className="flex items-center justify-center py-24">
+            <Loader2 className="animate-spin text-sunset-gold" size={36} />
           </div>
-        )}
-
-        {/* Empty state — tiers not yet initialized */}
-        {!isLoading && !error && orderedTiers.length === 0 && (
-          <div className="flex items-center justify-center py-20">
-            <div className="text-center space-y-2">
-              <Crown className="w-10 h-10 text-muted-foreground mx-auto" />
-              <p className="font-rajdhani text-muted-foreground">
-                Subscription tiers are being set up. Please check back soon.
+        ) : isError ? (
+          <div className="text-center py-24">
+            <p className="font-rajdhani text-destructive text-lg">
+              Failed to load subscription plans. Please try again later.
+            </p>
+          </div>
+        ) : tiers && tiers.length === 0 ? (
+          <div className="text-center py-24">
+            <div className="inline-flex flex-col items-center gap-4">
+              <Crown size={48} className="text-sunset-gold/30" />
+              <p className="font-orbitron text-foreground/60 text-lg tracking-wide">
+                We are currently updating our subscriptions, please check back later
               </p>
             </div>
           </div>
-        )}
-
-        {/* Tier Cards */}
-        {!isLoading && orderedTiers.length > 0 && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-start">
-            {orderedTiers.map((tier) => (
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            {tiers?.map((tier) => (
               <TierCard
                 key={tier.id.toString()}
                 tier={tier}
-                billingCycle={billingCycle}
-                onSubscribe={() => {
-                  const price = billingCycle === 'monthly' ? tier.monthlyPrice : tier.yearlyPrice;
-                  onSubscribe(tier, billingCycle, price);
-                }}
+                isYearly={isYearly}
+                onSubscribe={handleSubscribe}
               />
             ))}
           </div>
         )}
-
-        {/* Payment methods note */}
-        {!isLoading && orderedTiers.length > 0 && (
-          <p className="text-center font-rajdhani text-xs text-muted-foreground mt-8">
-            Subscriptions are paid via PayPal or Cryptocurrency only.
-          </p>
-        )}
       </div>
-    </div>
+
+      {/* Disclaimer */}
+      {tiers && tiers.length > 0 && (
+        <div className="max-w-5xl mx-auto mt-10 text-center">
+          <p className="font-rajdhani text-xs text-muted-foreground">
+            All prices shown in GBP. Subscriptions renew automatically. Cancel anytime.
+          </p>
+        </div>
+      )}
+    </main>
   );
 }

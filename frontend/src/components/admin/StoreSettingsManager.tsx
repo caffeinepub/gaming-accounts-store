@@ -7,6 +7,7 @@ import {
   useUpdateBitcoinWallet,
   useUpdateEthereumWallet,
 } from '../../hooks/useQueries';
+import { useAdminSession } from '../../contexts/AdminSessionContext';
 
 interface WalletFieldProps {
   label: string;
@@ -61,7 +62,8 @@ function WalletField({
 }
 
 export default function StoreSettingsManager() {
-  const { data: settings, isLoading } = useStoreSettings();
+  const { adminVerified } = useAdminSession();
+  const { data: settings, isLoading } = useStoreSettings(adminVerified);
 
   const [paypalAddress, setPaypalAddress] = useState('');
   const [bitcoinAddress, setBitcoinAddress] = useState('');

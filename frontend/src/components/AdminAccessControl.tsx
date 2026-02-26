@@ -1,144 +1,88 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useActor } from '../hooks/useActor';
 import { useInternetIdentity } from '../hooks/useInternetIdentity';
-import { Loader2, Shield, LogIn, Lock, AlertTriangle, Clock } from 'lucide-react';
+import { AdminSessionProvider, useAdminSession } from '../contexts/AdminSessionContext';
+import { Loader2, Shield, LogIn, AlertTriangle, ShieldX } from 'lucide-react';
 
 interface AdminAccessControlProps {
   children: React.ReactNode;
 }
 
-type Status = 'unauthenticated' | 'pin-entry' | 'granted' | 'locked-out';
+type Status = 'unauthenticated' | 'checking' | 'granted' | 'denied';
 
-export default function AdminAccessControl({ children }: AdminAccessControlProps) {
+function AdminAccessControlInner({ children }: AdminAccessControlProps) {
   const { actor, isFetching: actorFetching } = useActor();
   const { identity, login, loginStatus } = useInternetIdentity();
+  const { adminVerified, setAdminVerified } = useAdminSession();
 
   const [status, setStatus] = useState<Status>('unauthenticated');
-  const [pin, setPin] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  const [lockoutMessage, setLockoutMessage] = useState('');
-  const [lockoutSeconds, setLockoutSeconds] = useState(0);
-
-  const inputRef = useRef<HTMLInputElement>(null);
-  const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const isAuthenticated = !!identity;
   const isLoggingIn = loginStatus === 'logging-in';
 
-  // Transition to pin-entry when authenticated
+  // When authentication or actor state changes, check admin status
   useEffect(() => {
-    if (isAuthenticated && status === 'unauthenticated') {
-      setStatus('pin-entry');
-      setPin('');
-      setErrorMessage('');
-    } else if (!isAuthenticated && status !== 'granted') {
+    if (!isAuthenticated) {
       setStatus('unauthenticated');
-      setPin('');
       setErrorMessage('');
-      setLockoutMessage('');
+      setAdminVerified(false);
+      return;
     }
-  }, [isAuthenticated, status]);
 
-  // Focus input when pin-entry screen shows
-  useEffect(() => {
-    if (status === 'pin-entry') {
-      setTimeout(() => inputRef.current?.focus(), 100);
+    if (actorFetching || !actor) {
+      setStatus('checking');
+      return;
     }
-  }, [status]);
 
-  // Countdown timer for lockout
-  useEffect(() => {
-    if (status === 'locked-out' && lockoutSeconds > 0) {
-      countdownRef.current = setInterval(() => {
-        setLockoutSeconds((prev) => {
-          if (prev <= 1) {
-            clearInterval(countdownRef.current!);
-            setStatus('pin-entry');
-            setLockoutMessage('');
-            setPin('');
-            setErrorMessage('');
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    }
-    return () => {
-      if (countdownRef.current) clearInterval(countdownRef.current);
-    };
-  }, [status, lockoutSeconds]);
-
-  const formatTime = (seconds: number): string => {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m}:${s.toString().padStart(2, '0')}`;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!actor || pin.length !== 4 || isSubmitting) return;
-
-    setIsSubmitting(true);
+    // Actor is ready and user is authenticated — check admin role
+    setStatus('checking');
     setErrorMessage('');
 
-    try {
-      const result = await actor.verifyAdminPin(pin);
-
-      if (result.__kind__ === 'ok') {
-        if (result.ok === true) {
+    actor.isCallerAdmin()
+      .then((isAdmin) => {
+        if (isAdmin) {
+          setAdminVerified(true);
           setStatus('granted');
         } else {
-          setErrorMessage('Incorrect PIN. Please try again.');
-          setPin('');
-          inputRef.current?.focus();
+          setAdminVerified(false);
+          setStatus('denied');
+          setErrorMessage('Your account does not have admin privileges.');
         }
-      } else {
-        // err variant — check if it's a lockout message
-        const msg: string = result.err;
-        if (msg.toLowerCase().includes('locked out')) {
-          // Parse remaining minutes from message like "Locked out. Try again in 60 minutes."
-          const minuteMatch = msg.match(/(\d+)\s*minutes?/i);
-          const minutes = minuteMatch ? parseInt(minuteMatch[1], 10) : 60;
-          const seconds = minutes * 60;
-          setLockoutSeconds(seconds);
-          setLockoutMessage(msg);
-          setStatus('locked-out');
-          setPin('');
-        } else {
-          setErrorMessage(msg);
-          setPin('');
-          inputRef.current?.focus();
-        }
-      }
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'An error occurred. Please try again.';
-      if (message.toLowerCase().includes('locked out')) {
-        const minuteMatch = message.match(/(\d+)\s*minutes?/i);
-        const minutes = minuteMatch ? parseInt(minuteMatch[1], 10) : 60;
-        setLockoutSeconds(minutes * 60);
-        setLockoutMessage(message);
-        setStatus('locked-out');
-        setPin('');
-      } else {
-        setErrorMessage(message);
-        setPin('');
-        inputRef.current?.focus();
-      }
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+      })
+      .catch((err: unknown) => {
+        setAdminVerified(false);
+        setStatus('denied');
+        const msg = err instanceof Error ? err.message : 'Failed to verify admin status.';
+        setErrorMessage(msg);
+      });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, actor, actorFetching]);
 
-  const handlePinChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(/\D/g, '').slice(0, 4);
-    setPin(value);
-    if (errorMessage) setErrorMessage('');
-  };
+  // Keep adminVerified in sync if status changes back
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setAdminVerified(false);
+    }
+  }, [isAuthenticated, setAdminVerified]);
 
   // ── Render: access granted ──────────────────────────────────────────────────
-  if (status === 'granted') {
+  if (status === 'granted' && adminVerified) {
     return <>{children}</>;
+  }
+
+  // ── Checking (transitional state — show spinner) ────────────────────────────
+  if (status === 'checking') {
+    return (
+      <div className="min-h-screen bg-dusk-bg flex items-center justify-center p-4">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-10 h-10 animate-spin text-sunset-orange" />
+          <p className="font-rajdhani text-foreground/70 text-sm tracking-wide">
+            Verifying admin access…
+          </p>
+        </div>
+      </div>
+    );
   }
 
   // ── Shared card wrapper ─────────────────────────────────────────────────────
@@ -165,7 +109,11 @@ export default function AdminAccessControl({ children }: AdminAccessControlProps
               className="w-16 h-16 rounded-full bg-sunset-orange/20 border border-sunset-orange/40 flex items-center justify-center mb-4"
               style={{ boxShadow: '0 0 20px rgba(255, 107, 53, 0.2)' }}
             >
-              <Shield className="w-8 h-8 text-sunset-orange" />
+              {status === 'denied' ? (
+                <ShieldX className="w-8 h-8 text-destructive" />
+              ) : (
+                <Shield className="w-8 h-8 text-sunset-orange" />
+              )}
             </div>
             <h1 className="font-orbitron text-2xl font-bold text-sunset-gold tracking-wider">
               ADMIN ACCESS
@@ -180,7 +128,7 @@ export default function AdminAccessControl({ children }: AdminAccessControlProps
             <div className="flex flex-col items-center gap-6">
               <div className="text-center">
                 <p className="font-rajdhani text-foreground/80 text-base leading-relaxed">
-                  Please log in via Internet Identity to access the admin panel.
+                  Please log in to access the admin panel.
                 </p>
               </div>
               <button
@@ -203,123 +151,56 @@ export default function AdminAccessControl({ children }: AdminAccessControlProps
             </div>
           )}
 
-          {/* ── PIN Entry ── */}
-          {status === 'pin-entry' && (
-            <form onSubmit={handleSubmit} className="flex flex-col items-center gap-6">
-              <div className="text-center">
-                <p className="font-rajdhani text-foreground/70 text-sm tracking-wide">
-                  Enter the 4-digit PIN to continue
-                </p>
-              </div>
-
-              {/* PIN dots display */}
-              <div className="flex gap-3 mb-2">
-                {[0, 1, 2, 3].map((i) => (
-                  <div
-                    key={i}
-                    className={`w-12 h-14 rounded-lg border-2 flex items-center justify-center font-orbitron text-2xl font-bold transition-all duration-150 ${
-                      i < pin.length
-                        ? 'border-sunset-orange bg-sunset-orange/15 text-sunset-gold'
-                        : 'border-sunset-orange/30 bg-dusk-bg/50 text-transparent'
-                    }`}
-                    style={
-                      i < pin.length
-                        ? { boxShadow: '0 0 12px rgba(255, 107, 53, 0.25)' }
-                        : {}
-                    }
-                  >
-                    {i < pin.length ? '●' : '○'}
-                  </div>
-                ))}
-              </div>
-
-              {/* Hidden actual input */}
-              <input
-                ref={inputRef}
-                type="tel"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                maxLength={4}
-                value={pin}
-                onChange={handlePinChange}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && pin.length === 4) handleSubmit(e as unknown as React.FormEvent);
-                }}
-                className="sr-only"
-                autoComplete="off"
-                aria-label="4-digit PIN"
-              />
-
-              {/* Tap-to-focus hint */}
-              <button
-                type="button"
-                onClick={() => inputRef.current?.focus()}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg border border-sunset-orange/20 bg-dusk-bg/40 text-foreground/50 font-rajdhani text-xs tracking-wide hover:border-sunset-orange/40 hover:text-foreground/70 transition-all"
-              >
-                <Lock className="w-3 h-3" />
-                Tap to type PIN
-              </button>
-
-              {/* Error message */}
-              {errorMessage && (
-                <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-destructive/10 border border-destructive/30 w-full">
-                  <AlertTriangle className="w-4 h-4 text-destructive flex-shrink-0" />
-                  <p className="font-rajdhani text-destructive text-sm">{errorMessage}</p>
-                </div>
-              )}
-
-              {/* Submit button */}
-              <button
-                type="submit"
-                disabled={pin.length !== 4 || isSubmitting || actorFetching}
-                className="flex items-center gap-2 px-8 py-3 rounded-lg bg-gradient-to-r from-sunset-orange to-sunset-gold text-dusk-bg font-orbitron font-bold tracking-wider text-sm hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity w-full justify-center"
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Verifying…
-                  </>
-                ) : (
-                  'SUBMIT PIN'
-                )}
-              </button>
-            </form>
-          )}
-
-          {/* ── Locked Out ── */}
-          {status === 'locked-out' && (
+          {/* ── Access Denied ── */}
+          {status === 'denied' && (
             <div className="flex flex-col items-center gap-6">
-              <div
-                className="w-14 h-14 rounded-full bg-destructive/15 border border-destructive/40 flex items-center justify-center"
-                style={{ boxShadow: '0 0 20px rgba(220, 38, 38, 0.15)' }}
-              >
-                <Clock className="w-7 h-7 text-destructive" />
-              </div>
-              <div className="text-center">
-                <p className="font-orbitron text-base font-bold text-destructive mb-2 tracking-wide">
-                  ACCESS LOCKED
+              <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-destructive/10 border border-destructive/30 w-full">
+                <AlertTriangle className="w-5 h-5 text-destructive flex-shrink-0" />
+                <p className="font-rajdhani text-destructive text-sm">
+                  {errorMessage || 'Access denied. Admin privileges required.'}
                 </p>
-                <p className="font-rajdhani text-foreground/70 text-sm leading-relaxed mb-3">
-                  Too many failed attempts. Please wait before trying again.
-                </p>
-                {lockoutSeconds > 0 && (
-                  <div
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-destructive/10 border border-destructive/30"
-                  >
-                    <Clock className="w-4 h-4 text-destructive" />
-                    <span className="font-orbitron text-destructive font-bold text-lg tracking-widest">
-                      {formatTime(lockoutSeconds)}
-                    </span>
-                  </div>
-                )}
               </div>
-              <p className="font-rajdhani text-foreground/40 text-xs text-center">
-                {lockoutMessage}
+              <p className="font-rajdhani text-foreground/60 text-sm text-center">
+                Your account is not authorized to access the admin panel. Please contact an existing admin to grant you access.
               </p>
+              <button
+                onClick={() => {
+                  setStatus('checking');
+                  if (actor) {
+                    actor.isCallerAdmin()
+                      .then((isAdmin) => {
+                        if (isAdmin) {
+                          setAdminVerified(true);
+                          setStatus('granted');
+                        } else {
+                          setAdminVerified(false);
+                          setStatus('denied');
+                          setErrorMessage('Your account does not have admin privileges.');
+                        }
+                      })
+                      .catch(() => {
+                        setStatus('denied');
+                        setErrorMessage('Failed to verify admin status. Please try again.');
+                      });
+                  }
+                }}
+                disabled={!actor || actorFetching}
+                className="flex items-center gap-2 px-6 py-2 rounded-lg border border-sunset-orange/30 text-sunset-orange font-rajdhani font-semibold text-sm hover:bg-sunset-orange/10 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+              >
+                Retry
+              </button>
             </div>
           )}
         </div>
       </div>
     </div>
+  );
+}
+
+export default function AdminAccessControl({ children }: AdminAccessControlProps) {
+  return (
+    <AdminSessionProvider>
+      <AdminAccessControlInner>{children}</AdminAccessControlInner>
+    </AdminSessionProvider>
   );
 }

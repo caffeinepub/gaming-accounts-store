@@ -10,9 +10,6 @@ import type { ActorMethod } from '@icp-sdk/core/agent';
 import type { IDL } from '@icp-sdk/core/candid';
 import type { Principal } from '@icp-sdk/core/principal';
 
-export type ApprovalStatus = { 'pending' : null } |
-  { 'approved' : null } |
-  { 'declined' : null };
 export interface Order {
   'status' : string,
   'buyerEmail' : string,
@@ -21,10 +18,13 @@ export interface Order {
   'giftCardNumber' : string,
   'productId' : bigint,
   'buyerUsername' : string,
-  'approvalStatus' : ApprovalStatus,
+  'approvalStatus' : OrderApprovalStatus,
   'buyerContact' : string,
   'buyer' : Principal,
 }
+export type OrderApprovalStatus = { 'pending' : null } |
+  { 'approved' : null } |
+  { 'declined' : null };
 export type PaymentMethod = { 'cryptocurrency' : null } |
   { 'payIn3Installments' : null } |
   { 'ukGiftCard' : null } |
@@ -44,8 +44,6 @@ export interface ProductCategory {
   'name' : string,
   'description' : string,
 }
-export type Result = { 'ok' : null } |
-  { 'err' : string };
 export interface StoreSettings {
   'bitcoinWalletAddress' : string,
   'paypalWalletAddress' : string,
@@ -70,32 +68,45 @@ export type UserRole = { 'admin' : null } |
 export interface _SERVICE {
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
   'addAdminUser' : ActorMethod<[string], undefined>,
-  'addCategory' : ActorMethod<[string, string], Result>,
+  'addCategory' : ActorMethod<
+    [string, string],
+    { 'ok' : null } |
+      { 'err' : string }
+  >,
   'addProduct' : ActorMethod<
     [string, bigint, string, string, string, bigint, boolean],
-    Result
+    { 'ok' : null } |
+      { 'err' : string }
   >,
   'approveOrder' : ActorMethod<[bigint], { 'ok' : null } | { 'err' : string }>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
+  'createSubscriptionTier' : ActorMethod<
+    [string, number, number, Array<string>, boolean],
+    { 'ok' : SubscriptionTier } |
+      { 'err' : string }
+  >,
   'createUsername' : ActorMethod<[string], undefined>,
   'declineOrder' : ActorMethod<[bigint], { 'ok' : null } | { 'err' : string }>,
-  'deleteCategory' : ActorMethod<[bigint], Result>,
-  'deleteProduct' : ActorMethod<[bigint], Result>,
-  'getAdminPinLockoutStatus' : ActorMethod<
-    [Principal],
-    { 'remainingSeconds' : bigint, 'isLockedOut' : boolean }
+  'deleteCategory' : ActorMethod<
+    [bigint],
+    { 'ok' : null } |
+      { 'err' : string }
+  >,
+  'deleteProduct' : ActorMethod<[bigint], { 'ok' : null } | { 'err' : string }>,
+  'deleteSubscriptionTier' : ActorMethod<
+    [bigint],
+    { 'ok' : null } |
+      { 'err' : string }
   >,
   'getAllCategories' : ActorMethod<[], Array<ProductCategory>>,
   'getAllOrders' : ActorMethod<[], Array<Order>>,
   'getAvailableProducts' : ActorMethod<[], Array<Product>>,
-  'getAvailableProductsByPrice' : ActorMethod<[], Array<Product>>,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
   'getCategoryById' : ActorMethod<[bigint], ProductCategory>,
   'getOrderById' : ActorMethod<[bigint], Order>,
   'getOrders' : ActorMethod<[], Array<Order>>,
   'getOrdersByBuyer' : ActorMethod<[Principal], Array<Order>>,
-  'getOrdersByUsername' : ActorMethod<[string], Array<Order>>,
   'getProductById' : ActorMethod<[bigint], Product>,
   'getStoreSettings' : ActorMethod<[], StoreSettings>,
   'getSubscriptionTiers' : ActorMethod<[], Array<SubscriptionTier>>,
@@ -108,26 +119,44 @@ export interface _SERVICE {
   'isUsernameAvailable' : ActorMethod<[string], boolean>,
   'placeOrder' : ActorMethod<
     [Principal, string, string, string, bigint, PaymentMethod, string, string],
-    Result
+    { 'ok' : null } |
+      { 'err' : string }
   >,
   'removeAdminUser' : ActorMethod<[string], undefined>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
-  'setSubscriptionTierFreeTrial' : ActorMethod<[bigint, boolean], Result>,
-  'updateBitcoinWalletAddress' : ActorMethod<[string], Result>,
-  'updateCategory' : ActorMethod<[bigint, string, string], Result>,
-  'updateEthereumWalletAddress' : ActorMethod<[string], Result>,
-  'updatePaypalWalletAddress' : ActorMethod<[string], Result>,
+  'setSubscriptionTierFreeTrial' : ActorMethod<
+    [bigint, boolean],
+    { 'ok' : null } |
+      { 'err' : string }
+  >,
+  'updateBitcoinWalletAddress' : ActorMethod<
+    [string],
+    { 'ok' : null } |
+      { 'err' : string }
+  >,
+  'updateCategory' : ActorMethod<
+    [bigint, string, string],
+    { 'ok' : null } |
+      { 'err' : string }
+  >,
+  'updateEthereumWalletAddress' : ActorMethod<
+    [string],
+    { 'ok' : null } |
+      { 'err' : string }
+  >,
+  'updatePaypalWalletAddress' : ActorMethod<
+    [string],
+    { 'ok' : null } |
+      { 'err' : string }
+  >,
   'updateProduct' : ActorMethod<
     [bigint, string, bigint, string, string, string, bigint, boolean],
-    Result
+    { 'ok' : null } |
+      { 'err' : string }
   >,
   'updateSubscriptionTierPrices' : ActorMethod<
     [bigint, number, number],
-    Result
-  >,
-  'verifyAdminPin' : ActorMethod<
-    [string],
-    { 'ok' : boolean } |
+    { 'ok' : null } |
       { 'err' : string }
   >,
 }

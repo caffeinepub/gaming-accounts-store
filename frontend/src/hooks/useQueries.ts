@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useActor } from './useActor';
-import { PaymentMethod, type Order, type Product, type ProductCategory, type UserProfile } from '../backend';
+import { PaymentMethod, type Order, type Product, type ProductCategory, type SubscriptionTier, type UserProfile } from '../backend';
 import { Principal } from '@dfinity/principal';
 import { useInternetIdentity } from './useInternetIdentity';
 
@@ -173,26 +173,22 @@ export interface PlaceOrderVars {
   giftCardBalance: string;
 }
 
-export function useGetAllOrders() {
+/**
+ * Fetches all orders for the admin panel.
+ * The `adminVerified` flag must be true (PIN verified) before this query fires,
+ * ensuring the backend adminSessions map is set before the query is attempted.
+ */
+export function useGetAllOrders(adminVerified = false) {
   const { actor, isFetching } = useActor();
   return useQuery<Order[]>({
     queryKey: ['orders'],
     queryFn: async () => {
       if (!actor) return [];
-      // Try getAllOrders first, fall back to getOrders — both require admin role
-      try {
-        return await actor.getAllOrders();
-      } catch (err: unknown) {
-        // Try the alternate endpoint
-        try {
-          return await actor.getOrders();
-        } catch {
-          // Re-throw the original error so the UI can display it
-          throw err;
-        }
-      }
+      // Use getOrders() which checks adminSessions (set by verifyAdminPin)
+      return await actor.getOrders();
     },
-    enabled: !!actor && !isFetching,
+    // Only fire when actor is ready AND admin PIN has been verified
+    enabled: !!actor && !isFetching && adminVerified,
     // Poll every 15 seconds so new orders appear without manual refresh
     refetchInterval: 15000,
     retry: 1,
@@ -442,7 +438,11 @@ export function useRemoveAdminUser() {
 
 // ─── Store Settings ───────────────────────────────────────────────────────────
 
-export function useStoreSettings() {
+/**
+ * Fetches store settings. Requires adminVerified=true because getStoreSettings()
+ * on the backend calls enforceAdminSessionAccess which checks adminSessions.
+ */
+export function useStoreSettings(adminVerified = false) {
   const { actor, isFetching } = useActor();
   return useQuery({
     queryKey: ['storeSettings'],
@@ -450,7 +450,8 @@ export function useStoreSettings() {
       if (!actor) return null;
       return actor.getStoreSettings();
     },
-    enabled: !!actor && !isFetching,
+    enabled: !!actor && !isFetching && adminVerified,
+    retry: 1,
   });
 }
 
@@ -497,11 +498,11 @@ export function useUpdateEthereumWallet() {
 
 export function useGetSubscriptionTiers() {
   const { actor, isFetching } = useActor();
-  return useQuery({
+  return useQuery<SubscriptionTier[]>({
     queryKey: ['subscriptionTiers'],
     queryFn: async () => {
       if (!actor) return [];
-      return actor.getSubscriptionTiers();
+      return await actor.getSubscriptionTiers();
     },
     enabled: !!actor && !isFetching,
   });
@@ -533,34 +534,45 @@ export function useSetSubscriptionTierFreeTrial() {
   });
 }
 
-// ─── Admin PIN ────────────────────────────────────────────────────────────────
-
-export function useVerifyAdminPin() {
+export function useCreateSubscriptionTier() {
   const { actor } = useActor();
+  const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (pin: string) => {
+    mutationFn: async (vars: {
+      name: string;
+      monthlyPrice: number;
+      yearlyPrice: number;
+      perks: string[];
+      freeTrialEnabled: boolean;
+    }): Promise<SubscriptionTier> => {
       if (!actor) throw new Error('Actor not available');
-      const result = await actor.verifyAdminPin(pin);
+      const result = await actor.createSubscriptionTier(
+        vars.name,
+        vars.monthlyPrice,
+        vars.yearlyPrice,
+        vars.perks,
+        vars.freeTrialEnabled,
+      );
       if (result.__kind__ === 'err') throw new Error(result.err);
       return result.ok;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['subscriptionTiers'] });
     },
   });
 }
 
-export function useAdminPinLockoutStatus(principal: Principal | undefined) {
-  const { actor, isFetching } = useActor();
-  const { identity } = useInternetIdentity();
-
-  return useQuery({
-    queryKey: ['adminPinLockout', principal?.toString()],
-    queryFn: async () => {
-      if (!actor || !principal) return { isLockedOut: false, remainingSeconds: BigInt(0) };
-      return actor.getAdminPinLockoutStatus(principal);
+export function useDeleteSubscriptionTier() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: bigint) => {
+      if (!actor) throw new Error('Actor not available');
+      const result = await actor.deleteSubscriptionTier(id);
+      if (result.__kind__ === 'err') throw new Error(result.err);
     },
-    enabled: !!actor && !isFetching && !!principal && !!identity,
-    refetchInterval: (query) => {
-      const data = query.state.data;
-      return data?.isLockedOut ? 5000 : false;
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['subscriptionTiers'] });
     },
   });
 }

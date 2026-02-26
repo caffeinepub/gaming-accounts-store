@@ -1,34 +1,27 @@
 import Map "mo:core/Map";
 import Array "mo:core/Array";
 import Float "mo:core/Float";
-import Iter "mo:core/Iter";
-import List "mo:core/List";
-import Nat "mo:core/Nat";
 import Order "mo:core/Order";
-import Text "mo:core/Text";
 import Principal "mo:core/Principal";
+import Text "mo:core/Text";
 import Runtime "mo:core/Runtime";
-import Time "mo:core/Time";
+import Nat "mo:core/Nat";
 import Int "mo:core/Int";
+import Result "mo:core/Result";
 import Migration "migration";
 
 import MixinAuthorization "authorization/MixinAuthorization";
 import AccessControl "authorization/access-control";
 
-// Apply migration using the with clause
+// Apply migration using with clause
 (with migration = Migration.run)
 actor {
-  let adminPinAttempts = Map.empty<Principal, Nat>();
-  let adminPinLockoutTime = Map.empty<Principal, Int>();
-
-  // Product Category
   public type ProductCategory = {
     id : Nat;
     name : Text;
     description : Text;
   };
 
-  // Product
   public type Product = {
     id : Nat;
     gameName : Text;
@@ -47,13 +40,12 @@ actor {
     #payIn3Installments;
   };
 
-  public type ApprovalStatus = {
+  public type OrderApprovalStatus = {
     #pending;
     #approved;
     #declined;
   };
 
-  // Order type (includes buyerUsername, email, and contact)
   public type Order = {
     productId : Nat;
     buyer : Principal;
@@ -62,22 +54,15 @@ actor {
     buyerContact : Text;
     paymentMethod : PaymentMethod;
     status : Text;
-    approvalStatus : ApprovalStatus;
+    approvalStatus : OrderApprovalStatus;
     giftCardNumber : Text;
     giftCardBalance : Text;
   };
 
-  // User profile type (includes username and contact info)
   public type UserProfile = {
     username : Text;
     email : Text;
     contact : Text;
-  };
-
-  public type ProductError = {
-    #NotFound;
-    #Unauthorized;
-    #GenericError : Text;
   };
 
   public type StoreSettings = {
@@ -86,12 +71,6 @@ actor {
     ethereumWalletAddress : Text;
   };
 
-  public type Result = {
-    #ok;
-    #err : Text;
-  };
-
-  // Subscription Tier type
   public type SubscriptionTier = {
     id : Nat;
     name : Text;
@@ -101,7 +80,6 @@ actor {
     freeTrialEnabled : Bool;
   };
 
-  // Internal State
   let products = Map.empty<Nat, Product>();
   let categories = Map.empty<Nat, ProductCategory>();
   let orders = Map.empty<Nat, Order>();
@@ -113,8 +91,7 @@ actor {
   var nextCategoryId = 1;
   var nextProductId = 1;
   var nextOrderId = 1;
-  var nextSubscriptionTierId = 5;
-  let tiersInitialized = true; // always true after migration
+  var nextSubscriptionTierId = 1;
 
   var storeSettings : StoreSettings = {
     paypalWalletAddress = "";
@@ -125,8 +102,7 @@ actor {
   let accessControlState = AccessControl.initState();
   include MixinAuthorization(accessControlState);
 
-  // Store Settings Functions
-  public shared ({ caller }) func updatePaypalWalletAddress(address : Text) : async Result {
+  public shared ({ caller }) func updatePaypalWalletAddress(address : Text) : async { #ok; #err : Text } {
     if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
       return #err("Unauthorized: Only admins can update store settings");
     };
@@ -134,7 +110,7 @@ actor {
     #ok;
   };
 
-  public shared ({ caller }) func updateBitcoinWalletAddress(address : Text) : async Result {
+  public shared ({ caller }) func updateBitcoinWalletAddress(address : Text) : async { #ok; #err : Text } {
     if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
       return #err("Unauthorized: Only admins can update store settings");
     };
@@ -142,7 +118,7 @@ actor {
     #ok;
   };
 
-  public shared ({ caller }) func updateEthereumWalletAddress(address : Text) : async Result {
+  public shared ({ caller }) func updateEthereumWalletAddress(address : Text) : async { #ok; #err : Text } {
     if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
       return #err("Unauthorized: Only admins can update store settings");
     };
@@ -150,26 +126,16 @@ actor {
     #ok;
   };
 
-  public query func getStoreSettings() : async StoreSettings {
+  public query ({ caller }) func getStoreSettings() : async StoreSettings {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only admins can view store settings");
+    };
     storeSettings;
   };
 
-  module Category {
-    public func compareById(category1 : ProductCategory, category2 : ProductCategory) : Order.Order {
-      Nat.compare(category1.id, category2.id);
-    };
-  };
-
-  // Get all subscription tiers (public, no auth required, always seeded after deploy)
-  public query func getSubscriptionTiers() : async [SubscriptionTier] {
-    subscriptionTiers.values().toArray();
-  };
-
-  // Update subscription tier prices - any authenticated (non-anonymous) principal is allowed.
-  // The PIN gate on the frontend is the sole access control layer for these operations.
-  public shared ({ caller }) func updateSubscriptionTierPrices(id : Nat, monthlyPrice : Float, yearlyPrice : Float) : async Result {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      return #err("Unauthorized: Must be authenticated to perform this action");
+  public shared ({ caller }) func updateSubscriptionTierPrices(id : Nat, monthlyPrice : Float, yearlyPrice : Float) : async { #ok; #err : Text } {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      return #err("Unauthorized: Only admins can update subscription tier prices");
     };
     switch (subscriptionTiers.get(id)) {
       case (null) { #err("Subscription tier not found") };
@@ -188,11 +154,9 @@ actor {
     };
   };
 
-  // Set subscription tier free trial - any authenticated (non-anonymous) principal is allowed.
-  // The PIN gate on the frontend is the sole access control layer for these operations.
-  public shared ({ caller }) func setSubscriptionTierFreeTrial(id : Nat, enabled : Bool) : async Result {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      return #err("Unauthorized: Must be authenticated to perform this action");
+  public shared ({ caller }) func setSubscriptionTierFreeTrial(id : Nat, enabled : Bool) : async { #ok; #err : Text } {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      return #err("Unauthorized: Only admins can update subscription tier free trial");
     };
     switch (subscriptionTiers.get(id)) {
       case (null) { #err("Subscription tier not found") };
@@ -211,7 +175,51 @@ actor {
     };
   };
 
-  // User Profile (required by frontend)
+  public shared ({ caller }) func createSubscriptionTier(
+    name : Text,
+    monthlyPrice : Float,
+    yearlyPrice : Float,
+    perks : [Text],
+    freeTrialEnabled : Bool,
+  ) : async { #ok : SubscriptionTier; #err : Text } {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      return #err("Unauthorized: Only admins can create subscription tiers");
+    };
+
+    let id = nextSubscriptionTierId;
+    let tier : SubscriptionTier = {
+      id;
+      name;
+      monthlyPrice;
+      yearlyPrice;
+      perks;
+      freeTrialEnabled;
+    };
+
+    subscriptionTiers.add(id, tier);
+    nextSubscriptionTierId += 1;
+    #ok(tier);
+  };
+
+  public shared ({ caller }) func deleteSubscriptionTier(id : Nat) : async { #ok; #err : Text } {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      return #err("Unauthorized: Only admins can delete subscription tiers");
+    };
+    switch (subscriptionTiers.containsKey(id)) {
+      case (true) {
+        subscriptionTiers.remove(id);
+        #ok;
+      };
+      case (false) {
+        #err("Subscription tier not found");
+      };
+    };
+  };
+
+  public query func getSubscriptionTiers() : async [SubscriptionTier] {
+    subscriptionTiers.values().toArray();
+  };
+
   public query ({ caller }) func getCallerUserProfile() : async ?UserProfile {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can get their profile");
@@ -255,7 +263,6 @@ actor {
     userProfiles.get(user);
   };
 
-  // Username Management
   public query func isUsernameAvailable(username : Text) : async Bool {
     if (username.contains(#char ' ')) {
       return false;
@@ -321,7 +328,6 @@ actor {
     };
   };
 
-  // Admin Whitelist Management
   public shared ({ caller }) func addAdminUser(username : Text) : async () {
     if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
       Runtime.trap("Unauthorized: Only admins can modify whitelist");
@@ -336,13 +342,11 @@ actor {
     adminUsernames.remove(username);
   };
 
-  // Case-sensitive lookup of username in the adminUsernames stable map
   public query func isAdminUsername(username : Text) : async Bool {
     adminUsernames.containsKey(username);
   };
 
-  // Product Category Management (Admin only)
-  public shared ({ caller }) func addCategory(name : Text, description : Text) : async Result {
+  public shared ({ caller }) func addCategory(name : Text, description : Text) : async { #ok; #err : Text } {
     if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
       return #err("Unauthorized: Only admins can add categories");
     };
@@ -359,7 +363,7 @@ actor {
     #ok;
   };
 
-  public shared ({ caller }) func updateCategory(id : Nat, name : Text, description : Text) : async Result {
+  public shared ({ caller }) func updateCategory(id : Nat, name : Text, description : Text) : async { #ok; #err : Text } {
     if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
       return #err("Unauthorized: Only admins can update categories");
     };
@@ -373,7 +377,7 @@ actor {
     #ok;
   };
 
-  public shared ({ caller }) func deleteCategory(id : Nat) : async Result {
+  public shared ({ caller }) func deleteCategory(id : Nat) : async { #ok; #err : Text } {
     if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
       return #err("Unauthorized: Only admins can delete categories");
     };
@@ -382,25 +386,9 @@ actor {
     #ok;
   };
 
-  // Product Management
-  // Any authenticated (non-anonymous) principal may call these functions.
-  // The PIN gate enforced by AdminAccessControl on the frontend is the sole access control layer.
-  module Product {
-    public func compare(product1 : Product, product2 : Product) : Order.Order {
-      switch (Text.compare(product1.gameName, product2.gameName)) {
-        case (#equal) { Text.compare(product1.title, product2.title) };
-        case (order) { order };
-      };
-    };
-
-    public func compareByPrice(product1 : Product, product2 : Product) : Order.Order {
-      Nat.compare(product1.price, product2.price);
-    };
-  };
-
-  public shared ({ caller }) func addProduct(gameName : Text, categoryId : Nat, title : Text, description : Text, accountDetails : Text, price : Nat, available : Bool) : async Result {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      return #err("Unauthorized: Must be authenticated to add products");
+  public shared ({ caller }) func addProduct(gameName : Text, categoryId : Nat, title : Text, description : Text, accountDetails : Text, price : Nat, available : Bool) : async { #ok; #err : Text } {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      return #err("Unauthorized: Only admins can create products");
     };
     let id = nextProductId;
     let product : Product = {
@@ -418,9 +406,18 @@ actor {
     #ok;
   };
 
-  public shared ({ caller }) func updateProduct(id : Nat, gameName : Text, categoryId : Nat, title : Text, description : Text, accountDetails : Text, price : Nat, available : Bool) : async Result {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      return #err("Unauthorized: Must be authenticated to update products");
+  public shared ({ caller }) func updateProduct(
+    id : Nat,
+    gameName : Text,
+    categoryId : Nat,
+    title : Text,
+    description : Text,
+    accountDetails : Text,
+    price : Nat,
+    available : Bool,
+  ) : async { #ok; #err : Text } {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      return #err("Unauthorized: Only admins can update products");
     };
     let product : Product = {
       id;
@@ -436,9 +433,9 @@ actor {
     #ok;
   };
 
-  public shared ({ caller }) func deleteProduct(id : Nat) : async Result {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      return #err("Unauthorized: Must be authenticated to delete products");
+  public shared ({ caller }) func deleteProduct(id : Nat) : async { #ok; #err : Text } {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      return #err("Unauthorized: Only admins can delete products");
     };
     products.remove(id);
     #ok;
@@ -453,7 +450,7 @@ actor {
     paymentMethod : PaymentMethod,
     giftCardNumber : Text,
     giftCardBalance : Text,
-  ) : async Result {
+  ) : async { #ok; #err : Text } {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       return #err("Unauthorized: Only store users can place orders");
     };
@@ -493,7 +490,6 @@ actor {
     };
   };
 
-  // Retrieves ALL orders. No filter except by caller being authorized.
   public query ({ caller }) func getOrders() : async [Order] {
     if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
       Runtime.trap("Unauthorized: Only admins can view all orders");
@@ -503,9 +499,8 @@ actor {
 
   public shared ({ caller }) func approveOrder(orderId : Nat) : async { #ok; #err : Text } {
     if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
-      return #err("Unauthorized: Only admins can approve orders.");
+      return #err("Unauthorized: Only admins can approve orders");
     };
-
     switch (orders.get(orderId)) {
       case (null) { #err("Order not found") };
       case (?order) {
@@ -518,9 +513,8 @@ actor {
 
   public shared ({ caller }) func declineOrder(orderId : Nat) : async { #ok; #err : Text } {
     if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
-      return #err("Unauthorized: Only admins can decline orders.");
+      return #err("Unauthorized: Only admins can decline orders");
     };
-
     switch (orders.get(orderId)) {
       case (null) { #err("Order not found") };
       case (?order) {
@@ -531,7 +525,6 @@ actor {
     };
   };
 
-  // Returns orders for the given principal. Caller must be that principal or an admin.
   public query ({ caller }) func getOrdersByBuyer(principal : Principal) : async [Order] {
     if (caller != principal and not AccessControl.isAdmin(accessControlState, caller)) {
       Runtime.trap("Unauthorized: Can only view your own orders");
@@ -551,7 +544,6 @@ actor {
     };
   };
 
-  // Public Catalogue Queries (no auth required)
   public query func getCategoryById(id : Nat) : async ProductCategory {
     switch (categories.get(id)) {
       case (null) { Runtime.trap("Category does not exist.") };
@@ -567,30 +559,18 @@ actor {
   };
 
   public query func getAllCategories() : async [ProductCategory] {
-    categories.values().toArray().sort(Category.compareById);
+    categories.values().toArray();
   };
 
   public query func getAvailableProducts() : async [Product] {
-    products.values().toArray().filter(func(p) { p.available }).sort();
+    products.values().toArray().filter(func(p) { p.available });
   };
 
-  public query func getAvailableProductsByPrice() : async [Product] {
-    products.values().toArray().filter(func(p) { p.available }).sort(Product.compareByPrice);
-  };
-
-  // User Order Queries
   public query ({ caller }) func getUserOrders(user : Principal) : async [Order] {
     if (caller != user and not AccessControl.isAdmin(accessControlState, caller)) {
       Runtime.trap("Unauthorized: Can only view your orders");
     };
     orders.values().toArray().filter(func(order) { order.buyer == user });
-  };
-
-  public query ({ caller }) func getOrdersByUsername(username : Text) : async [Order] {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
-      Runtime.trap("Unauthorized: Only admins can get orders by username");
-    };
-    orders.values().toArray().filter(func(order) { order.buyerUsername == username });
   };
 
   public query ({ caller }) func getAllOrders() : async [Order] {
@@ -600,80 +580,16 @@ actor {
     orders.values().toArray();
   };
 
-  // Admin PIN Verification System
-  // Any authenticated caller may attempt PIN verification (it is the authentication mechanism itself).
-  // Anonymous principals (guests) are intentionally allowed so that users can verify the PIN
-  // before being granted admin access.
-  public shared ({ caller }) func verifyAdminPin(pin : Text) : async {
-    #ok : Bool;
-    #err : Text;
-  } {
-    let correctPin = "2006";
-    let maxAttempts = 4;
-    let lockoutDuration = 3600;
-
-    let now = Time.now() / 1_000_000_000;
-
-    switch (adminPinLockoutTime.get(caller)) {
-      case (?lockoutExpiry) {
-        if (now < lockoutExpiry) {
-          let remainingSeconds = lockoutExpiry - now;
-          let minutes = remainingSeconds / 60;
-          return #err(
-            "Locked out. Try again in " # minutes.toText() # " minutes."
-          );
-        };
+  module Product {
+    public func compare(product1 : Product, product2 : Product) : Order.Order {
+      switch (Text.compare(product1.gameName, product2.gameName)) {
+        case (#equal) { Text.compare(product1.title, product2.title) };
+        case (order) { order };
       };
-      case (null) {};
     };
 
-    if (pin == correctPin) {
-      adminPinAttempts.remove(caller);
-      return #ok(true);
+    public func compareByPrice(product1 : Product, product2 : Product) : Order.Order {
+      Nat.compare(product1.price, product2.price);
     };
-
-    let currentAttempts = switch (adminPinAttempts.get(caller)) {
-      case (?attempts) { attempts };
-      case (null) { 0 };
-    };
-
-    if (currentAttempts + 1 >= maxAttempts) {
-      let lockoutExpiry = now + lockoutDuration;
-      adminPinLockoutTime.add(caller, lockoutExpiry);
-      adminPinAttempts.remove(caller);
-      let lockoutDurationMinutes = lockoutDuration / 60;
-      return #err(
-        "Locked out. Try again in " # lockoutDurationMinutes.toText() # " minutes."
-      );
-    };
-
-    let remainingAttempts = Int.abs(maxAttempts.toInt() - 1);
-
-    adminPinAttempts.add(
-      caller,
-      currentAttempts + 1,
-    );
-
-    #err(
-      "Incorrect PIN. You have " # remainingAttempts.toText() # " attempts remaining."
-    );
-  };
-
-  // Callers may only check their own lockout status unless they are an admin.
-  public shared ({ caller }) func getAdminPinLockoutStatus(principal : Principal) : async { isLockedOut : Bool; remainingSeconds : Int } {
-    if (caller != principal and not AccessControl.isAdmin(accessControlState, caller)) {
-      Runtime.trap("Unauthorized: Can only check your own lockout status");
-    };
-    switch (adminPinLockoutTime.get(principal)) {
-      case (?lockoutExpiry) {
-        let now = Time.now() / 1_000_000_000;
-        if (now < lockoutExpiry) {
-          let remaining = lockoutExpiry - now;
-          return { isLockedOut = true; remainingSeconds = remaining };
-        };
-      };
-      case (null) {};
-    };
-    { isLockedOut = false; remainingSeconds = 0 };
   };
 };

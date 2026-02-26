@@ -1,7 +1,7 @@
 import React from 'react';
 import { CheckCircle, Package, ArrowRight, Loader2, AlertCircle, Clock, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { useGetOrderById, useGetProductById } from '../hooks/useQueries';
-import { PaymentMethod, ApprovalStatus } from '../backend';
+import { PaymentMethod, OrderApprovalStatus } from '../backend';
 
 interface OrderConfirmationPageProps {
   orderId: bigint;
@@ -32,8 +32,8 @@ function ProductDetails({ productId }: { productId: bigint }) {
   );
 }
 
-function ApprovalStatusBadge({ status }: { status: ApprovalStatus }) {
-  if (status === ApprovalStatus.approved) {
+function ApprovalStatusBadge({ status }: { status: OrderApprovalStatus }) {
+  if (status === OrderApprovalStatus.approved) {
     return (
       <div className="flex items-center gap-2 px-3 py-1.5 rounded-sm bg-success/10 border border-success/30 w-fit">
         <ThumbsUp className="w-3.5 h-3.5 text-success" />
@@ -41,7 +41,7 @@ function ApprovalStatusBadge({ status }: { status: ApprovalStatus }) {
       </div>
     );
   }
-  if (status === ApprovalStatus.declined) {
+  if (status === OrderApprovalStatus.declined) {
     return (
       <div className="flex items-center gap-2 px-3 py-1.5 rounded-sm bg-destructive/10 border border-destructive/30 w-fit">
         <ThumbsDown className="w-3.5 h-3.5 text-destructive" />
@@ -67,93 +67,86 @@ function GenericSuccessScreen({ onContinueShopping }: { onContinueShopping: () =
           <div className="w-16 h-16 rounded-full bg-success/10 border border-success/30 flex items-center justify-center mx-auto mb-4">
             <CheckCircle className="w-8 h-8 text-success" />
           </div>
-          <h1 className="font-orbitron text-2xl font-black text-foreground mb-2">Order Confirmed!</h1>
+          <h1 className="font-orbitron text-2xl font-bold text-foreground mb-2">Order Placed!</h1>
           <p className="font-rajdhani text-muted-foreground">
-            Your order has been placed successfully and is pending admin approval.
+            Your order has been submitted successfully. Our team will review it shortly.
           </p>
         </div>
 
-        <div className="rounded-sm border border-border bg-card overflow-hidden mb-6">
-          <div className="h-1 w-full bg-gradient-to-r from-sunset-gold via-sunset-orange to-sunset-pink" />
-          <div className="p-5">
-            <div className="flex items-center gap-2 mb-3">
-              <Clock className="w-4 h-4 text-sunset-gold" />
-              <h2 className="font-orbitron text-sm font-bold text-sunset-gold uppercase tracking-wider">
-                Order Status
-              </h2>
-            </div>
-            <p className="font-rajdhani text-sm text-muted-foreground mb-3">
-              Your order is being reviewed by our team. You will be notified once it has been approved.
-            </p>
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-sm bg-sunset-gold/10 border border-sunset-gold/30 w-fit">
-              <Clock className="w-3.5 h-3.5 text-sunset-gold" />
-              <span className="font-rajdhani text-sm font-bold text-sunset-gold">Pending Review</span>
-            </div>
+        <div className="p-6 rounded-sm border border-border bg-card space-y-4 mb-8">
+          <div className="flex items-center gap-2 text-sunset-gold">
+            <Clock className="w-4 h-4" />
+            <span className="font-rajdhani font-semibold text-sm">What happens next?</span>
           </div>
+          <ul className="space-y-2 font-rajdhani text-sm text-muted-foreground">
+            <li className="flex items-start gap-2">
+              <span className="text-sunset-gold mt-0.5">1.</span>
+              Our admin team will review your payment details.
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-sunset-gold mt-0.5">2.</span>
+              Once approved, your account details will be delivered.
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-sunset-gold mt-0.5">3.</span>
+              You'll be able to track your order status here.
+            </li>
+          </ul>
         </div>
 
-        <div className="rounded-sm border border-border bg-card p-5 mb-8">
-          <h3 className="font-orbitron text-sm font-bold text-foreground mb-3 uppercase tracking-wider">
-            What Happens Next?
-          </h3>
-          <ol className="space-y-2">
-            {[
-              'Our team will review your order and payment.',
-              'Once approved, your account credentials will be sent to your email.',
-              'If you have any issues, contact us via Discord or email.',
-            ].map((s, i) => (
-              <li key={i} className="flex items-start gap-3">
-                <span className="w-5 h-5 rounded-full bg-sunset-orange/20 border border-sunset-orange/40 text-sunset-orange text-xs font-orbitron font-bold flex items-center justify-center flex-shrink-0 mt-0.5">
-                  {i + 1}
-                </span>
-                <p className="font-rajdhani text-sm text-muted-foreground">{s}</p>
-              </li>
-            ))}
-          </ol>
+        <div className="text-center">
+          <button
+            onClick={onContinueShopping}
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-sm bg-gradient-to-r from-sunset-orange to-sunset-gold text-dusk-bg font-orbitron font-bold text-sm tracking-wider hover:opacity-90 transition-opacity"
+          >
+            Continue Shopping
+            <ArrowRight className="w-4 h-4" />
+          </button>
         </div>
-
-        <button
-          onClick={onContinueShopping}
-          className="w-full flex items-center justify-center gap-2 py-3 rounded-sm bg-gradient-to-r from-sunset-orange to-sunset-pink text-white font-rajdhani font-bold tracking-wider uppercase hover:opacity-90 transition-all sunset-glow"
-        >
-          Continue Shopping
-          <ArrowRight className="w-4 h-4" />
-        </button>
       </div>
     </div>
   );
 }
 
 export default function OrderConfirmationPage({ orderId, onContinueShopping }: OrderConfirmationPageProps) {
-  // orderId === 0n is a sentinel meaning "order placed but ID unknown"
-  const isUnknownId = orderId === 0n;
-
-  // Refetch every 10 seconds so the buyer sees live approval status updates
-  const { data: order, isLoading, error } = useGetOrderById(isUnknownId ? null : orderId);
-
-  if (isUnknownId) {
+  // Sentinel: 0n means order was placed but we don't have a real ID to poll
+  if (orderId === 0n) {
     return <GenericSuccessScreen onContinueShopping={onContinueShopping} />;
   }
+
+  return <OrderStatusPoller orderId={orderId} onContinueShopping={onContinueShopping} />;
+}
+
+function OrderStatusPoller({ orderId, onContinueShopping }: OrderConfirmationPageProps) {
+  const { data: order, isLoading, isError } = useGetOrderById(orderId);
 
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-sunset-gold" />
+        <div className="text-center space-y-3">
+          <Loader2 className="w-8 h-8 animate-spin text-sunset-gold mx-auto" />
+          <p className="font-rajdhani text-muted-foreground">Loading your order...</p>
+        </div>
       </div>
     );
   }
 
-  if (error || !order) {
+  if (isError || !order) {
     return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-3">
-        <AlertCircle className="w-10 h-10 text-destructive" />
-        <p className="font-rajdhani text-muted-foreground">Failed to load order details.</p>
-        <button
-          onClick={onContinueShopping}
-          className="px-4 py-2 rounded-sm bg-gradient-to-r from-sunset-orange to-sunset-pink text-white font-rajdhani font-semibold hover:opacity-90 transition-all"
-        >
-          Return to Store
-        </button>
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className="text-center space-y-4 max-w-sm">
+          <AlertCircle className="w-10 h-10 text-destructive mx-auto" />
+          <p className="font-orbitron text-foreground font-bold">Order Not Found</p>
+          <p className="font-rajdhani text-muted-foreground text-sm">
+            We couldn't load your order details. It may still be processing.
+          </p>
+          <button
+            onClick={onContinueShopping}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-sm bg-gradient-to-r from-sunset-orange to-sunset-gold text-dusk-bg font-orbitron font-bold text-sm tracking-wider hover:opacity-90 transition-opacity"
+          >
+            Back to Store
+          </button>
+        </div>
       </div>
     );
   }
@@ -161,129 +154,80 @@ export default function OrderConfirmationPage({ orderId, onContinueShopping }: O
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Success header */}
+        {/* Header */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 rounded-full bg-success/10 border border-success/30 flex items-center justify-center mx-auto mb-4 sunset-glow-sm">
-            <CheckCircle className="w-8 h-8 text-success" />
+          <div className="w-16 h-16 rounded-full bg-success/10 border border-success/30 flex items-center justify-center mx-auto mb-4">
+            <Package className="w-8 h-8 text-success" />
           </div>
-          <h1 className="font-orbitron text-2xl font-black text-foreground mb-2">Order Confirmed!</h1>
+          <h1 className="font-orbitron text-2xl font-bold text-foreground mb-2">Order Confirmed</h1>
           <p className="font-rajdhani text-muted-foreground">
-            Order #{orderId.toString()} has been placed successfully.
+            Order #{orderId.toString()} — updates every 10 seconds
           </p>
         </div>
 
-        {/* Order Status Card */}
-        <div className="rounded-sm border border-border bg-card overflow-hidden mb-6">
-          <div className="h-1 w-full bg-gradient-to-r from-sunset-gold via-sunset-orange to-sunset-pink" />
-          <div className="p-5">
-            <div className="flex items-center gap-2 mb-3">
-              <Clock className="w-4 h-4 text-sunset-gold" />
-              <h2 className="font-orbitron text-sm font-bold text-sunset-gold uppercase tracking-wider">
-                Order Status
-              </h2>
-            </div>
+        {/* Status */}
+        <div className="p-5 rounded-sm border border-border bg-card space-y-4 mb-6">
+          <div className="flex items-center justify-between">
+            <span className="font-rajdhani text-sm text-muted-foreground font-semibold uppercase tracking-wider">
+              Approval Status
+            </span>
+            <ApprovalStatusBadge status={order.approvalStatus} />
+          </div>
+
+          <div className="flex items-center justify-between">
+            <span className="font-rajdhani text-sm text-muted-foreground font-semibold uppercase tracking-wider">
+              Payment Method
+            </span>
+            <span className="font-rajdhani text-sm text-foreground">
+              {paymentMethodLabels[order.paymentMethod] ?? String(order.paymentMethod)}
+            </span>
+          </div>
+
+          {order.buyerUsername && (
             <div className="flex items-center justify-between">
-              <div>
-                <p className="font-rajdhani text-sm text-muted-foreground mb-2">
-                  Your order is being reviewed by our team. Status updates automatically every 10 seconds.
-                </p>
-                <ApprovalStatusBadge status={order.approvalStatus} />
-              </div>
+              <span className="font-rajdhani text-sm text-muted-foreground font-semibold uppercase tracking-wider">
+                Buyer
+              </span>
+              <span className="font-rajdhani text-sm text-foreground">{order.buyerUsername}</span>
             </div>
-            {order.approvalStatus === ApprovalStatus.declined && (
-              <div className="mt-3 p-3 rounded-sm bg-destructive/5 border border-destructive/20">
-                <p className="font-rajdhani text-sm text-destructive">
-                  Your order has been declined. Please contact support for assistance or try a different payment method.
-                </p>
-              </div>
-            )}
-            {order.approvalStatus === ApprovalStatus.approved && (
-              <div className="mt-3 p-3 rounded-sm bg-success/5 border border-success/20">
-                <p className="font-rajdhani text-sm text-success">
-                  Your order has been approved! Your account credentials will be delivered to your email shortly.
-                </p>
-              </div>
-            )}
+          )}
+        </div>
+
+        {/* Product */}
+        <div className="mb-8">
+          <p className="font-rajdhani text-xs text-muted-foreground uppercase tracking-wider mb-2">Product</p>
+          <ProductDetails productId={order.productId} />
+        </div>
+
+        {/* Approved: show account details */}
+        {order.approvalStatus === OrderApprovalStatus.approved && (
+          <div className="p-5 rounded-sm border border-success/30 bg-success/5 mb-6">
+            <p className="font-orbitron text-sm font-bold text-success mb-2">✓ Order Approved</p>
+            <p className="font-rajdhani text-sm text-muted-foreground">
+              Your order has been approved. Please check your contact details for delivery information.
+            </p>
           </div>
-        </div>
+        )}
 
-        {/* Order details card */}
-        <div className="rounded-sm border border-border bg-card overflow-hidden mb-6">
-          <div className="h-1 w-full bg-gradient-to-r from-sunset-orange via-sunset-pink to-sunset-purple" />
-          <div className="p-6 space-y-5">
-            {/* Product */}
-            <div>
-              <div className="flex items-center gap-2 mb-3">
-                <Package className="w-4 h-4 text-sunset-orange" />
-                <h2 className="font-orbitron text-sm font-bold text-sunset-orange uppercase tracking-wider">
-                  Product
-                </h2>
-              </div>
-              <ProductDetails productId={order.productId} />
-            </div>
-
-            {/* Payment method */}
-            <div>
-              <p className="font-rajdhani text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
-                Payment Method
-              </p>
-              <p className="font-rajdhani text-sm text-foreground">
-                {paymentMethodLabels[order.paymentMethod as string] ?? order.paymentMethod}
-              </p>
-            </div>
-
-            {/* Gift card details */}
-            {order.paymentMethod === PaymentMethod.ukGiftCard && (
-              <div className="p-3 rounded-sm border border-sunset-gold/20 bg-sunset-gold/5 space-y-2">
-                <p className="font-orbitron text-xs font-bold text-sunset-gold uppercase tracking-wider">
-                  Gift Card Details
-                </p>
-                {order.giftCardNumber && (
-                  <div>
-                    <p className="font-rajdhani text-xs text-muted-foreground">Card Number</p>
-                    <p className="font-rajdhani text-sm text-foreground">{order.giftCardNumber}</p>
-                  </div>
-                )}
-                {order.giftCardBalance && (
-                  <div>
-                    <p className="font-rajdhani text-xs text-muted-foreground">Balance</p>
-                    <p className="font-rajdhani text-sm text-foreground">£{order.giftCardBalance}</p>
-                  </div>
-                )}
-              </div>
-            )}
+        {/* Declined */}
+        {order.approvalStatus === OrderApprovalStatus.declined && (
+          <div className="p-5 rounded-sm border border-destructive/30 bg-destructive/5 mb-6">
+            <p className="font-orbitron text-sm font-bold text-destructive mb-2">✗ Order Declined</p>
+            <p className="font-rajdhani text-sm text-muted-foreground">
+              Unfortunately your order was declined. Please contact support or try again.
+            </p>
           </div>
-        </div>
+        )}
 
-        {/* Next steps */}
-        <div className="rounded-sm border border-border bg-card p-5 mb-8">
-          <h3 className="font-orbitron text-sm font-bold text-foreground mb-3 uppercase tracking-wider">
-            What Happens Next?
-          </h3>
-          <ol className="space-y-2">
-            {[
-              'Our team will review your order and payment.',
-              'Once approved, your account credentials will be sent to your email.',
-              'If you have any issues, contact us via Discord or email.',
-            ].map((s, i) => (
-              <li key={i} className="flex items-start gap-3">
-                <span className="w-5 h-5 rounded-full bg-sunset-orange/20 border border-sunset-orange/40 text-sunset-orange text-xs font-orbitron font-bold flex items-center justify-center flex-shrink-0 mt-0.5">
-                  {i + 1}
-                </span>
-                <p className="font-rajdhani text-sm text-muted-foreground">{s}</p>
-              </li>
-            ))}
-          </ol>
+        <div className="text-center">
+          <button
+            onClick={onContinueShopping}
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-sm bg-gradient-to-r from-sunset-orange to-sunset-gold text-dusk-bg font-orbitron font-bold text-sm tracking-wider hover:opacity-90 transition-opacity"
+          >
+            Continue Shopping
+            <ArrowRight className="w-4 h-4" />
+          </button>
         </div>
-
-        {/* CTA */}
-        <button
-          onClick={onContinueShopping}
-          className="w-full flex items-center justify-center gap-2 py-3 rounded-sm bg-gradient-to-r from-sunset-orange to-sunset-pink text-white font-rajdhani font-bold tracking-wider uppercase hover:opacity-90 transition-all sunset-glow"
-        >
-          Continue Shopping
-          <ArrowRight className="w-4 h-4" />
-        </button>
       </div>
     </div>
   );

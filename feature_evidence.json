@@ -1,48 +1,4 @@
 {
   "kind": "feature_evidence_report",
-  "features": [
-    {
-      "featureId": "feature-audit-and-fix-the-placeorder-mutation-function-in-frontend-src-hooks-usequeries-ts-to-ensure-it-1-correctly-awaits-the-actor-call-2-passes-all-required-fields-to-the-backend-username-email-contactinfo-productid-paymentmethod-giftcardnumber-empty-string-for-non-gift-card-orders-and-giftcardbalance-empty-string-for-non-gift-card-orders-3-properly-unwraps-the-motoko-ok-err-result-variant-and-throws-a-javascript-error-when-the-backend-returns-err-so-the-onerror-handler-fires-4-invalidates-the-orders-react-query-cache-on-success-so-the-admin-panel-tables-refresh-immediately-after-a-purchase",
-      "featureTitle": "Audit and fix the `placeOrder` mutation function in `frontend/src/hooks/useQueries.ts` to ensure it: (1) correctly awaits the actor call; (2) passes all required fields to the backend — `username`, `email`, `contactInfo`, `productId`, `paymentMethod`, `giftCardNumber` (empty string for non-gift-card orders), and `giftCardBalance` (empty string for non-gift-card orders); (3) properly unwraps the Motoko `#ok`/`#err` Result variant and throws a JavaScript `Error` when the backend returns `#err` so the `onError` handler fires; (4) invalidates the `orders` React Query cache on success so the admin panel tables refresh immediately after a purchase.",
-      "files": [
-        "frontend/src/hooks/useQueries.ts"
-      ],
-      "components": [
-        "authorization@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0",
-        "qr-code@1.0.0",
-        "camera@1.0.0"
-      ],
-      "testIds": [
-        "REQ-134"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-audit-frontend-src-components-admin-ordermanager-tsx-and-frontend-src-components-admin-paymentsmanager-tsx-to-confirm-1-both-components-use-the-correct-react-query-hook-useorders-the-orders-query-key-to-fetch-all-orders-from-the-backend-2-neither-component-has-any-filtering-sorting-or-conditional-logic-that-could-hide-newly-placed-orders-3-the-orders-query-key-used-in-both-components-exactly-matches-the-key-invalidated-by-the-placeorder-mutation-on-success-so-the-admin-tables-auto-refresh-after-a-purchase-is-made-fix-any-mismatch-or-filtering-bug-found",
-      "featureTitle": "Audit `frontend/src/components/admin/OrderManager.tsx` and `frontend/src/components/admin/PaymentsManager.tsx` to confirm: (1) both components use the correct React Query hook (`useOrders` / the `orders` query key) to fetch all orders from the backend; (2) neither component has any filtering, sorting, or conditional logic that could hide newly placed orders; (3) the `orders` query key used in both components exactly matches the key invalidated by the `placeOrder` mutation on success, so the admin tables auto-refresh after a purchase is made. Fix any mismatch or filtering bug found.",
-      "files": [
-        "frontend/src/components/admin/OrderManager.tsx",
-        "frontend/src/components/admin/PaymentsManager.tsx"
-      ],
-      "components": [
-        "authorization@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0",
-        "qr-code@1.0.0",
-        "camera@1.0.0"
-      ],
-      "testIds": [
-        "REQ-136"
-      ],
-      "confidence": "high"
-    }
-  ]
+  "features": []
 }

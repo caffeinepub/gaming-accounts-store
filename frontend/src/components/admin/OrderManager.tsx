@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { Search, Package, Loader2, Clock, CheckCircle, XCircle, AlertTriangle, RefreshCw } from 'lucide-react';
 import { useGetAllOrders } from '../../hooks/useQueries';
-import { ApprovalStatus, PaymentMethod, type Order } from '../../backend';
+import { useAdminSession } from '../../contexts/AdminSessionContext';
+import { OrderApprovalStatus, PaymentMethod, type Order } from '../../backend';
 
-function StatusBadge({ status }: { status: ApprovalStatus }) {
+function StatusBadge({ status }: { status: OrderApprovalStatus }) {
   const config = {
-    [ApprovalStatus.pending]: { label: 'Pending', icon: Clock, color: 'text-yellow-400 bg-yellow-400/10' },
-    [ApprovalStatus.approved]: { label: 'Approved', icon: CheckCircle, color: 'text-green-400 bg-green-400/10' },
-    [ApprovalStatus.declined]: { label: 'Declined', icon: XCircle, color: 'text-red-400 bg-red-400/10' },
+    [OrderApprovalStatus.pending]: { label: 'Pending', icon: Clock, color: 'text-yellow-400 bg-yellow-400/10' },
+    [OrderApprovalStatus.approved]: { label: 'Approved', icon: CheckCircle, color: 'text-green-400 bg-green-400/10' },
+    [OrderApprovalStatus.declined]: { label: 'Declined', icon: XCircle, color: 'text-red-400 bg-red-400/10' },
   };
   const { label, icon: Icon, color } = config[status] ?? { label: String(status), icon: Clock, color: 'text-muted-foreground bg-muted' };
   return (
@@ -29,7 +30,8 @@ function PaymentLabel({ method }: { method: PaymentMethod }) {
 }
 
 export default function OrderManager() {
-  const { data: orders = [], isLoading, isError, error, refetch, isFetching } = useGetAllOrders();
+  const { adminVerified } = useAdminSession();
+  const { data: orders = [], isLoading, isError, error, refetch, isFetching } = useGetAllOrders(adminVerified);
   const [search, setSearch] = useState('');
 
   const filtered = orders.filter((o: Order) => {

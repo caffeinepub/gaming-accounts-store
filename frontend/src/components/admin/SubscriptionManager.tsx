@@ -1,270 +1,465 @@
 import React, { useState } from 'react';
-import { Edit2, Save, X, Loader2, Crown, Sparkles, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { Switch } from '@/components/ui/switch';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Loader2, Plus, Trash2, ChevronDown, ChevronUp, X, Check } from 'lucide-react';
 import {
   useGetSubscriptionTiers,
   useUpdateSubscriptionTierPrices,
   useSetSubscriptionTierFreeTrial,
+  useCreateSubscriptionTier,
+  useDeleteSubscriptionTier,
 } from '../../hooks/useQueries';
-import type { SubscriptionTier } from '../../backend';
+import { Switch } from '@/components/ui/switch';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
-interface EditState {
-  monthlyPrice: string;
-  yearlyPrice: string;
+interface TierRowProps {
+  tier: {
+    id: bigint;
+    name: string;
+    monthlyPrice: number;
+    yearlyPrice: number;
+    perks: string[];
+    freeTrialEnabled: boolean;
+  };
 }
 
-function TierRow({ tier }: { tier: SubscriptionTier }) {
-  const [editing, setEditing] = useState(false);
-  const [editValues, setEditValues] = useState<EditState>({
-    monthlyPrice: tier.monthlyPrice.toFixed(2),
-    yearlyPrice: tier.yearlyPrice.toFixed(2),
-  });
+function TierRow({ tier }: TierRowProps) {
+  const [monthlyPrice, setMonthlyPrice] = useState(tier.monthlyPrice.toString());
+  const [yearlyPrice, setYearlyPrice] = useState(tier.yearlyPrice.toString());
+  const [expanded, setExpanded] = useState(false);
 
   const updatePrices = useUpdateSubscriptionTierPrices();
   const setFreeTrial = useSetSubscriptionTierFreeTrial();
+  const deleteTier = useDeleteSubscriptionTier();
 
   const handleSavePrices = async () => {
-    const monthly = parseFloat(editValues.monthlyPrice);
-    const yearly = parseFloat(editValues.yearlyPrice);
-
-    if (isNaN(monthly) || monthly < 0) {
-      toast.error('Invalid monthly price');
+    const monthly = parseFloat(monthlyPrice);
+    const yearly = parseFloat(yearlyPrice);
+    if (isNaN(monthly) || isNaN(yearly)) {
+      toast.error('Please enter valid prices.');
       return;
     }
-    if (isNaN(yearly) || yearly < 0) {
-      toast.error('Invalid yearly price');
-      return;
-    }
-
     try {
       await updatePrices.mutateAsync({ id: tier.id, monthlyPrice: monthly, yearlyPrice: yearly });
-      toast.success(`${tier.name} prices updated successfully`);
-      setEditing(false);
-    } catch (err: any) {
-      toast.error(err?.message ?? 'Failed to update prices');
+      toast.success(`Prices updated for ${tier.name}`);
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Failed to update prices');
     }
-  };
-
-  const handleCancelEdit = () => {
-    setEditValues({
-      monthlyPrice: tier.monthlyPrice.toFixed(2),
-      yearlyPrice: tier.yearlyPrice.toFixed(2),
-    });
-    setEditing(false);
   };
 
   const handleToggleFreeTrial = async (enabled: boolean) => {
     try {
       await setFreeTrial.mutateAsync({ id: tier.id, enabled });
-      toast.success(
-        enabled
-          ? `7-day free trial enabled for ${tier.name}`
-          : `Free trial disabled for ${tier.name}`
-      );
-    } catch (err: any) {
-      toast.error(err?.message ?? 'Failed to update free trial setting');
+      toast.success(`Free trial ${enabled ? 'enabled' : 'disabled'} for ${tier.name}`);
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Failed to update free trial');
     }
   };
 
-  const isPro = tier.name === 'Pro';
+  const handleDelete = async () => {
+    try {
+      await deleteTier.mutateAsync(tier.id);
+      toast.success(`"${tier.name}" tier deleted`);
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Failed to delete tier');
+    }
+  };
 
   return (
-    <div
-      className={`p-5 rounded-sm border bg-card transition-all ${
-        isPro ? 'border-sunset-gold/40 bg-sunset-gold/5' : 'border-border'
-      }`}
-    >
-      {/* Tier header */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <div className={`p-1.5 rounded-sm bg-muted ${isPro ? 'text-sunset-gold' : 'text-muted-foreground'}`}>
-            <Crown className="w-4 h-4" />
-          </div>
-          <div>
-            <h3 className="font-orbitron font-bold text-foreground">{tier.name}</h3>
-            <p className="font-rajdhani text-xs text-muted-foreground">
-              {tier.perks.length} perks included
-            </p>
-          </div>
-          {isPro && (
-            <span className="text-xs font-rajdhani font-semibold px-2 py-0.5 rounded-full bg-sunset-gold/20 text-sunset-gold border border-sunset-gold/30">
-              Most Popular
+    <div className="rounded-xl border border-sunset-gold/20 bg-dusk-mid overflow-hidden">
+      {/* Header row */}
+      <div className="flex items-center justify-between px-5 py-4">
+        <button
+          onClick={() => setExpanded((v) => !v)}
+          className="flex items-center gap-3 flex-1 text-left"
+        >
+          <span className="font-orbitron text-sunset-gold font-semibold text-base tracking-wide">
+            {tier.name}
+          </span>
+          <span className="font-rajdhani text-muted-foreground text-sm">
+            £{tier.monthlyPrice.toFixed(2)}/mo · £{tier.yearlyPrice.toFixed(2)}/yr
+          </span>
+          {tier.freeTrialEnabled && (
+            <span className="text-xs px-2 py-0.5 rounded-full bg-sunset-orange/20 text-sunset-orange font-rajdhani border border-sunset-orange/30">
+              Free Trial
             </span>
           )}
-        </div>
+          <span className="ml-auto text-muted-foreground">
+            {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          </span>
+        </button>
 
-        {!editing ? (
-          <button
-            onClick={() => {
-              setEditValues({
-                monthlyPrice: tier.monthlyPrice.toFixed(2),
-                yearlyPrice: tier.yearlyPrice.toFixed(2),
-              });
-              setEditing(true);
-            }}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm border border-border text-muted-foreground hover:border-sunset-gold hover:text-sunset-gold font-rajdhani text-xs font-semibold uppercase tracking-wider transition-all"
-          >
-            <Edit2 className="w-3.5 h-3.5" />
-            Edit Prices
-          </button>
-        ) : (
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleSavePrices}
-              disabled={updatePrices.isPending}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-success/20 border border-success/30 text-success hover:bg-success/30 font-rajdhani text-xs font-semibold uppercase tracking-wider transition-all disabled:opacity-50"
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="ml-3 text-destructive hover:text-destructive hover:bg-destructive/10 shrink-0"
+              disabled={deleteTier.isPending}
             >
-              {updatePrices.isPending ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              {deleteTier.isPending ? (
+                <Loader2 size={15} className="animate-spin" />
               ) : (
-                <Save className="w-3.5 h-3.5" />
+                <Trash2 size={15} />
               )}
-              Save
-            </button>
-            <button
-              onClick={handleCancelEdit}
-              disabled={updatePrices.isPending}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm border border-border text-muted-foreground hover:border-destructive hover:text-destructive font-rajdhani text-xs font-semibold uppercase tracking-wider transition-all disabled:opacity-50"
-            >
-              <X className="w-3.5 h-3.5" />
-              Cancel
-            </button>
-          </div>
-        )}
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent className="bg-dusk-bg border-sunset-gold/20">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="font-orbitron text-sunset-gold">
+                Delete Tier
+              </AlertDialogTitle>
+              <AlertDialogDescription className="font-rajdhani text-muted-foreground">
+                Are you sure you want to delete the <strong className="text-foreground">"{tier.name}"</strong> subscription tier? This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel className="font-rajdhani border-sunset-gold/30 hover:bg-sunset-gold/10">
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDelete}
+                className="font-rajdhani bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+              >
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
 
-      {/* Price fields */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-        <div className="space-y-1.5">
-          <Label className="font-rajdhani text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-            Monthly Price (£)
+      {/* Expanded edit panel */}
+      {expanded && (
+        <div className="border-t border-sunset-gold/10 px-5 py-4 space-y-4">
+          {/* Prices */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <Label className="font-rajdhani text-muted-foreground text-xs uppercase tracking-wider">
+                Monthly Price (£)
+              </Label>
+              <Input
+                type="number"
+                min="0"
+                step="0.01"
+                value={monthlyPrice}
+                onChange={(e) => setMonthlyPrice(e.target.value)}
+                className="bg-dusk-bg border-sunset-gold/20 font-rajdhani text-foreground focus:border-sunset-gold"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="font-rajdhani text-muted-foreground text-xs uppercase tracking-wider">
+                Yearly Price (£)
+              </Label>
+              <Input
+                type="number"
+                min="0"
+                step="0.01"
+                value={yearlyPrice}
+                onChange={(e) => setYearlyPrice(e.target.value)}
+                className="bg-dusk-bg border-sunset-gold/20 font-rajdhani text-foreground focus:border-sunset-gold"
+              />
+            </div>
+          </div>
+
+          <Button
+            onClick={handleSavePrices}
+            disabled={updatePrices.isPending}
+            size="sm"
+            className="font-rajdhani bg-sunset-gold/20 hover:bg-sunset-gold/30 text-sunset-gold border border-sunset-gold/30"
+          >
+            {updatePrices.isPending ? (
+              <><Loader2 size={14} className="animate-spin mr-2" />Saving…</>
+            ) : (
+              <><Check size={14} className="mr-2" />Save Prices</>
+            )}
+          </Button>
+
+          {/* Free trial toggle */}
+          <div className="flex items-center gap-3 pt-1">
+            <Switch
+              checked={tier.freeTrialEnabled}
+              onCheckedChange={handleToggleFreeTrial}
+              disabled={setFreeTrial.isPending}
+              className="data-[state=checked]:bg-sunset-orange"
+            />
+            <span className="font-rajdhani text-sm text-foreground">
+              Free Trial Enabled
+            </span>
+            {setFreeTrial.isPending && <Loader2 size={14} className="animate-spin text-muted-foreground" />}
+          </div>
+
+          {/* Perks list (read-only display) */}
+          {tier.perks.length > 0 && (
+            <div className="space-y-1">
+              <p className="font-rajdhani text-muted-foreground text-xs uppercase tracking-wider">Perks</p>
+              <ul className="space-y-1">
+                {tier.perks.map((perk, i) => (
+                  <li key={i} className="font-rajdhani text-sm text-foreground flex items-start gap-2">
+                    <span className="text-sunset-gold mt-0.5">•</span>
+                    {perk}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+interface CreateTierFormProps {
+  onClose: () => void;
+}
+
+function CreateTierForm({ onClose }: CreateTierFormProps) {
+  const [name, setName] = useState('');
+  const [monthlyPrice, setMonthlyPrice] = useState('');
+  const [yearlyPrice, setYearlyPrice] = useState('');
+  const [perksText, setPerksText] = useState('');
+  const [freeTrialEnabled, setFreeTrialEnabled] = useState(false);
+
+  const createTier = useCreateSubscriptionTier();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!name.trim()) {
+      toast.error('Tier name is required.');
+      return;
+    }
+    const monthly = parseFloat(monthlyPrice);
+    const yearly = parseFloat(yearlyPrice);
+    if (isNaN(monthly) || monthly < 0) {
+      toast.error('Please enter a valid monthly price.');
+      return;
+    }
+    if (isNaN(yearly) || yearly < 0) {
+      toast.error('Please enter a valid yearly price.');
+      return;
+    }
+
+    // Parse perks: split by newline or comma, trim, filter empty
+    const perks = perksText
+      .split(/[\n,]/)
+      .map((p) => p.trim())
+      .filter((p) => p.length > 0);
+
+    try {
+      await createTier.mutateAsync({
+        name: name.trim(),
+        monthlyPrice: monthly,
+        yearlyPrice: yearly,
+        perks,
+        freeTrialEnabled,
+      });
+      toast.success(`"${name.trim()}" tier created successfully!`);
+      onClose();
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Failed to create tier');
+    }
+  };
+
+  return (
+    <div className="rounded-xl border border-sunset-gold/40 bg-dusk-mid overflow-hidden">
+      {/* Form header */}
+      <div className="flex items-center justify-between px-5 py-4 border-b border-sunset-gold/20">
+        <h3 className="font-orbitron text-sunset-gold font-semibold tracking-wide text-sm">
+          New Subscription Tier
+        </h3>
+        <button
+          onClick={onClose}
+          className="text-muted-foreground hover:text-foreground transition-colors"
+          aria-label="Close form"
+        >
+          <X size={16} />
+        </button>
+      </div>
+
+      <form onSubmit={handleSubmit} className="px-5 py-4 space-y-4">
+        {/* Tier name */}
+        <div className="space-y-1">
+          <Label className="font-rajdhani text-muted-foreground text-xs uppercase tracking-wider">
+            Tier Name *
           </Label>
-          {editing ? (
+          <Input
+            type="text"
+            placeholder="e.g. Gold, Diamond, Elite…"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="bg-dusk-bg border-sunset-gold/20 font-rajdhani text-foreground focus:border-sunset-gold"
+            required
+          />
+        </div>
+
+        {/* Prices */}
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-1">
+            <Label className="font-rajdhani text-muted-foreground text-xs uppercase tracking-wider">
+              Monthly Price (£) *
+            </Label>
             <Input
               type="number"
               min="0"
               step="0.01"
-              value={editValues.monthlyPrice}
-              onChange={(e) => setEditValues((prev) => ({ ...prev, monthlyPrice: e.target.value }))}
-              className="font-orbitron text-sm bg-input border-border focus:border-sunset-gold"
+              placeholder="0.00"
+              value={monthlyPrice}
+              onChange={(e) => setMonthlyPrice(e.target.value)}
+              className="bg-dusk-bg border-sunset-gold/20 font-rajdhani text-foreground focus:border-sunset-gold"
+              required
             />
-          ) : (
-            <div className="px-3 py-2 rounded-sm border border-border bg-muted/30">
-              <span className="font-orbitron font-bold text-sunset-gold">
-                £{tier.monthlyPrice.toFixed(2)}
-              </span>
-              <span className="font-rajdhani text-xs text-muted-foreground ml-1">/mo</span>
-            </div>
-          )}
-        </div>
-
-        <div className="space-y-1.5">
-          <Label className="font-rajdhani text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-            Yearly Price (£)
-          </Label>
-          {editing ? (
+          </div>
+          <div className="space-y-1">
+            <Label className="font-rajdhani text-muted-foreground text-xs uppercase tracking-wider">
+              Yearly Price (£) *
+            </Label>
             <Input
               type="number"
               min="0"
               step="0.01"
-              value={editValues.yearlyPrice}
-              onChange={(e) => setEditValues((prev) => ({ ...prev, yearlyPrice: e.target.value }))}
-              className="font-orbitron text-sm bg-input border-border focus:border-sunset-gold"
+              placeholder="0.00"
+              value={yearlyPrice}
+              onChange={(e) => setYearlyPrice(e.target.value)}
+              className="bg-dusk-bg border-sunset-gold/20 font-rajdhani text-foreground focus:border-sunset-gold"
+              required
             />
-          ) : (
-            <div className="px-3 py-2 rounded-sm border border-border bg-muted/30">
-              <span className="font-orbitron font-bold text-sunset-orange">
-                £{tier.yearlyPrice.toFixed(2)}
-              </span>
-              <span className="font-rajdhani text-xs text-muted-foreground ml-1">/yr</span>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Free trial toggle */}
-      <div className="flex items-center justify-between p-3 rounded-sm border border-border bg-muted/20">
-        <div className="flex items-center gap-2">
-          <Sparkles className={`w-4 h-4 ${tier.freeTrialEnabled ? 'text-success' : 'text-muted-foreground'}`} />
-          <div>
-            <p className="font-rajdhani font-semibold text-sm text-foreground">7-Day Free Trial</p>
-            <p className="font-rajdhani text-xs text-muted-foreground">
-              {tier.freeTrialEnabled ? 'Enabled — users see a trial badge' : 'Disabled — no trial offered'}
-            </p>
           </div>
         </div>
-        <Switch
-          checked={tier.freeTrialEnabled}
-          onCheckedChange={handleToggleFreeTrial}
-          disabled={setFreeTrial.isPending}
-          className="data-[state=checked]:bg-success"
-        />
-      </div>
 
-      {/* Perks preview */}
-      <div className="mt-4">
-        <p className="font-rajdhani text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-          Perks
-        </p>
-        <ul className="space-y-1">
-          {tier.perks.map((perk, idx) => (
-            <li key={idx} className="font-rajdhani text-xs text-muted-foreground flex items-start gap-1.5">
-              <span className="text-success mt-0.5">✓</span>
-              {perk}
-            </li>
-          ))}
-        </ul>
-      </div>
+        {/* Perks */}
+        <div className="space-y-1">
+          <Label className="font-rajdhani text-muted-foreground text-xs uppercase tracking-wider">
+            Perks
+          </Label>
+          <Textarea
+            placeholder="Enter perks separated by new lines or commas&#10;e.g. Unlimited downloads&#10;Priority support&#10;Early access"
+            value={perksText}
+            onChange={(e) => setPerksText(e.target.value)}
+            rows={4}
+            className="bg-dusk-bg border-sunset-gold/20 font-rajdhani text-foreground focus:border-sunset-gold resize-none"
+          />
+          <p className="font-rajdhani text-xs text-muted-foreground">
+            Separate perks with new lines or commas.
+          </p>
+        </div>
+
+        {/* Free trial toggle */}
+        <div className="flex items-center gap-3">
+          <Switch
+            checked={freeTrialEnabled}
+            onCheckedChange={setFreeTrialEnabled}
+            className="data-[state=checked]:bg-sunset-orange"
+          />
+          <span className="font-rajdhani text-sm text-foreground">Enable Free Trial</span>
+        </div>
+
+        {/* Actions */}
+        <div className="flex gap-3 pt-1">
+          <Button
+            type="submit"
+            disabled={createTier.isPending}
+            className="font-rajdhani bg-sunset-gold hover:bg-sunset-gold/90 text-dusk-bg font-semibold flex-1"
+          >
+            {createTier.isPending ? (
+              <><Loader2 size={14} className="animate-spin mr-2" />Creating…</>
+            ) : (
+              <><Plus size={14} className="mr-2" />Create Tier</>
+            )}
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={onClose}
+            disabled={createTier.isPending}
+            className="font-rajdhani border border-sunset-gold/20 hover:bg-sunset-gold/10 text-muted-foreground"
+          >
+            Cancel
+          </Button>
+        </div>
+      </form>
     </div>
   );
 }
 
 export default function SubscriptionManager() {
-  const { data: tiers, isLoading, error } = useGetSubscriptionTiers();
+  const { data: tiers, isLoading, isError } = useGetSubscriptionTiers();
+  const [showCreateForm, setShowCreateForm] = useState(false);
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-16">
-        <Loader2 className="w-6 h-6 animate-spin text-sunset-gold" />
-        <span className="ml-2 font-rajdhani text-muted-foreground">Loading tiers...</span>
+        <Loader2 className="animate-spin text-sunset-gold" size={32} />
       </div>
     );
   }
 
-  if (error) {
+  if (isError) {
     return (
-      <div className="flex items-center justify-center py-16 gap-2">
-        <AlertCircle className="w-5 h-5 text-destructive" />
-        <span className="font-rajdhani text-muted-foreground">Failed to load subscription tiers.</span>
+      <div className="text-center py-16">
+        <p className="font-rajdhani text-destructive text-lg">Failed to load subscription tiers.</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="font-orbitron text-lg font-black text-foreground mb-1">Subscription Tiers</h2>
-        <p className="font-rajdhani text-sm text-muted-foreground">
-          Manage pricing and free trial settings for each subscription tier.
-        </p>
-      </div>
-
-      {(!tiers || tiers.length === 0) ? (
-        <div className="flex flex-col items-center justify-center py-16 gap-3">
-          <Crown className="w-10 h-10 text-muted-foreground opacity-40" />
-          <p className="font-rajdhani text-muted-foreground text-center">
-            Subscription tiers are being set up. Please refresh in a moment.
+      {/* Section header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="font-orbitron text-sunset-gold text-xl font-bold tracking-wide">
+            Subscription Tiers
+          </h2>
+          <p className="font-rajdhani text-muted-foreground text-sm mt-0.5">
+            {tiers && tiers.length > 0
+              ? `${tiers.length} tier${tiers.length !== 1 ? 's' : ''} configured`
+              : 'No tiers yet — create one below'}
           </p>
         </div>
-      ) : (
-        <div className="space-y-4">
-          {[...tiers].sort((a, b) => Number(a.id) - Number(b.id)).map((tier) => (
+
+        {!showCreateForm && (
+          <Button
+            onClick={() => setShowCreateForm(true)}
+            className="font-rajdhani bg-sunset-gold hover:bg-sunset-gold/90 text-dusk-bg font-semibold gap-2"
+          >
+            <Plus size={16} />
+            Create New Tier
+          </Button>
+        )}
+      </div>
+
+      {/* Create form */}
+      {showCreateForm && (
+        <CreateTierForm onClose={() => setShowCreateForm(false)} />
+      )}
+
+      {/* Tier list */}
+      {tiers && tiers.length > 0 ? (
+        <div className="space-y-3">
+          {tiers.map((tier) => (
             <TierRow key={tier.id.toString()} tier={tier} />
           ))}
         </div>
+      ) : (
+        !showCreateForm && (
+          <div className="rounded-xl border border-sunset-gold/10 bg-dusk-mid px-6 py-12 text-center">
+            <p className="font-rajdhani text-muted-foreground text-base">
+              No subscription tiers found. Click <span className="text-sunset-gold font-semibold">Create New Tier</span> to add one.
+            </p>
+          </div>
+        )
       )}
     </div>
   );

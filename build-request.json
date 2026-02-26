@@ -1,103 +1,56 @@
 {
   "kind": "build_request",
-  "title": "Fix end-to-end order placement flow so orders appear in admin Orders and Payments tabs",
-  "projectName": "Game Vault",
+  "title": "Fix admin authorization for product create, edit, and delete operations",
   "priority": "high",
   "requirements": [
     {
-      "id": "REQ-133",
-      "text": "Audit and fix `backend/main.mo` to verify the `placeOrder` function correctly accepts all required fields (`buyerPrincipal`, `username`, `email`, `contactInfo`, `productId`, `paymentMethod`, `giftCardNumber`, `giftCardBalance`), assigns `approvalStatus: #pending` to every new order, persists the new Order record into the stable orders map, and that `getOrders()` retrieves all stored orders without any filtering or omission. Fix any bug found — missing field assignment, incorrect map insertion, wrong key type, or retrieval logic error — so that every successfully placed order is immediately visible via `getOrders()`.",
+      "id": "REQ-1",
+      "text": "Fix the backend admin authorization logic so that the caller's identity is correctly verified as an admin when invoking createProduct, updateProduct, and deleteProduct functions. The current check fails with 'Unauthorized: Only admins can update products' even when the user is logged in as an admin. Ensure the admin identity check uses the caller's principal (msg.caller) and correctly matches it against the stored admin list or whitelist.",
       "target": "backend",
       "source": {
         "messageIds": [
           "msg-recent"
         ],
         "quotes": [
-          "Still can't see the orders if a user orders a product please fix so I can see them in orders in admin panel",
-          "Audit `backend/main.mo` to verify the `placeOrder` function correctly persists new orders to stable storage and that `getOrders()` (used by the admin panel) retrieves all stored orders without filtering or omission."
+          "Failed to update product: Unauthorized: Only admins can update products",
+          "Please fix this I cant cerate or edit or delete products in the cerate products section in the admin panel"
         ]
       },
       "acceptanceCriteria": [
-        "`placeOrder` assigns all required fields to the new Order record including `approvalStatus: #pending`, `giftCardNumber`, and `giftCardBalance`.",
-        "The new Order record is inserted into the stable orders map using the correct key.",
-        "`getOrders()` returns every order that has been placed — no filtering, no omission.",
-        "Calling `placeOrder` followed immediately by `getOrders()` returns an array that includes the newly placed order.",
-        "The backend compiles without errors after the fix."
+        "An authenticated admin user can successfully create a new product via the admin panel without receiving an authorization error.",
+        "An authenticated admin user can successfully update an existing product via the Edit Product form without receiving 'Unauthorized: Only admins can update products'.",
+        "An authenticated admin user can successfully delete a product from the admin panel without receiving an authorization error.",
+        "Non-admin users still receive an unauthorized error when attempting product create/edit/delete operations.",
+        "The admin check uses msg.caller principal comparison, not a session token or username string match that could fail due to identity mismatch."
       ]
     },
     {
-      "id": "REQ-134",
-      "text": "Audit and fix the `placeOrder` mutation function in `frontend/src/hooks/useQueries.ts` to ensure it: (1) correctly awaits the actor call; (2) passes all required fields to the backend — `username`, `email`, `contactInfo`, `productId`, `paymentMethod`, `giftCardNumber` (empty string for non-gift-card orders), and `giftCardBalance` (empty string for non-gift-card orders); (3) properly unwraps the Motoko `#ok`/`#err` Result variant and throws a JavaScript `Error` when the backend returns `#err` so the `onError` handler fires; (4) invalidates the `orders` React Query cache on success so the admin panel tables refresh immediately after a purchase.",
+      "id": "REQ-2",
+      "text": "Ensure the frontend ProductForm and ProductManager components pass the authenticated actor (not an anonymous actor) when calling createProduct, updateProduct, and deleteProduct mutations. Verify that useQueries hooks for these mutations use the authenticated actor from useActor so the caller principal is properly set.",
       "target": "frontend",
       "source": {
         "messageIds": [
           "msg-recent"
         ],
         "quotes": [
-          "Audit and fix the `placeOrder` mutation function in `frontend/src/hooks/useQueries.ts`"
+          "Failed to update product: Unauthorized: Only admins can update products"
         ]
       },
       "acceptanceCriteria": [
-        "The `placeOrder` mutation function uses `await` on the actor call.",
-        "All required fields (`username`, `email`, `contactInfo`, `productId`, `paymentMethod`, `giftCardNumber`, `giftCardBalance`) are present in the payload sent to the backend.",
-        "When the backend returns `#err`, the mutation throws a JavaScript `Error` and the `onError` handler fires.",
-        "On success, the `orders` query cache is invalidated so admin tables re-fetch automatically.",
-        "No TypeScript compilation errors in `useQueries.ts`."
-      ]
-    },
-    {
-      "id": "REQ-135",
-      "text": "Audit and fix `frontend/src/pages/CheckoutPage.tsx` to ensure: (1) the `placeOrder` mutation is invoked with all required fields — `username`, `email`, `contactInfo`, `productId`, `paymentMethod`, `giftCardNumber`, and `giftCardBalance`; (2) for gift card orders, `giftCardNumber` and `giftCardBalance` are collected from the `GiftCardPayment` component and passed through; for all other payment methods, empty strings are passed for both fields; (3) any error thrown by the mutation is surfaced to the user via a toast notification or visible error message — no silent failures; (4) on successful order placement the user is navigated to the order confirmation page.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-recent"
-        ],
-        "quotes": [
-          "Audit and fix `frontend/src/pages/CheckoutPage.tsx`"
-        ]
-      },
-      "acceptanceCriteria": [
-        "The `placeOrder` call in `CheckoutPage.tsx` includes all required fields.",
-        "Gift card orders include the correct `giftCardNumber` and `giftCardBalance` values collected from `GiftCardPayment`.",
-        "Non-gift-card orders pass empty strings for `giftCardNumber` and `giftCardBalance`.",
-        "Mutation errors are displayed to the user via toast or inline error message.",
-        "Successful order placement navigates the user to the order confirmation page.",
-        "No TypeScript compilation errors in `CheckoutPage.tsx`."
-      ]
-    },
-    {
-      "id": "REQ-136",
-      "text": "Audit `frontend/src/components/admin/OrderManager.tsx` and `frontend/src/components/admin/PaymentsManager.tsx` to confirm: (1) both components use the correct React Query hook (`useOrders` / the `orders` query key) to fetch all orders from the backend; (2) neither component has any filtering, sorting, or conditional logic that could hide newly placed orders; (3) the `orders` query key used in both components exactly matches the key invalidated by the `placeOrder` mutation on success, so the admin tables auto-refresh after a purchase is made. Fix any mismatch or filtering bug found.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-recent"
-        ],
-        "quotes": [
-          "Audit `frontend/src/components/admin/OrderManager.tsx` and `frontend/src/components/admin/PaymentsManager.tsx` to confirm they use the correct React Query hook"
-        ]
-      },
-      "acceptanceCriteria": [
-        "`OrderManager.tsx` uses the `orders` query and renders every order returned by the backend.",
-        "`PaymentsManager.tsx` uses the `orders` query and renders every order returned by the backend.",
-        "Neither component contains filtering logic that could hide newly placed orders.",
-        "The `orders` query key in both components matches the key invalidated by `placeOrder` on success.",
-        "After a user completes checkout, both admin tabs display the new order without requiring a manual page refresh."
+        "Product mutation hooks (create, update, delete) use the authenticated actor, not an anonymous one.",
+        "After logging in via Internet Identity and passing the admin PIN gate, product create/edit/delete calls succeed without authorization errors."
       ]
     }
   ],
   "constraints": [
-    "Do not remove or alter the existing Order data type fields (`approvalStatus`, `giftCardNumber`, `giftCardBalance`, `username`, `email`, `contactInfo`).",
-    "Do not change the admin PIN gate logic in `AdminAccessControl.tsx`.",
-    "Do not modify files listed in `frontend.immutablePaths`.",
-    "Preserve all existing stable storage data — no data loss during any canister upgrade triggered by backend changes."
+    "Do not change the admin PIN gate flow in AdminAccessControl.tsx.",
+    "Do not modify files under frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, or frontend/src/components/ui.",
+    "Keep all Motoko logic in backend/main.mo single actor."
   ],
   "nonGoals": [
-    "Adding new order fields beyond those already defined in the backend Order type.",
-    "Changing the checkout UI steps or payment method flows.",
-    "Modifying the admin panel tab structure or adding new tabs.",
-    "Altering the subscription tier management features."
+    "Changing the admin whitelist management UI.",
+    "Modifying the checkout or storefront flows.",
+    "Adding new admin roles or permission levels."
   ],
   "imageRequirements": {
     "required": [],

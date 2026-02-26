@@ -1,65 +1,30 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Fix end-to-end order placement flow so orders appear in admin Orders and Payments tabs",
+  "title": "Fix admin authorization for product create, edit, and delete operations",
   "requirements": [
     {
-      "id": "REQ-134",
-      "summary": "Fix the placeOrder mutation in useQueries.ts to correctly await the actor call, pass all required fields including giftCardNumber and giftCardBalance, properly handle Result variant unwrapping, and invalidate the orders query cache on success",
+      "id": "REQ-2",
+      "summary": "Ensure frontend ProductForm and ProductManager components pass the authenticated actor when calling product mutations",
       "acceptanceCriteria": [
-        "The `placeOrder` mutation function uses `await` on the actor call.",
-        "All required fields (`username`, `email`, `contactInfo`, `productId`, `paymentMethod`, `giftCardNumber`, `giftCardBalance`) are present in the payload sent to the backend.",
-        "When the backend returns `#err`, the mutation throws a JavaScript `Error` and the `onError` handler fires.",
-        "On success, the `orders` query cache is invalidated so admin tables re-fetch automatically.",
-        "No TypeScript compilation errors in `useQueries.ts`."
+        "Product mutation hooks (create, update, delete) use the authenticated actor, not an anonymous one.",
+        "After logging in via Internet Identity and passing the admin PIN gate, product create/edit/delete calls succeed without authorization errors."
       ],
       "file_operations": [
         {
           "path": "frontend/src/hooks/useQueries.ts",
           "operation": "modify",
-          "description": "Fix the placeOrder mutation function to: (1) Add `await` to the actor.placeOrder call; (2) Include `giftCardNumber` and `giftCardBalance` parameters in the function signature and pass them to the backend; (3) Properly unwrap the Motoko Result variant by checking `result.__kind__ === 'err'` and throwing a JavaScript Error with the error message when the backend returns an error; (4) Add `queryClient.invalidateQueries({ queryKey: ['orders'] })` in the onSuccess callback to trigger automatic refetch of admin order tables."
-        }
-      ]
-    },
-    {
-      "id": "REQ-135",
-      "summary": "Fix CheckoutPage.tsx to pass all required fields to placeOrder including giftCardNumber and giftCardBalance, handle errors with user-visible notifications, and navigate to confirmation on success",
-      "acceptanceCriteria": [
-        "The `placeOrder` call in `CheckoutPage.tsx` includes all required fields.",
-        "Gift card orders include the correct `giftCardNumber` and `giftCardBalance` values collected from `GiftCardPayment`.",
-        "Non-gift-card orders pass empty strings for `giftCardNumber` and `giftCardBalance`.",
-        "Mutation errors are displayed to the user via toast or inline error message.",
-        "Successful order placement navigates the user to the order confirmation page.",
-        "No TypeScript compilation errors in `CheckoutPage.tsx`."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/pages/CheckoutPage.tsx",
-          "operation": "modify",
-          "description": "Fix the placeOrder mutation call to: (1) Add state variables to capture `giftCardNumber` and `giftCardBalance` from the GiftCardPayment component; (2) Update the GiftCardPayment component to pass these values back to CheckoutPage via callback props; (3) Pass all required fields to placeOrder including `giftCardNumber` and `giftCardBalance` — use empty strings for both when paymentMethod is not 'ukGiftCard'; (4) Add an `onError` handler to the mutation that displays a toast notification using the shadcn/ui toast component with the error message; (5) Verify the onSuccess handler correctly navigates to the order confirmation page with the returned order ID."
-        }
-      ]
-    },
-    {
-      "id": "REQ-136",
-      "summary": "Audit OrderManager.tsx and PaymentsManager.tsx to confirm they use the correct orders query key, have no filtering logic that hides new orders, and will auto-refresh when the orders cache is invalidated",
-      "acceptanceCriteria": [
-        "`OrderManager.tsx` uses the `orders` query and renders every order returned by the backend.",
-        "`PaymentsManager.tsx` uses the `orders` query and renders every order returned by the backend.",
-        "Neither component contains filtering logic that could hide newly placed orders.",
-        "The `orders` query key in both components matches the key invalidated by `placeOrder` on success.",
-        "After a user completes checkout, both admin tabs display the new order without requiring a manual page refresh."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/components/admin/OrderManager.tsx",
-          "operation": "modify",
-          "description": "Audit the component to confirm: (1) It uses the `useOrders` hook (or directly uses `useQuery` with queryKey `['orders']`) to fetch orders; (2) The query key exactly matches `['orders']` with no additional parameters; (3) Remove any filtering, sorting, or conditional rendering logic that could hide pending orders or orders with specific payment methods; (4) Ensure all orders from the query result are rendered in the table without omission."
+          "description": "Review and ensure that useCreateProduct, useUpdateProduct, and useDeleteProduct mutations use the authenticated actor from useActor (not an anonymous actor). Verify that these mutations are called with actor from the useActor hook and that the actor is properly initialized before mutations are invoked. If mutations currently use an anonymous or stale actor reference, update them to use the authenticated actor consistently. This ensures the caller principal is correctly set when invoking createProduct, updateProduct, and deleteProduct backend functions."
         },
         {
-          "path": "frontend/src/components/admin/PaymentsManager.tsx",
+          "path": "frontend/src/components/admin/ProductForm.tsx",
           "operation": "modify",
-          "description": "Audit the component to confirm: (1) It uses the `useOrders` hook (or directly uses `useQuery` with queryKey `['orders']`) to fetch orders; (2) The query key exactly matches `['orders']` with no additional parameters; (3) Remove any filtering logic that could hide pending orders or specific payment methods; (4) Ensure all orders from the query result are rendered in the table; (5) Verify the approve/decline mutation callbacks include `queryClient.invalidateQueries({ queryKey: ['orders'] })` so the list refreshes after status changes."
+          "description": "Verify that ProductForm uses the authenticated actor when calling useCreateProduct or useUpdateProduct mutations. Ensure that the form does not instantiate or use an anonymous actor. Confirm that the mutation hooks are invoked with the authenticated actor from useActor so that the backend receives the correct caller principal. If the form currently calls mutations without the authenticated actor, update it to use the actor from useActor."
+        },
+        {
+          "path": "frontend/src/components/admin/ProductManager.tsx",
+          "operation": "modify",
+          "description": "Verify that ProductManager uses the authenticated actor when calling useDeleteProduct mutation. Ensure that the delete operation does not use an anonymous actor. Confirm that the mutation hook is invoked with the authenticated actor from useActor so that the backend receives the correct caller principal. If the manager currently calls the delete mutation without the authenticated actor, update it to use the actor from useActor."
         }
       ]
     }

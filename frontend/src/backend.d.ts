@@ -23,17 +23,10 @@ export interface Order {
     giftCardNumber: string;
     productId: bigint;
     buyerUsername: string;
-    approvalStatus: ApprovalStatus;
+    approvalStatus: OrderApprovalStatus;
     buyerContact: string;
     buyer: Principal;
 }
-export type Result = {
-    __kind__: "ok";
-    ok: null;
-} | {
-    __kind__: "err";
-    err: string;
-};
 export interface StoreSettings {
     bitcoinWalletAddress: string;
     paypalWalletAddress: string;
@@ -59,7 +52,7 @@ export interface UserProfile {
     username: string;
     email: string;
 }
-export enum ApprovalStatus {
+export enum OrderApprovalStatus {
     pending = "pending",
     approved = "approved",
     declined = "declined"
@@ -77,8 +70,20 @@ export enum UserRole {
 }
 export interface backendInterface {
     addAdminUser(username: string): Promise<void>;
-    addCategory(name: string, description: string): Promise<Result>;
-    addProduct(gameName: string, categoryId: bigint, title: string, description: string, accountDetails: string, price: bigint, available: boolean): Promise<Result>;
+    addCategory(name: string, description: string): Promise<{
+        __kind__: "ok";
+        ok: null;
+    } | {
+        __kind__: "err";
+        err: string;
+    }>;
+    addProduct(gameName: string, categoryId: bigint, title: string, description: string, accountDetails: string, price: bigint, available: boolean): Promise<{
+        __kind__: "ok";
+        ok: null;
+    } | {
+        __kind__: "err";
+        err: string;
+    }>;
     approveOrder(orderId: bigint): Promise<{
         __kind__: "ok";
         ok: null;
@@ -87,6 +92,13 @@ export interface backendInterface {
         err: string;
     }>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
+    createSubscriptionTier(name: string, monthlyPrice: number, yearlyPrice: number, perks: Array<string>, freeTrialEnabled: boolean): Promise<{
+        __kind__: "ok";
+        ok: SubscriptionTier;
+    } | {
+        __kind__: "err";
+        err: string;
+    }>;
     createUsername(username: string): Promise<void>;
     declineOrder(orderId: bigint): Promise<{
         __kind__: "ok";
@@ -95,23 +107,36 @@ export interface backendInterface {
         __kind__: "err";
         err: string;
     }>;
-    deleteCategory(id: bigint): Promise<Result>;
-    deleteProduct(id: bigint): Promise<Result>;
-    getAdminPinLockoutStatus(principal: Principal): Promise<{
-        remainingSeconds: bigint;
-        isLockedOut: boolean;
+    deleteCategory(id: bigint): Promise<{
+        __kind__: "ok";
+        ok: null;
+    } | {
+        __kind__: "err";
+        err: string;
+    }>;
+    deleteProduct(id: bigint): Promise<{
+        __kind__: "ok";
+        ok: null;
+    } | {
+        __kind__: "err";
+        err: string;
+    }>;
+    deleteSubscriptionTier(id: bigint): Promise<{
+        __kind__: "ok";
+        ok: null;
+    } | {
+        __kind__: "err";
+        err: string;
     }>;
     getAllCategories(): Promise<Array<ProductCategory>>;
     getAllOrders(): Promise<Array<Order>>;
     getAvailableProducts(): Promise<Array<Product>>;
-    getAvailableProductsByPrice(): Promise<Array<Product>>;
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
     getCategoryById(id: bigint): Promise<ProductCategory>;
     getOrderById(id: bigint): Promise<Order>;
     getOrders(): Promise<Array<Order>>;
     getOrdersByBuyer(principal: Principal): Promise<Array<Order>>;
-    getOrdersByUsername(username: string): Promise<Array<Order>>;
     getProductById(id: bigint): Promise<Product>;
     getStoreSettings(): Promise<StoreSettings>;
     getSubscriptionTiers(): Promise<Array<SubscriptionTier>>;
@@ -122,19 +147,60 @@ export interface backendInterface {
     isAdminUsername(username: string): Promise<boolean>;
     isCallerAdmin(): Promise<boolean>;
     isUsernameAvailable(username: string): Promise<boolean>;
-    placeOrder(buyerPrincipal: Principal, username: string, email: string, contactInfo: string, productId: bigint, paymentMethod: PaymentMethod, giftCardNumber: string, giftCardBalance: string): Promise<Result>;
+    placeOrder(buyerPrincipal: Principal, username: string, email: string, contactInfo: string, productId: bigint, paymentMethod: PaymentMethod, giftCardNumber: string, giftCardBalance: string): Promise<{
+        __kind__: "ok";
+        ok: null;
+    } | {
+        __kind__: "err";
+        err: string;
+    }>;
     removeAdminUser(username: string): Promise<void>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
-    setSubscriptionTierFreeTrial(id: bigint, enabled: boolean): Promise<Result>;
-    updateBitcoinWalletAddress(address: string): Promise<Result>;
-    updateCategory(id: bigint, name: string, description: string): Promise<Result>;
-    updateEthereumWalletAddress(address: string): Promise<Result>;
-    updatePaypalWalletAddress(address: string): Promise<Result>;
-    updateProduct(id: bigint, gameName: string, categoryId: bigint, title: string, description: string, accountDetails: string, price: bigint, available: boolean): Promise<Result>;
-    updateSubscriptionTierPrices(id: bigint, monthlyPrice: number, yearlyPrice: number): Promise<Result>;
-    verifyAdminPin(pin: string): Promise<{
+    setSubscriptionTierFreeTrial(id: bigint, enabled: boolean): Promise<{
         __kind__: "ok";
-        ok: boolean;
+        ok: null;
+    } | {
+        __kind__: "err";
+        err: string;
+    }>;
+    updateBitcoinWalletAddress(address: string): Promise<{
+        __kind__: "ok";
+        ok: null;
+    } | {
+        __kind__: "err";
+        err: string;
+    }>;
+    updateCategory(id: bigint, name: string, description: string): Promise<{
+        __kind__: "ok";
+        ok: null;
+    } | {
+        __kind__: "err";
+        err: string;
+    }>;
+    updateEthereumWalletAddress(address: string): Promise<{
+        __kind__: "ok";
+        ok: null;
+    } | {
+        __kind__: "err";
+        err: string;
+    }>;
+    updatePaypalWalletAddress(address: string): Promise<{
+        __kind__: "ok";
+        ok: null;
+    } | {
+        __kind__: "err";
+        err: string;
+    }>;
+    updateProduct(id: bigint, gameName: string, categoryId: bigint, title: string, description: string, accountDetails: string, price: bigint, available: boolean): Promise<{
+        __kind__: "ok";
+        ok: null;
+    } | {
+        __kind__: "err";
+        err: string;
+    }>;
+    updateSubscriptionTierPrices(id: bigint, monthlyPrice: number, yearlyPrice: number): Promise<{
+        __kind__: "ok";
+        ok: null;
     } | {
         __kind__: "err";
         err: string;

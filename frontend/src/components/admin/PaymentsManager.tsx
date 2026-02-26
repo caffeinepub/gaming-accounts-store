@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { CheckCircle, XCircle, Clock, Loader2, CreditCard, Gift, Coins, Calendar, AlertTriangle, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { useGetAllOrders, useApproveOrder, useDeclineOrder } from '../../hooks/useQueries';
-import { ApprovalStatus, PaymentMethod, type Order } from '../../backend';
+import { useAdminSession } from '../../contexts/AdminSessionContext';
+import { OrderApprovalStatus, PaymentMethod, type Order } from '../../backend';
 
 function PaymentMethodBadge({ method }: { method: PaymentMethod }) {
   const config = {
@@ -20,11 +21,11 @@ function PaymentMethodBadge({ method }: { method: PaymentMethod }) {
   );
 }
 
-function StatusBadge({ status }: { status: ApprovalStatus }) {
+function StatusBadge({ status }: { status: OrderApprovalStatus }) {
   const config = {
-    [ApprovalStatus.pending]: { label: 'Pending', icon: Clock, color: 'text-yellow-400 bg-yellow-400/10' },
-    [ApprovalStatus.approved]: { label: 'Approved', icon: CheckCircle, color: 'text-green-400 bg-green-400/10' },
-    [ApprovalStatus.declined]: { label: 'Declined', icon: XCircle, color: 'text-red-400 bg-red-400/10' },
+    [OrderApprovalStatus.pending]: { label: 'Pending', icon: Clock, color: 'text-yellow-400 bg-yellow-400/10' },
+    [OrderApprovalStatus.approved]: { label: 'Approved', icon: CheckCircle, color: 'text-green-400 bg-green-400/10' },
+    [OrderApprovalStatus.declined]: { label: 'Declined', icon: XCircle, color: 'text-red-400 bg-red-400/10' },
   };
   const { label, icon: Icon, color } = config[status] ?? { label: String(status), icon: Clock, color: 'text-muted-foreground bg-muted' };
   return (
@@ -85,7 +86,7 @@ function OrderRow({ order, orderId }: OrderRowProps) {
         <StatusBadge status={order.approvalStatus} />
       </td>
       <td className="px-4 py-3">
-        {order.approvalStatus === ApprovalStatus.pending ? (
+        {order.approvalStatus === OrderApprovalStatus.pending ? (
           <div className="flex gap-2">
             <button
               onClick={handleApprove}
@@ -113,11 +114,8 @@ function OrderRow({ order, orderId }: OrderRowProps) {
 }
 
 export default function PaymentsManager() {
-  const { data: orders = [], isLoading, isError, error, refetch, isFetching } = useGetAllOrders();
-  // Track order IDs by position — backend uses sequential IDs starting at 1
-  // We derive the orderId as (index + 1) since nextOrderId starts at 1 and orders are never deleted
-  const [, setForceUpdate] = useState(0);
-  void setForceUpdate; // suppress unused warning
+  const { adminVerified } = useAdminSession();
+  const { data: orders = [], isLoading, isError, error, refetch, isFetching } = useGetAllOrders(adminVerified);
 
   if (isLoading) {
     return (
@@ -185,12 +183,8 @@ export default function PaymentsManager() {
               </tr>
             </thead>
             <tbody>
-              {orders.map((order, index) => (
-                <OrderRow
-                  key={index}
-                  order={order}
-                  orderId={BigInt(index + 1)}
-                />
+              {orders.map((order: Order, index: number) => (
+                <OrderRow key={index} order={order} orderId={BigInt(index + 1)} />
               ))}
             </tbody>
           </table>

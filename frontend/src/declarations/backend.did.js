@@ -8,11 +8,18 @@
 
 import { IDL } from '@icp-sdk/core/candid';
 
-export const Result = IDL.Variant({ 'ok' : IDL.Null, 'err' : IDL.Text });
 export const UserRole = IDL.Variant({
   'admin' : IDL.Null,
   'user' : IDL.Null,
   'guest' : IDL.Null,
+});
+export const SubscriptionTier = IDL.Record({
+  'id' : IDL.Nat,
+  'freeTrialEnabled' : IDL.Bool,
+  'name' : IDL.Text,
+  'yearlyPrice' : IDL.Float64,
+  'monthlyPrice' : IDL.Float64,
+  'perks' : IDL.Vec(IDL.Text),
 });
 export const ProductCategory = IDL.Record({
   'id' : IDL.Nat,
@@ -25,7 +32,7 @@ export const PaymentMethod = IDL.Variant({
   'ukGiftCard' : IDL.Null,
   'paypal' : IDL.Null,
 });
-export const ApprovalStatus = IDL.Variant({
+export const OrderApprovalStatus = IDL.Variant({
   'pending' : IDL.Null,
   'approved' : IDL.Null,
   'declined' : IDL.Null,
@@ -38,7 +45,7 @@ export const Order = IDL.Record({
   'giftCardNumber' : IDL.Text,
   'productId' : IDL.Nat,
   'buyerUsername' : IDL.Text,
-  'approvalStatus' : ApprovalStatus,
+  'approvalStatus' : OrderApprovalStatus,
   'buyerContact' : IDL.Text,
   'buyer' : IDL.Principal,
 });
@@ -62,22 +69,18 @@ export const StoreSettings = IDL.Record({
   'paypalWalletAddress' : IDL.Text,
   'ethereumWalletAddress' : IDL.Text,
 });
-export const SubscriptionTier = IDL.Record({
-  'id' : IDL.Nat,
-  'freeTrialEnabled' : IDL.Bool,
-  'name' : IDL.Text,
-  'yearlyPrice' : IDL.Float64,
-  'monthlyPrice' : IDL.Float64,
-  'perks' : IDL.Vec(IDL.Text),
-});
 
 export const idlService = IDL.Service({
   '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
   'addAdminUser' : IDL.Func([IDL.Text], [], []),
-  'addCategory' : IDL.Func([IDL.Text, IDL.Text], [Result], []),
+  'addCategory' : IDL.Func(
+      [IDL.Text, IDL.Text],
+      [IDL.Variant({ 'ok' : IDL.Null, 'err' : IDL.Text })],
+      [],
+    ),
   'addProduct' : IDL.Func(
       [IDL.Text, IDL.Nat, IDL.Text, IDL.Text, IDL.Text, IDL.Nat, IDL.Bool],
-      [Result],
+      [IDL.Variant({ 'ok' : IDL.Null, 'err' : IDL.Text })],
       [],
     ),
   'approveOrder' : IDL.Func(
@@ -86,30 +89,41 @@ export const idlService = IDL.Service({
       [],
     ),
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
+  'createSubscriptionTier' : IDL.Func(
+      [IDL.Text, IDL.Float64, IDL.Float64, IDL.Vec(IDL.Text), IDL.Bool],
+      [IDL.Variant({ 'ok' : SubscriptionTier, 'err' : IDL.Text })],
+      [],
+    ),
   'createUsername' : IDL.Func([IDL.Text], [], []),
   'declineOrder' : IDL.Func(
       [IDL.Nat],
       [IDL.Variant({ 'ok' : IDL.Null, 'err' : IDL.Text })],
       [],
     ),
-  'deleteCategory' : IDL.Func([IDL.Nat], [Result], []),
-  'deleteProduct' : IDL.Func([IDL.Nat], [Result], []),
-  'getAdminPinLockoutStatus' : IDL.Func(
-      [IDL.Principal],
-      [IDL.Record({ 'remainingSeconds' : IDL.Int, 'isLockedOut' : IDL.Bool })],
+  'deleteCategory' : IDL.Func(
+      [IDL.Nat],
+      [IDL.Variant({ 'ok' : IDL.Null, 'err' : IDL.Text })],
+      [],
+    ),
+  'deleteProduct' : IDL.Func(
+      [IDL.Nat],
+      [IDL.Variant({ 'ok' : IDL.Null, 'err' : IDL.Text })],
+      [],
+    ),
+  'deleteSubscriptionTier' : IDL.Func(
+      [IDL.Nat],
+      [IDL.Variant({ 'ok' : IDL.Null, 'err' : IDL.Text })],
       [],
     ),
   'getAllCategories' : IDL.Func([], [IDL.Vec(ProductCategory)], ['query']),
   'getAllOrders' : IDL.Func([], [IDL.Vec(Order)], ['query']),
   'getAvailableProducts' : IDL.Func([], [IDL.Vec(Product)], ['query']),
-  'getAvailableProductsByPrice' : IDL.Func([], [IDL.Vec(Product)], ['query']),
   'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
   'getCategoryById' : IDL.Func([IDL.Nat], [ProductCategory], ['query']),
   'getOrderById' : IDL.Func([IDL.Nat], [Order], ['query']),
   'getOrders' : IDL.Func([], [IDL.Vec(Order)], ['query']),
   'getOrdersByBuyer' : IDL.Func([IDL.Principal], [IDL.Vec(Order)], ['query']),
-  'getOrdersByUsername' : IDL.Func([IDL.Text], [IDL.Vec(Order)], ['query']),
   'getProductById' : IDL.Func([IDL.Nat], [Product], ['query']),
   'getStoreSettings' : IDL.Func([], [StoreSettings], ['query']),
   'getSubscriptionTiers' : IDL.Func([], [IDL.Vec(SubscriptionTier)], ['query']),
@@ -139,16 +153,36 @@ export const idlService = IDL.Service({
         IDL.Text,
         IDL.Text,
       ],
-      [Result],
+      [IDL.Variant({ 'ok' : IDL.Null, 'err' : IDL.Text })],
       [],
     ),
   'removeAdminUser' : IDL.Func([IDL.Text], [], []),
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
-  'setSubscriptionTierFreeTrial' : IDL.Func([IDL.Nat, IDL.Bool], [Result], []),
-  'updateBitcoinWalletAddress' : IDL.Func([IDL.Text], [Result], []),
-  'updateCategory' : IDL.Func([IDL.Nat, IDL.Text, IDL.Text], [Result], []),
-  'updateEthereumWalletAddress' : IDL.Func([IDL.Text], [Result], []),
-  'updatePaypalWalletAddress' : IDL.Func([IDL.Text], [Result], []),
+  'setSubscriptionTierFreeTrial' : IDL.Func(
+      [IDL.Nat, IDL.Bool],
+      [IDL.Variant({ 'ok' : IDL.Null, 'err' : IDL.Text })],
+      [],
+    ),
+  'updateBitcoinWalletAddress' : IDL.Func(
+      [IDL.Text],
+      [IDL.Variant({ 'ok' : IDL.Null, 'err' : IDL.Text })],
+      [],
+    ),
+  'updateCategory' : IDL.Func(
+      [IDL.Nat, IDL.Text, IDL.Text],
+      [IDL.Variant({ 'ok' : IDL.Null, 'err' : IDL.Text })],
+      [],
+    ),
+  'updateEthereumWalletAddress' : IDL.Func(
+      [IDL.Text],
+      [IDL.Variant({ 'ok' : IDL.Null, 'err' : IDL.Text })],
+      [],
+    ),
+  'updatePaypalWalletAddress' : IDL.Func(
+      [IDL.Text],
+      [IDL.Variant({ 'ok' : IDL.Null, 'err' : IDL.Text })],
+      [],
+    ),
   'updateProduct' : IDL.Func(
       [
         IDL.Nat,
@@ -160,17 +194,12 @@ export const idlService = IDL.Service({
         IDL.Nat,
         IDL.Bool,
       ],
-      [Result],
+      [IDL.Variant({ 'ok' : IDL.Null, 'err' : IDL.Text })],
       [],
     ),
   'updateSubscriptionTierPrices' : IDL.Func(
       [IDL.Nat, IDL.Float64, IDL.Float64],
-      [Result],
-      [],
-    ),
-  'verifyAdminPin' : IDL.Func(
-      [IDL.Text],
-      [IDL.Variant({ 'ok' : IDL.Bool, 'err' : IDL.Text })],
+      [IDL.Variant({ 'ok' : IDL.Null, 'err' : IDL.Text })],
       [],
     ),
 });
@@ -178,11 +207,18 @@ export const idlService = IDL.Service({
 export const idlInitArgs = [];
 
 export const idlFactory = ({ IDL }) => {
-  const Result = IDL.Variant({ 'ok' : IDL.Null, 'err' : IDL.Text });
   const UserRole = IDL.Variant({
     'admin' : IDL.Null,
     'user' : IDL.Null,
     'guest' : IDL.Null,
+  });
+  const SubscriptionTier = IDL.Record({
+    'id' : IDL.Nat,
+    'freeTrialEnabled' : IDL.Bool,
+    'name' : IDL.Text,
+    'yearlyPrice' : IDL.Float64,
+    'monthlyPrice' : IDL.Float64,
+    'perks' : IDL.Vec(IDL.Text),
   });
   const ProductCategory = IDL.Record({
     'id' : IDL.Nat,
@@ -195,7 +231,7 @@ export const idlFactory = ({ IDL }) => {
     'ukGiftCard' : IDL.Null,
     'paypal' : IDL.Null,
   });
-  const ApprovalStatus = IDL.Variant({
+  const OrderApprovalStatus = IDL.Variant({
     'pending' : IDL.Null,
     'approved' : IDL.Null,
     'declined' : IDL.Null,
@@ -208,7 +244,7 @@ export const idlFactory = ({ IDL }) => {
     'giftCardNumber' : IDL.Text,
     'productId' : IDL.Nat,
     'buyerUsername' : IDL.Text,
-    'approvalStatus' : ApprovalStatus,
+    'approvalStatus' : OrderApprovalStatus,
     'buyerContact' : IDL.Text,
     'buyer' : IDL.Principal,
   });
@@ -232,22 +268,18 @@ export const idlFactory = ({ IDL }) => {
     'paypalWalletAddress' : IDL.Text,
     'ethereumWalletAddress' : IDL.Text,
   });
-  const SubscriptionTier = IDL.Record({
-    'id' : IDL.Nat,
-    'freeTrialEnabled' : IDL.Bool,
-    'name' : IDL.Text,
-    'yearlyPrice' : IDL.Float64,
-    'monthlyPrice' : IDL.Float64,
-    'perks' : IDL.Vec(IDL.Text),
-  });
   
   return IDL.Service({
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
     'addAdminUser' : IDL.Func([IDL.Text], [], []),
-    'addCategory' : IDL.Func([IDL.Text, IDL.Text], [Result], []),
+    'addCategory' : IDL.Func(
+        [IDL.Text, IDL.Text],
+        [IDL.Variant({ 'ok' : IDL.Null, 'err' : IDL.Text })],
+        [],
+      ),
     'addProduct' : IDL.Func(
         [IDL.Text, IDL.Nat, IDL.Text, IDL.Text, IDL.Text, IDL.Nat, IDL.Bool],
-        [Result],
+        [IDL.Variant({ 'ok' : IDL.Null, 'err' : IDL.Text })],
         [],
       ),
     'approveOrder' : IDL.Func(
@@ -256,35 +288,41 @@ export const idlFactory = ({ IDL }) => {
         [],
       ),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
+    'createSubscriptionTier' : IDL.Func(
+        [IDL.Text, IDL.Float64, IDL.Float64, IDL.Vec(IDL.Text), IDL.Bool],
+        [IDL.Variant({ 'ok' : SubscriptionTier, 'err' : IDL.Text })],
+        [],
+      ),
     'createUsername' : IDL.Func([IDL.Text], [], []),
     'declineOrder' : IDL.Func(
         [IDL.Nat],
         [IDL.Variant({ 'ok' : IDL.Null, 'err' : IDL.Text })],
         [],
       ),
-    'deleteCategory' : IDL.Func([IDL.Nat], [Result], []),
-    'deleteProduct' : IDL.Func([IDL.Nat], [Result], []),
-    'getAdminPinLockoutStatus' : IDL.Func(
-        [IDL.Principal],
-        [
-          IDL.Record({
-            'remainingSeconds' : IDL.Int,
-            'isLockedOut' : IDL.Bool,
-          }),
-        ],
+    'deleteCategory' : IDL.Func(
+        [IDL.Nat],
+        [IDL.Variant({ 'ok' : IDL.Null, 'err' : IDL.Text })],
+        [],
+      ),
+    'deleteProduct' : IDL.Func(
+        [IDL.Nat],
+        [IDL.Variant({ 'ok' : IDL.Null, 'err' : IDL.Text })],
+        [],
+      ),
+    'deleteSubscriptionTier' : IDL.Func(
+        [IDL.Nat],
+        [IDL.Variant({ 'ok' : IDL.Null, 'err' : IDL.Text })],
         [],
       ),
     'getAllCategories' : IDL.Func([], [IDL.Vec(ProductCategory)], ['query']),
     'getAllOrders' : IDL.Func([], [IDL.Vec(Order)], ['query']),
     'getAvailableProducts' : IDL.Func([], [IDL.Vec(Product)], ['query']),
-    'getAvailableProductsByPrice' : IDL.Func([], [IDL.Vec(Product)], ['query']),
     'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
     'getCategoryById' : IDL.Func([IDL.Nat], [ProductCategory], ['query']),
     'getOrderById' : IDL.Func([IDL.Nat], [Order], ['query']),
     'getOrders' : IDL.Func([], [IDL.Vec(Order)], ['query']),
     'getOrdersByBuyer' : IDL.Func([IDL.Principal], [IDL.Vec(Order)], ['query']),
-    'getOrdersByUsername' : IDL.Func([IDL.Text], [IDL.Vec(Order)], ['query']),
     'getProductById' : IDL.Func([IDL.Nat], [Product], ['query']),
     'getStoreSettings' : IDL.Func([], [StoreSettings], ['query']),
     'getSubscriptionTiers' : IDL.Func(
@@ -318,20 +356,36 @@ export const idlFactory = ({ IDL }) => {
           IDL.Text,
           IDL.Text,
         ],
-        [Result],
+        [IDL.Variant({ 'ok' : IDL.Null, 'err' : IDL.Text })],
         [],
       ),
     'removeAdminUser' : IDL.Func([IDL.Text], [], []),
     'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
     'setSubscriptionTierFreeTrial' : IDL.Func(
         [IDL.Nat, IDL.Bool],
-        [Result],
+        [IDL.Variant({ 'ok' : IDL.Null, 'err' : IDL.Text })],
         [],
       ),
-    'updateBitcoinWalletAddress' : IDL.Func([IDL.Text], [Result], []),
-    'updateCategory' : IDL.Func([IDL.Nat, IDL.Text, IDL.Text], [Result], []),
-    'updateEthereumWalletAddress' : IDL.Func([IDL.Text], [Result], []),
-    'updatePaypalWalletAddress' : IDL.Func([IDL.Text], [Result], []),
+    'updateBitcoinWalletAddress' : IDL.Func(
+        [IDL.Text],
+        [IDL.Variant({ 'ok' : IDL.Null, 'err' : IDL.Text })],
+        [],
+      ),
+    'updateCategory' : IDL.Func(
+        [IDL.Nat, IDL.Text, IDL.Text],
+        [IDL.Variant({ 'ok' : IDL.Null, 'err' : IDL.Text })],
+        [],
+      ),
+    'updateEthereumWalletAddress' : IDL.Func(
+        [IDL.Text],
+        [IDL.Variant({ 'ok' : IDL.Null, 'err' : IDL.Text })],
+        [],
+      ),
+    'updatePaypalWalletAddress' : IDL.Func(
+        [IDL.Text],
+        [IDL.Variant({ 'ok' : IDL.Null, 'err' : IDL.Text })],
+        [],
+      ),
     'updateProduct' : IDL.Func(
         [
           IDL.Nat,
@@ -343,17 +397,12 @@ export const idlFactory = ({ IDL }) => {
           IDL.Nat,
           IDL.Bool,
         ],
-        [Result],
+        [IDL.Variant({ 'ok' : IDL.Null, 'err' : IDL.Text })],
         [],
       ),
     'updateSubscriptionTierPrices' : IDL.Func(
         [IDL.Nat, IDL.Float64, IDL.Float64],
-        [Result],
-        [],
-      ),
-    'verifyAdminPin' : IDL.Func(
-        [IDL.Text],
-        [IDL.Variant({ 'ok' : IDL.Bool, 'err' : IDL.Text })],
+        [IDL.Variant({ 'ok' : IDL.Null, 'err' : IDL.Text })],
         [],
       ),
   });
